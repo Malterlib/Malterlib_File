@@ -1,0 +1,49 @@
+﻿// Copyright © 2015 Hansoft AB 
+// Distributed under the MIT license, see license text in LICENSE.Malterlib
+
+%Target Dll_VfsWfx
+{
+	!!PlatformFamily "Windows"
+	Property
+	{
+		MalterlibPostCopyProject "TotalCmd"
+		ProductName "Malterlib Total Commander VFS plugin"
+	}
+	Target
+	{
+		BaseName "VfsWfx"
+		BaseFileName "MalterlibVfs"
+		ModuleDefinitionFile "@(Builtin.BasePath)/@(Builtin.Function->RelativeBase('MSVC/VfsWfx.def'))"
+		{
+			!!PlatformType "Windows"
+		}
+		FileExtension ".wfx"
+		FileExtension ".wfx64"
+		{
+			!!Architchture "x64"
+		}
+		Type "DynamicLibrary"
+	}
+	%Group Source
+	{
+		%File ../Main.cpp
+		%File ../PCH.h
+		%File ../VfsWfx_Handler.cpp
+		%File ../VfsWfx_Handler.h
+		%File ../VfsWfx_Interface.cpp
+		%File ../VfsWfx_Windows.cpp
+		%File ../VfsWfx_Windows.h
+		%File ../fsplugin.h
+		%File MSVC/VfsWfx.def
+	}
+	%Group "Resources"
+	{
+		%File MSVC/Dll_VfsWfx.rc
+		%File MSVC/ico00001.ico
+		%File MSVC/icon1.ico
+		%File MSVC/icon2.ico
+		%File MSVC/resource.h
+	}
+
+	%Dependency Lib_Malterlib
+}
