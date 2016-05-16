@@ -1532,7 +1532,7 @@ namespace NMib
 			{
 				if (mp_pReporter)
 				{
-					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: File record parent directory ID missmatch") << _FileName);
+					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: File record parent directory ID mismatch") << _FileName);
 				}
 
 				if (mp_bFix)
