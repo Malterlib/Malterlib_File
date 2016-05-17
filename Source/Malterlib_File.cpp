@@ -394,7 +394,7 @@ namespace NMib
 			mp_CacheBufferNonTracked.f_Clear();
 		}
 
-		void CFile::f_Open(void *_pFile, ESysFileTag, NMib::NFile::EFileOpen _OpenFlags)
+		void CFile::f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags)
 		{
 			f_Close();
 			mp_FilePos = 0;
@@ -412,7 +412,7 @@ namespace NMib
 				mp_CachedFileLen = -1;
 		}
 		
-		void CFile::f_Open(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags)
+		void CFile::f_Open(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 		{
 			NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
 			if (_OpenFlags & EFileOpen_Directory)
@@ -426,7 +426,7 @@ namespace NMib
 			mp_bCacheDirty = false;
 			mp_bNonTracked = false;
 			mp_CachePos = -1;
-			mp_pFile = NSys::NFile::fg_Open(_FileName, OpenFlags);
+			mp_pFile = NSys::NFile::fg_Open(_FileName, OpenFlags, _Attributes);
 			if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 			{
 				mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
@@ -436,7 +436,7 @@ namespace NMib
 				mp_CachedFileLen = -1;
 		}
 
-		void CFile::f_Open(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags)
+		void CFile::f_Open(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 		{
 			NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
 			if (_OpenFlags & EFileOpen_Directory)
@@ -450,7 +450,7 @@ namespace NMib
 			mp_bCacheDirty = false;
 			mp_bNonTracked = true;
 			mp_CachePos = -1;
-			mp_pFile = NSys::NFile::fg_Open(_FileName, OpenFlags);
+			mp_pFile = NSys::NFile::fg_Open(_FileName, OpenFlags, _Attributes);
 			if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 			{
 				mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
@@ -1850,12 +1850,12 @@ namespace NMib
 			return Checksum;
 		}
 		
-		void CFile::fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bint _bAddBOM)
+		void CFile::fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bint _bAddBOM, EFileAttrib _Attributes)
 		{
 			uint8 BOM[] = {0xEF, 0xBB, 0xBF};
 			NStr::CStr UTF8 = _ToWrite;
 			CFile File;
-			File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
+			File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll, _Attributes);
 			if (_bAddBOM)
 				File.f_Write(BOM, 3);
 			File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());
@@ -1871,14 +1871,14 @@ namespace NMib
 		}
 
 
-		void CFile::fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bint _bAddBOM)
+		void CFile::fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bint _bAddBOM, EFileAttrib _Attributes)
 		{
 			uint8 BOM[] = {0xEF, 0xBB, 0xBF};
 
 			NStr::CStrNonTracked UTF8 = _ToWrite;
 
 			CFile File;
-			File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
+			File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll | EFileOpen_NoLocalCache, _Attributes);
 			if (_bAddBOM)
 				File.f_Write(BOM, 3);
 			File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());

@@ -272,7 +272,8 @@ namespace
 			for (mint i = 0; i < 2; ++i)
 			{
 				CStr TestName = "File functions";
-				if (i == 1)
+				bool bLongNames = i == 1;
+				if (bLongNames)
 					TestName = "File functions with long names";
 				DMibTestSuite(TestName)
 				{
@@ -281,7 +282,7 @@ namespace
 						CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
 					CStr TestFileName;
 					CStr FirstTestFileDir;
-					if (i == 1)
+					if (bLongNames)
 					{
 						CStr SubDir = "/TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
 						TestFileName = CurrentDir;
@@ -324,14 +325,14 @@ namespace
 						
 						CFileChangeNotification FileChangeNotification;
 #ifdef DPlatformFamily_OSX
-						if (i == 0)
+						if (!bLongNames)
 							FileChangeNotification.f_Open(TestFileDir.f_UpperCase(), EFileChange_Recursive | EFileChange_Write | EFileChange_FileName, nullptr);
 						else
 #endif
 							FileChangeNotification.f_Open(TestFileDir, EFileChange_Recursive | EFileChange_Write | EFileChange_FileName, nullptr);
 						FileChangeNotification.f_Close();
 
-						CStr NotificationDir = i == 0 ? TestFileDir : FirstTestFileDir;
+						CStr NotificationDir = !bLongNames ? TestFileDir : FirstTestFileDir;
 						FileChangeNotification.f_Open(NotificationDir, EFileChange_Recursive | EFileChange_Write | EFileChange_FileName, nullptr);
 
 						CFileChangeNotification FileChangeNotificationNonRecursive;
@@ -386,13 +387,13 @@ namespace
 								bFiredNonRecursive = true;
 							}
 
-							if (bFoundNotification && (i == 1 || bFiredNonRecursive))
+							if (bFoundNotification && (bLongNames || bFiredNonRecursive))
 								break;
 							
 							NMib::NSys::fg_Thread_Sleep(0.001f);
 						}
 						DMibTest(DMibExpr(bFoundNotification));
-						if (i == 0)
+						if (!bLongNames)
 							DMibTest(DMibExpr(bFiredNonRecursive));
 						else
 							DMibTest(!DMibExpr(bFiredNonRecursive));
@@ -420,6 +421,49 @@ namespace
 						DMibTest((DMibExpr(File.f_GetAttributes()) & DMibExpr(EFileAttrib_ReadOnly | EFileAttrib_Executable)) == DMibExpr(EFileAttrib_None));
 						File.f_Close();
 					}
+					
+					auto fCheckAttribs = [&](EFileAttrib _SetAttrib, EFileAttrib _ExpectAttribMask, EFileAttrib _ExpectAttrib, EFileAttrib _ClearAttrib)
+						{
+							CFile File;
+							File.f_Open(TestFileName + ".attrib", EFileOpen_Write, _SetAttrib);
+							File.f_Write("Testing", 7);
+							DMibTest((DMibExpr(File.f_GetAttributes()) & DMibExpr(_ExpectAttribMask)) == DMibExpr(_ExpectAttrib));
+							File.f_SetAttributes(_ClearAttrib);
+							File.f_Close();
+						}
+					;
+					
+					auto fCheckTestFileOpenAttribs = [&](EFileAttrib _SetAttrib, EFileAttrib _ExpectAttribMask, EFileAttrib _ExpectAttrib, EFileAttrib _ClearAttrib)
+						{
+							{
+								DMibTestPath("New file");
+								fCheckAttribs(_SetAttrib, _ExpectAttribMask, _ExpectAttrib, _ClearAttrib);
+							}
+							{
+								DMibTestPath("Existing file");
+								fCheckAttribs(_SetAttrib, _ExpectAttribMask, _ExpectAttrib, _ClearAttrib);
+							}
+							CFile::fs_DeleteFile(TestFileName + ".attrib");
+						}
+					;
+					
+					{
+						DMibTestPath("File open attrib");
+						fCheckTestFileOpenAttribs(EFileAttrib_ReadOnly, EFileAttrib_ReadOnly | EFileAttrib_Executable, EFileAttrib_ReadOnly, EFileAttrib_None);
+					}
+					
+					{
+						DMibTestPath("File open unix attrib");
+						fCheckTestFileOpenAttribs
+							(
+								EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead
+								, EFileAttrib_AllUnixPermissions
+								, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead
+								, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite 
+							)
+						;
+					}
+					
 					{
 						DMibTestPath("Read back");
 						CFile File;
@@ -430,7 +474,6 @@ namespace
 						File.f_Close();
 						DMibTest(DMibExpr(fg_StrCmp(Temp, "Testing") == 0));
 					}
-
 
 					// Copy
 					{

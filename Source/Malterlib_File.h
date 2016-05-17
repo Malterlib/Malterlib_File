@@ -36,8 +36,8 @@ namespace NMib
 
 			NMib::NFile::ECheckFileRights fg_CheckFileRights( const NMib::NStr::CStr & _File, NMib::NFile::EFileRight _Rights);
 
-			void *fg_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags);
-			void *fg_Open(const NMib::NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags);
+			void *fg_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
+			void *fg_Open(const NMib::NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
 			void fg_Close(void *_pFile);
 			void *fg_GetOSFile(void *_pFile);
 			mint fg_Read(void *_pFile, void *_pData, const CMibFilePos &_Offset, mint _NumBytes); // Returns number of bytes read
@@ -175,7 +175,7 @@ namespace NMib
 				}
 			}
 			
-			void f_Open(const NStr::CStr &_Path, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreReportableAggregate *_pReportTo)
+			void f_Open(const NStr::CStr &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreReportableAggregate *_pReportTo)
 			{
 				f_Close();
 				mp_pNotification = NSys::NFile::fg_ChangeNotification_Open(_Path, _OpenFlags, _pReportTo);
@@ -194,7 +194,7 @@ namespace NMib
 			class CNotification
 			{
 			public:
-				NMib::NFile::EFileChangeNotification m_Notification;
+				EFileChangeNotification m_Notification;
 				NStr::CStr m_Path;
 			};
 
@@ -215,7 +215,7 @@ namespace NMib
 			aint f_Main();
 			NMib::NStr::CStr f_GetThreadName();
 		public:
-			CFileChangeNotifier(NMib::NStr::CStr const &_Path, NMib::NFile::EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);			
+			CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);			
 			~CFileChangeNotifier();
 		};
 
@@ -362,27 +362,27 @@ namespace NMib
 
 		public:
 			CFile();
-			CFile(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags);
-			CFile(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags);
+			CFile(const NStr::CStr &_FileName, EFileOpen _OpenFlags);
+			CFile(const NStr::CStrNonTracked &_FileName, EFileOpen _OpenFlags);
 			~CFile();
 
 			bint f_IsValid() const;
 
 			void f_Close(bint _bCanThrow = true);
-			void f_Open(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags);
-			void f_Open(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags);
+			void f_Open(const NStr::CStr &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
+			void f_Open(const NStr::CStrNonTracked &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
 			enum ESysFileTag
 			{
 			};
-			void f_Open(void *_pFile, ESysFileTag, NMib::NFile::EFileOpen _OpenFlags);
+			void f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags);
 			
 			
 			void f_Read(void *_pDest, mint _nBytes);
 			void f_Write(const void *_pSrc, mint _nBytes);
 
-			void f_FileEnumOtherHandles(NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo);
+			void f_FileEnumOtherHandles(NContainer::TCVector<CFileHandle> &_HandleInfo);
 
-			static void fs_FileEnumOtherHandles(const NStr::CStr &_FileName, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo);
+			static void fs_FileEnumOtherHandles(const NStr::CStr &_FileName, NContainer::TCVector<CFileHandle> &_HandleInfo);
 
 			void f_FlushCache();
 
@@ -628,10 +628,10 @@ namespace NMib
 			static void fs_WriteStringToVector(NContainer::TCVector<uint8> &_File, const NStr::CStr &_ToWrite, bint _bAddBOM = true);
 			static NStr::CStr fs_ReadStringFromVector(const NContainer::TCVector<uint8> &_File, bool _bAssumeUTF8 = false);
 
-			static void fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bint _bAddBOM = true);
+			static void fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bint _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
 			static NStr::CStr fs_ReadStringFromFile(const NStr::CStr &_Path, bool _bAssumeUTF8 = false);
 
-			static void fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bint _bAddBOM = true);
+			static void fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bint _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
 			static NStr::CStrNonTracked fs_ReadStringFromFile(const NStr::CStrNonTracked &_Path, bool _bAssumeUTF8 = false);
 
 			static NStr::CStr fs_CondensePath(NStr::CStr _Path);
@@ -711,7 +711,7 @@ namespace NMib
 			}
 
 			template <typename tf_CStr>
-			void f_Open(const tf_CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags)
+			void f_Open(const tf_CStr &_FileName, EFileOpen _OpenFlags)
 			{
 				m_File.f_Open(_FileName, _OpenFlags);
 			}
