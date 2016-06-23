@@ -894,6 +894,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -909,6 +912,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -922,6 +928,9 @@ namespace
 					TCVector<CStr> ExpectedFiles;
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -935,6 +944,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/Dir1/TestFile");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -947,6 +959,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/Dir1");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -965,6 +980,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -981,6 +999,9 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
 
+					FoundFiles.f_Sort();
+					ExpectedFiles.f_Sort();
+					
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -992,15 +1013,71 @@ namespace
 
 					auto FoundFiles = fGetFiles(CFile::fs_FindFiles(Options));
 
-					TCVector<CStr> ExpectedFiles;
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir1");
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/Dir1");
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir2");
-					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
+					TCVector<CStr> FoundFiles0;
+					TCVector<CStr> ExpectedFiles0;
+					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1/TestFile");
+					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1");
+					
+					TCVector<CStr> FoundFiles1;
+					TCVector<CStr> ExpectedFiles1;
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2/Dir1");
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2/TestFile");
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2");
 
-					DMibExpect(FoundFiles, ==, ExpectedFiles);
+					TCVector<CStr> FoundFiles2;
+					TCVector<CStr> ExpectedFiles2;
+					ExpectedFiles2.f_Insert(CurrentDir + "/Dir3");
+					
+					for (auto &FoundFile : FoundFiles)
+					{
+						if (FoundFile.f_StartsWith(CurrentDir + "/Dir1"))
+							FoundFiles0.f_Insert(FoundFile);
+						else if (FoundFile.f_StartsWith(CurrentDir + "/Dir2"))
+							FoundFiles1.f_Insert(FoundFile);
+						else if (FoundFile.f_StartsWith(CurrentDir + "/Dir3"))
+							FoundFiles2.f_Insert(FoundFile);
+					}
+
+					DMibExpect(FoundFiles0, ==, ExpectedFiles0);
+					DMibExpect(FoundFiles1, ==, ExpectedFiles1);
+					DMibExpect(FoundFiles2, ==, ExpectedFiles2);
+				}
+				{
+					DMibTestPath("Case8");
+					CFile::CFindFilesOptions Options(CurrentDir + "/*", true);
+
+					Options.m_ExcludePatterns = fg_CreateVector<CStr>("*/Dir2/Dir1/*");
+
+					auto FoundFiles = fGetFiles(CFile::fs_FindFiles(Options));
+
+					TCVector<CStr> FoundFiles0;
+					TCVector<CStr> ExpectedFiles0;
+					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1");
+					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1/TestFile");
+					
+					TCVector<CStr> FoundFiles1;
+					TCVector<CStr> ExpectedFiles1;
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2");
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2/Dir1");
+					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2/TestFile");
+
+					TCVector<CStr> FoundFiles2;
+					TCVector<CStr> ExpectedFiles2;
+					ExpectedFiles2.f_Insert(CurrentDir + "/Dir3");
+					
+					for (auto &FoundFile : FoundFiles)
+					{
+						if (FoundFile.f_StartsWith(CurrentDir + "/Dir1"))
+							FoundFiles0.f_Insert(FoundFile);
+						else if (FoundFile.f_StartsWith(CurrentDir + "/Dir2"))
+							FoundFiles1.f_Insert(FoundFile);
+						else if (FoundFile.f_StartsWith(CurrentDir + "/Dir3"))
+							FoundFiles2.f_Insert(FoundFile);
+					}
+
+					DMibExpect(FoundFiles0, ==, ExpectedFiles0);
+					DMibExpect(FoundFiles1, ==, ExpectedFiles1);
+					DMibExpect(FoundFiles2, ==, ExpectedFiles2);
 				}
 			};
 
