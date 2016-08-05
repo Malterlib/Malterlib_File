@@ -371,11 +371,13 @@ namespace
 						int32 MaxTries = 10000;
 						bint bFoundNotification = false;
 						bool bFiredNonRecursive = false;
+						bool bFoundAnyNotification = false;
 						while (--MaxTries)
 						{
 							CFileChangeNotification::CNotification Notification;
 							if (FileChangeNotification.f_GetNotification(Notification))
 							{
+								bFoundAnyNotification = true;
 								if (NotificationDir + "/" + Notification.m_Path == TestFileName)
 								{
 									bFoundNotification = true;
@@ -392,22 +394,22 @@ namespace
 							
 							NMib::NSys::fg_Thread_Sleep(0.001f);
 						}
-						DMibTest(DMibExpr(bFoundNotification));
+						DMibExpectTrue(bFoundAnyNotification);
+						DMibExpectTrue(bFoundNotification);
 						if (!bLongNames)
-							DMibTest(DMibExpr(bFiredNonRecursive));
+							DMibExpectTrue(bFiredNonRecursive);
 						else
-							DMibTest(!DMibExpr(bFiredNonRecursive));
+							DMibExpectFalse(bFiredNonRecursive);
 						FileChangeNotification.f_Close();
 						FileChangeNotificationNonRecursive.f_Close();
 						
 						CFile::fs_DeleteDirectory(TestFileDir + "/TestDir");
 
-
-						DMibTest(DMibExpr(MaxTries > 0));
+						DMibExpect(MaxTries, >, 0);
 
 						TCVector<CStr> Files = CFile::fs_FindFiles(CFile::fs_GetPath(TestFileName) + "/*", EFileAttrib_File, true);
 
-						DMibTest(DMibExpr(Files.f_Contains(TestFileName) >= 0));
+						DMibExpect(Files.f_Contains(TestFileName), >=, 0);
 					}
 
 					{
