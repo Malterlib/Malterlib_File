@@ -14,23 +14,23 @@ namespace NMib
 		public:
 			virtual ~ICFileSystemInterface();
 			// Minimal interface
-			virtual NPtr::TCSharedPointer<NStream::CBinaryStreamDefaultRef> f_OpenStream(NStr::CStr const& _FileName, NMib::NFile::EFileOpen _OpenFlags) const pure;
-			virtual void f_DeleteFile(NStr::CStr const& _File) const pure;
-			virtual void f_DeleteDirectory(NStr::CStr const& _File) const pure;
-			virtual void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const pure;
-			virtual void f_CreateDirectory(NStr::CStr const& _Path) const pure;
-			virtual NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const pure;
-			virtual bint f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const pure;
+			virtual NPtr::TCSharedPointer<NStream::CBinaryStreamDefaultRef> f_OpenStream(NStr::CStr const& _FileName, NMib::NFile::EFileOpen _OpenFlags) const = 0;
+			virtual void f_DeleteFile(NStr::CStr const& _File) const = 0;
+			virtual void f_DeleteDirectory(NStr::CStr const& _File) const = 0;
+			virtual void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const = 0;
+			virtual void f_CreateDirectory(NStr::CStr const& _Path) const = 0;
+			virtual NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const = 0;
+			virtual bint f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const = 0;
 
-			virtual EFileAttrib f_GetAttributes(NStr::CStr const& _File) const pure;
-			virtual void f_SetAttributes(NStr::CStr const& _File, EFileAttrib _Attribs) const pure;
+			virtual EFileAttrib f_GetAttributes(NStr::CStr const& _File) const = 0;
+			virtual void f_SetAttributes(NStr::CStr const& _File, EFileAttrib _Attribs) const = 0;
 
-			virtual void f_SetCreationTime(NStr::CStr const& _File, const NTime::CTime &_Time) pure;
-			virtual void f_SetAccessTime(NStr::CStr const& _File, const NTime::CTime &_Time) pure;
-			virtual void f_SetWriteTime(NStr::CStr const& _File, const NTime::CTime &_Time) pure;
-			virtual NTime::CTime f_GetCreationTime(NStr::CStr const& _File) const pure;
-			virtual NTime::CTime f_GetAccessTime(NStr::CStr const& _File) const pure;
-			virtual NTime::CTime f_GetWriteTime(NStr::CStr const& _File) const pure;
+			virtual void f_SetCreationTime(NStr::CStr const& _File, const NTime::CTime &_Time) = 0;
+			virtual void f_SetAccessTime(NStr::CStr const& _File, const NTime::CTime &_Time) = 0;
+			virtual void f_SetWriteTime(NStr::CStr const& _File, const NTime::CTime &_Time) = 0;
+			virtual NTime::CTime f_GetCreationTime(NStr::CStr const& _File) const = 0;
+			virtual NTime::CTime f_GetAccessTime(NStr::CStr const& _File) const = 0;
+			virtual NTime::CTime f_GetWriteTime(NStr::CStr const& _File) const = 0;
 
 			// Optional interface
 			
@@ -71,9 +71,9 @@ namespace NMib
 
 				//! Reports data copied.
 				/*! Return false to abort. */
-				virtual bool f_IncreaseProgress(uint64 _nInc) pure;
-				virtual void f_StepDown(uint64 _nMax) pure;
-				virtual void f_StepUp() pure;
+				virtual bool f_IncreaseProgress(uint64 _nInc) = 0;
+				virtual void f_StepDown(uint64 _nMax) = 0;
+				virtual void f_StepUp() = 0;
 			};
 
 			enum ECopyFilesBackupFlag

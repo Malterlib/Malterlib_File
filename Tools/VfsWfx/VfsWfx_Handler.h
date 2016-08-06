@@ -136,7 +136,7 @@ public:
 	{
 	}
 
-	virtual int f_GetNext(CFindData &_Data) pure;
+	virtual int f_GetNext(CFindData &_Data) = 0;
 };
 
 class CFileSystem

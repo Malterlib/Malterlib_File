@@ -43,7 +43,7 @@ namespace NMib
 			{
 			}
 			
-			virtual void f_Feed(NStream::CBinaryStreamDefault &_Stream) const pure;
+			virtual void f_Feed(NStream::CBinaryStreamDefault &_Stream) const = 0;
 
 			void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 			{

@@ -11,7 +11,7 @@ namespace NMib
 		{
 		public:
 
-			virtual void f_Progress(CMibFilePos _Position, CMibFilePos _TotalSize) pure;
+			virtual void f_Progress(CMibFilePos _Position, CMibFilePos _TotalSize) = 0;
 		};
 
 		class CFileHandle
