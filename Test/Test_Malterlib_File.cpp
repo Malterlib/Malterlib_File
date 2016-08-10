@@ -86,7 +86,7 @@ namespace
 
 		void f_DoTests()
 		{
-			DMibTestSuite("Nice filename")
+			DMibTestSuite("Valid path")
 			{
 				CStr Error;
 				DMibTest(!DMibExpr(CFile::fs_IsValidFilePath("com1", Error)));
