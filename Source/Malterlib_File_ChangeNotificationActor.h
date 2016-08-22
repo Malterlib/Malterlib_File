@@ -15,7 +15,7 @@ namespace NMib
 			CFileChangeNotificationActor();
 			~CFileChangeNotificationActor();
 			
-			NConcurrency::TCContinuation<NConcurrency::CActorCallback> f_RegisterForChanges
+			NConcurrency::TCContinuation<NConcurrency::CActorSubscription> f_RegisterForChanges
 				(
 					NMib::NStr::CStr const &_Path
 					, NMib::NFile::EFileChange _OpenFlags

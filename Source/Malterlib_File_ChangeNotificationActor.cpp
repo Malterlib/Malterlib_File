@@ -31,7 +31,7 @@ namespace NMib
 				
 				NPtr::TCSharedPointer<bool> m_pDestroyed;
 				NPtr::TCUniquePointer<CFileChangeNotifier> m_pNotifier;
-				NConcurrency::TCActorCallbackManager<void (CFileChangeNotification::CNotification const &_Change), false, CAutoDestroy> m_CallbackManager;
+				NConcurrency::TCActorSubscriptionManager<void (CFileChangeNotification::CNotification const &_Change), false, CAutoDestroy> m_CallbackManager;
 				CNotification(NConcurrency::CActor *_pActor)
 					: m_CallbackManager(_pActor, false)
 					, m_pDestroyed(fg_Construct(false))
@@ -56,7 +56,7 @@ namespace NMib
 		{
 		}
 			
-		NConcurrency::TCContinuation<NConcurrency::CActorCallback> CFileChangeNotificationActor::f_RegisterForChanges
+		NConcurrency::TCContinuation<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
 			(
 				NMib::NStr::CStr const &_Path
 				, NMib::NFile::EFileChange _OpenFlags
@@ -64,7 +64,7 @@ namespace NMib
 				, NConcurrency::TCActor<NConcurrency::CActor> const &_Actor
 			)
 		{
-			NConcurrency::TCContinuation<NConcurrency::CActorCallback> Continuation;
+			NConcurrency::TCContinuation<NConcurrency::CActorSubscription> Continuation;
 			auto &Internal = *mp_pInternal;
 			
 			try
