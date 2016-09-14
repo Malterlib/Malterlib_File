@@ -291,14 +291,14 @@ namespace NMib
 			};
 					
 		private:
-			void *mp_pFile;
-			CMibFilePos mp_FilePos;
-			EFileOpen mp_OpenFlags;
+			void *mp_pFile = nullptr;
+			CMibFilePos mp_FilePos = 0;
+			EFileOpen mp_OpenFlags = EFileOpen_None;
 
-			CMibFilePos mp_CachePos;
+			CMibFilePos mp_CachePos = 0;
 			bint mp_bCacheDirty = false;
 			bint mp_bNonTracked = false;
-			CMibFilePos mp_CachedFileLen;
+			CMibFilePos mp_CachedFileLen = 0;
 			NContainer::TCVector<uint8> mp_CacheBuffer;
 			NContainer::TCVector<uint8, NMem::CAllocator_NonTrackedHeap> mp_CacheBufferNonTracked;
 
@@ -361,6 +361,10 @@ namespace NMib
 			static bint fsp_FileIsSame(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName);
 
 		public:
+			CFile(CFile const &) = delete;
+			CFile &operator = (CFile const &) = delete;
+			CFile(CFile &&);
+			CFile &operator = (CFile &&);
 			CFile();
 			CFile(const NStr::CStr &_FileName, EFileOpen _OpenFlags);
 			CFile(const NStr::CStrNonTracked &_FileName, EFileOpen _OpenFlags);

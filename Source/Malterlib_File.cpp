@@ -346,8 +346,35 @@ namespace NMib
 
 		CFile::CFile()
 		{
-			mp_pFile = nullptr;
-			mp_bCacheDirty = false;
+		}
+
+		CFile::CFile(CFile &&_Other)
+			: mp_pFile(_Other.mp_pFile)
+			, mp_FilePos(_Other.mp_FilePos)
+			, mp_OpenFlags(_Other.mp_OpenFlags)
+			, mp_CachePos(_Other.mp_CachePos)
+			, mp_bCacheDirty(_Other.mp_bCacheDirty)
+			, mp_bNonTracked(_Other.mp_bNonTracked)
+			, mp_CachedFileLen(_Other.mp_CachedFileLen)
+			, mp_CacheBuffer(fg_Move(_Other.mp_CacheBuffer))
+			, mp_CacheBufferNonTracked(fg_Move(_Other.mp_CacheBufferNonTracked))
+		{
+			_Other.mp_pFile = nullptr;
+		}
+
+		CFile &CFile::operator = (CFile &&_Other)
+		{
+			mp_pFile = _Other.mp_pFile;
+			mp_FilePos = _Other.mp_FilePos;
+			mp_OpenFlags = _Other.mp_OpenFlags;
+			mp_CachePos = _Other.mp_CachePos;
+			mp_bCacheDirty = _Other.mp_bCacheDirty;
+			mp_bNonTracked = _Other.mp_bNonTracked;
+			mp_CachedFileLen = _Other.mp_CachedFileLen;
+			mp_CacheBuffer = fg_Move(_Other.mp_CacheBuffer);
+			mp_CacheBufferNonTracked = fg_Move(_Other.mp_CacheBufferNonTracked);
+			_Other.mp_pFile = nullptr;
+			return *this;
 		}
 
 		CFile::CFile(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags)
