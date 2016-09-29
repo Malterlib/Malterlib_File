@@ -1,6 +1,8 @@
 // Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
+#include <Mib/Cryptography/RandomID>
+
 namespace NMib
 {
 	namespace NFile
@@ -710,22 +712,16 @@ namespace NMib
 		{
 			try
 			{
-				CFile File;
-				File.f_Open(_LocalPath, EFileOpen_ReadAttribs | EFileOpen_WriteAttribs | EFileOpen_ShareAll);
-				EFileAttrib Attribs = File.f_GetAttributes();
+				EFileAttrib Attribs = CFile::fs_GetAttributes(_LocalPath);
 				if (_bWritable)
 				{
 					if ((Attribs & NMib::NFile::EFileAttrib_ReadOnly))
-					{
-						File.f_SetAttributes(Attribs & ~NMib::NFile::EFileAttrib_ReadOnly);
-					}
+						CFile::fs_SetAttributes(_LocalPath, Attribs & ~NMib::NFile::EFileAttrib_ReadOnly);
 				}
 				else
 				{
 					if (!(Attribs & NMib::NFile::EFileAttrib_ReadOnly))
-					{
-						File.f_SetAttributes(Attribs | NMib::NFile::EFileAttrib_ReadOnly);
-					}
+						CFile::fs_SetAttributes(_LocalPath, Attribs | NMib::NFile::EFileAttrib_ReadOnly);
 				}
 			}
 			catch (CExceptionFile const &)
@@ -739,13 +735,9 @@ namespace NMib
 		{
 			try
 			{
-				CFile File;
-				File.f_Open(_LocalPath, EFileOpen_ReadAttribs | EFileOpen_WriteAttribs | EFileOpen_ShareAll);
-				EFileAttrib Attribs = File.f_GetAttributes();
+				EFileAttrib Attribs = CFile::fs_GetAttributes(_LocalPath);;
 				if ((Attribs & NMib::NFile::EFileAttrib_ReadOnly))
-				{
 					return false;
-				}
 				else
 					return true;
 			}
@@ -1020,17 +1012,41 @@ namespace NMib
 					}
 					
 					NStream::CFilePos SourceLen = _SourceData.f_GetLen();
-					NFile::CFile File;
 					
-					File.f_Open(_ToFileName, EFileOpen_Write | EFileOpen_ShareRead);
-					File.f_Write(_SourceData.f_GetArray(), SourceLen);
+					NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_RandomID() + ".tmp");
 					
-					if (_AddAttribs != EFileAttrib_None)
+					auto Cleanup = g_OnScopeExit > [&]
+						{
+							try
+							{
+								if (CFile::fs_FileExists(TempFileName))
+									CFile::fs_DeleteFile(TempFileName); 
+							}
+							catch (NFile::CExceptionFile const &)
+							{
+							}
+						}
+					;
+					
 					{
-						EFileAttrib CurrentAttribs = File.f_GetAttributes();
-						File.f_SetAttributes(CurrentAttribs | _AddAttribs);
+						NFile::CFile File;
+						File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead);
+						File.f_Write(_SourceData.f_GetArray(), SourceLen);
+						
+						if (_AddAttribs != EFileAttrib_None)
+						{
+							EFileAttrib CurrentAttribs = File.f_GetAttributes();
+							File.f_SetAttributes(CurrentAttribs | _AddAttribs);
+						}
+						File.f_SetWriteTime(_FileTime);
 					}
-					File.f_SetWriteTime(_FileTime);
+					
+					if (CFile::fs_FileExists(_ToFileName))
+						CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
+					else
+						CFile::fs_RenameFile(TempFileName, _ToFileName);
+					Cleanup.f_Clear();
+					
 					return true;
 				}
 			}
@@ -1173,6 +1189,11 @@ namespace NMib
 		void CFile::fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
 		{
 			NSys::NFile::fg_Rename(_FileFrom, _FileTo);
+		}
+		
+		void CFile::fs_AtomicReplaceFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+		{
+			NSys::NFile::fg_AtomicReplace(_FileFrom, _FileTo);
 		}
 
 		void CFile::fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress)

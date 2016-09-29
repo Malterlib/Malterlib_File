@@ -94,6 +94,7 @@ namespace NMib
 			void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
 			void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 			void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
+			void fg_AtomicReplace(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 
 			void fg_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags);
 			void fg_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
@@ -438,6 +439,7 @@ namespace NMib
 			static bint fs_CopyFileDiffDate(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);
 			static bint fs_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bint _bCopyDate);
 			static void fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+			static void fs_AtomicReplaceFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 			static void fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress);
 			static void fs_SetCurrentDirectory(const NStr::CStr &_Directory);
 

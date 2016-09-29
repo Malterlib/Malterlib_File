@@ -291,7 +291,7 @@ namespace
 						{
 
 							#if defined(DPlatformFamily_Linux) || defined(DPlatformFamily_OSX) //  TODO: Should max path length be exposed via Malterlib? Probably.
-								if ( (TestFileName.f_GetLen() + SubDir.f_GetLen()) > (1024 - 14) )
+								if ( (TestFileName.f_GetLen() + SubDir.f_GetLen()) > (1024 - 32) )
 									break;
 							#endif
 								
