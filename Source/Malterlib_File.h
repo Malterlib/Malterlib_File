@@ -144,6 +144,7 @@ namespace NMib
 			void fg_ChangeNotification_Close(void *_pNotification);
 			bint fg_ChangeNotification_Changed(void *_pNotification);
 			bint fg_ChangeNotification_GetNotification(void *_pNotification, NMib::NStr::CStr &_Path, NMib::NFile::EFileChangeNotification &_Notification);
+			bool fg_ChangeNotification_Supported();
 		}
 	}
 
@@ -206,6 +207,11 @@ namespace NMib
 				if (NSys::NFile::fg_ChangeNotification_GetNotification(mp_pNotification, _ToFill.m_Path, _ToFill.m_Notification))
 					return true;
 				return false;
+			}
+			
+			static bool fs_Supported()
+			{
+				return NSys::NFile::fg_ChangeNotification_Supported();
 			}
 		};
 		

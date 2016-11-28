@@ -318,6 +318,7 @@ namespace
 						DMibTest(DMibExpr(CFile::fs_FileExists(TestFileDir, EFileAttrib_Directory))) (NMib::NTest::ETest_FailAndStop);
 					}
 
+					if (NMib::NFile::CFileChangeNotification::fs_Supported())
 					{
 						{
 							CFile::fs_CreateDirectory(TestFileDir + "/TestDir");
