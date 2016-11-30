@@ -610,6 +610,15 @@ namespace NMib
 			return NSys::NFile::fg_GetAttributes(_FileName);
 		}
 		
+		void CFile::fs_SetAttributesOnLink(NStr::CStr const &_FileName, EFileAttrib _Attribs)
+		{				
+			return NSys::NFile::fg_SetAttributesOnLink(_FileName, _Attribs);
+		}
+		EFileAttrib CFile::fs_GetAttributesOnLink(NStr::CStr const &_FileName)
+		{				
+			return NSys::NFile::fg_GetAttributesOnLink(_FileName);
+		}
+		
 		NTime::CTime CFile::fs_GetCreationTime(NStr::CStr const& _FileName)
 		{
 			return NSys::NFile::fg_GetCreationTime(_FileName);
@@ -1673,6 +1682,79 @@ namespace NMib
 		void CFile::fs_SetGroupOnLink(NStr::CStr const &_Path, NStr::CStr const &_Group)
 		{
 			NSys::NFile::fg_SetGroupOnLink(_Path, _Group);
+		}
+
+		bool CFile::fs_SetUnixAttributesRecursive(NStr::CStr const &_Path, EFileAttrib _FileAttributes, EFileAttrib _DirectoryAttributes, bool _bFollowLinks)
+		{
+			auto SourceAttribs = CFile::fs_GetAttributes(_Path);
+			bool bIsDirectory = (SourceAttribs & EFileAttrib_Directory) != 0;
+			bool bIsLink = (SourceAttribs & EFileAttrib_Link) != 0;
+			
+			bool bRet = false;
+			
+			auto fSetAttributes = [&](NStr::CStr const &_Path, EFileAttrib _Attributes)
+				{
+					if ((fs_GetAttributes(_Path) & EFileAttrib_AllUnixPermissions) != (_Attributes & EFileAttrib_AllUnixPermissions))
+					{
+						bRet = true;
+						fs_SetAttributes(_Path, EFileAttrib_UnixAttributesValid | _Attributes);
+					}
+				}
+			;
+			
+			auto fSetAttributesOnLink = [&](NStr::CStr const &_Path, EFileAttrib _Attributes)
+				{
+					if ((fs_GetAttributesOnLink(_Path) & EFileAttrib_AllUnixPermissions) != (_Attributes & EFileAttrib_AllUnixPermissions))
+					{
+						bRet = true;
+						fs_SetAttributesOnLink(_Path, EFileAttrib_UnixAttributesValid | _Attributes);
+					}
+				}
+			;
+			
+			auto fSetOnDirectory = [&](NStr::CStr const &_Path, EFileAttrib _CurrentAttribs) 
+				{
+					if (_CurrentAttribs & EFileAttrib_Link)
+					{
+						fSetAttributesOnLink(_Path, _FileAttributes);
+						if (_bFollowLinks)
+							fSetAttributes(_Path, _DirectoryAttributes);
+					}
+					else
+						fSetAttributes(_Path, _DirectoryAttributes);
+				}
+			;
+
+			auto fSetOnFile = [&](NStr::CStr const &_Path, EFileAttrib _CurrentAttribs) 
+				{
+					if (_CurrentAttribs & EFileAttrib_Link)
+					{
+						fSetAttributesOnLink(_Path, _FileAttributes);
+						if (_bFollowLinks)
+							fSetAttributes(_Path, _FileAttributes);
+					}
+					else
+						fSetAttributes(_Path, _FileAttributes);
+				}
+			;
+			
+			if (bIsDirectory && (!bIsLink || _bFollowLinks))
+			{
+				NContainer::TCVector<CFile::CFoundFile> SourceFiles = CFile::fs_FindFilesEx(_Path + "/*", EFileAttrib_File, true, _bFollowLinks);
+				NContainer::TCVector<CFile::CFoundFile> SourceDirectories = CFile::fs_FindFilesEx(_Path + "/*", EFileAttrib_Directory, true, _bFollowLinks);
+				
+				fSetOnDirectory(_Path, SourceAttribs);
+
+				for (auto &File : SourceFiles)
+					fSetOnFile(File.m_Path, File.m_Attribs);
+
+				for (auto &Directory : SourceDirectories)
+					fSetOnDirectory(Directory.m_Path, Directory.m_Attribs);
+			}
+			else
+				fSetOnFile(_Path, SourceAttribs);
+			
+			return bRet;
 		}
 
 		bool CFile::fs_SetOwnerAndGroupRecursive(NStr::CStr const &_Path, NStr::CStr const &_Owner, NStr::CStr const &_Group, bool _bFollowLinks)

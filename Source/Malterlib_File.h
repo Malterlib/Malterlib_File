@@ -51,6 +51,9 @@ namespace NMib
 
 			NMib::NFile::EFileAttrib fg_GetAttributes(NMib::NStr::CStr const& _FileName);
 			void fg_SetAttributes(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
+
+			NMib::NFile::EFileAttrib fg_GetAttributesOnLink(NMib::NStr::CStr const& _FileName);
+			void fg_SetAttributesOnLink(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
 			
 			NMib::NFile::EFileAttrib fg_GetSupportedAttributes();
 			NMib::NFile::EFileAttrib fg_GetValidAttributes();
@@ -615,6 +618,10 @@ namespace NMib
 			static const ch8 **fs_GetInvalidFileNameNames();
 			static void fs_SetAttributes(NStr::CStr const &_FileName, EFileAttrib _Attribs);
 			static EFileAttrib fs_GetAttributes(NStr::CStr const &_FileName);
+			static void fs_SetAttributesOnLink(NStr::CStr const &_FileName, EFileAttrib _Attribs);
+			static EFileAttrib fs_GetAttributesOnLink(NStr::CStr const &_FileName);
+			static bool fs_SetUnixAttributesRecursive(NStr::CStr const &_Path, EFileAttrib _FileAttributes, EFileAttrib _DirectoryAttributes, bool _bFollowLinks = false);
+			
 			
 			static NTime::CTime fs_GetCreationTime(NStr::CStr const& _FileName);
 			static NTime::CTime fs_GetAccessTime(NStr::CStr const& _FileName);
