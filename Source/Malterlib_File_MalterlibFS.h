@@ -1534,7 +1534,7 @@ namespace NMib
 			void fp_CloseFile(CFileInternal *_pFile);
 
 
-			CFileInternal *fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove = false);
+			CFileInternal *fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove = false, bool _bAllowRoot = false);
 			void fpr_DeleteDirectoryRecursive(NStr::CStr const &_File);
 
 		public:

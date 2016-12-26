@@ -2526,9 +2526,9 @@ namespace NMib
 			mp_DirectoryCache.f_ReturnDirectory(pCacheEntry);
 		}
 
-		CVirtualFS::CFileInternal *CVirtualFS::fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove)
+		CVirtualFS::CFileInternal *CVirtualFS::fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove, bool _bAllowRoot)
 		{
-			fp_CheckPath(_Path);
+			fp_CheckPath(_Path, _bAllowRoot);
 
 			NStr::CStr ParentPath;
 			NStr::CStr File;
@@ -2546,7 +2546,12 @@ namespace NMib
 			CDirectoryCacheEntry *pDir = mp_DirectoryCache.f_GetDirectory(ParentPath);
 			if (pDir)
 			{
-				CClusterID Cluster = pDir->m_Directory.f_GetChild(File);
+				CClusterID Cluster;
+				if (_bAllowRoot && ParentPath.f_IsEmpty() && File.f_IsEmpty())
+					Cluster = pDir->m_DirectoryFileClusterID;
+				else
+					Cluster = pDir->m_Directory.f_GetChild(File);
+
 				if (!Cluster)
 				{
 					if (_bCreate)
@@ -2600,7 +2605,7 @@ namespace NMib
 
 		void CVirtualFS::f_SetAttributes(NStr::CStr const &_Path, uint64 _Attribs)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2612,7 +2617,7 @@ namespace NMib
 
 		void CVirtualFS::f_ChangeFileAttributes(NStr::CStr const &_Path, uint64 _AttribsAdd, uint64 _AttribsRemove)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2626,7 +2631,7 @@ namespace NMib
 
 		void CVirtualFS::f_SetCreationTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2638,7 +2643,7 @@ namespace NMib
 
 		void CVirtualFS::f_SetAccessTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2650,7 +2655,7 @@ namespace NMib
 
 		void CVirtualFS::f_SetWriteTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2662,7 +2667,7 @@ namespace NMib
 
 		uint64 CVirtualFS::f_GetAttributes(NStr::CStr const &_Path)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2674,7 +2679,7 @@ namespace NMib
 
 		NTime::CTime CVirtualFS::f_GetCreationTime(NStr::CStr const &_Path)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2686,7 +2691,7 @@ namespace NMib
 
 		NTime::CTime CVirtualFS::f_GetAccessTime(NStr::CStr const &_Path)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2698,7 +2703,7 @@ namespace NMib
 
 		NTime::CTime CVirtualFS::f_GetWriteTime(NStr::CStr const &_Path)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 
@@ -2710,7 +2715,7 @@ namespace NMib
 
 		uint64 CVirtualFS::f_GetFileSize(NStr::CStr const &_Path)
 		{
-			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false);
+			CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 			if (!pFile)
 				DMibErrorFile("No such file or directory");
 

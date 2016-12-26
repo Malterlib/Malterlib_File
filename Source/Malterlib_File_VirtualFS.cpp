@@ -594,44 +594,47 @@ namespace NMib
 
 		void CFileSystemInterface_Disk::f_SetCreationTime(NStr::CStr const& _File, const NTime::CTime &_Time)
 		{
+			EFileOpen OpenFlags = EFileOpen_ShareAll | EFileOpen_WriteAttribs;
+			if (CFile::fs_FileExists(_File, EFileAttrib_Directory))
+				OpenFlags |= EFileOpen_Directory;
 			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_WriteAttribs);
+			File.f_Open(_File, OpenFlags);
 			File.f_SetCreationTime(_Time);
 		}
 
 		void CFileSystemInterface_Disk::f_SetAccessTime(NStr::CStr const& _File, const NTime::CTime &_Time)
 		{
+			EFileOpen OpenFlags = EFileOpen_ShareAll | EFileOpen_WriteAttribs;
+			if (CFile::fs_FileExists(_File, EFileAttrib_Directory))
+				OpenFlags |= EFileOpen_Directory;
 			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_WriteAttribs);
+			File.f_Open(_File, OpenFlags);
 			File.f_SetAccessTime(_Time);
 		}
 
 		void CFileSystemInterface_Disk::f_SetWriteTime(NStr::CStr const& _File, const NTime::CTime &_Time)
 		{
+			EFileOpen OpenFlags = EFileOpen_ShareAll | EFileOpen_WriteAttribs;
+			if (CFile::fs_FileExists(_File, EFileAttrib_Directory))
+				OpenFlags |= EFileOpen_Directory;
 			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_WriteAttribs);
+			File.f_Open(_File, OpenFlags);
 			File.f_SetWriteTime(_Time);
 		}
 
 		NTime::CTime CFileSystemInterface_Disk::f_GetCreationTime(NStr::CStr const& _File) const
 		{
-			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_ReadAttribs);
-			return File.f_GetCreationTime();
+			return CFile::fs_GetCreationTime(_File);
 		}
 
 		NTime::CTime CFileSystemInterface_Disk::f_GetAccessTime(NStr::CStr const& _File) const
 		{
-			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_ReadAttribs);
-			return File.f_GetAccessTime();
+			return CFile::fs_GetAccessTime(_File);
 		}
 
 		NTime::CTime CFileSystemInterface_Disk::f_GetWriteTime(NStr::CStr const& _File) const
 		{
-			NFile::CFile File;
-			File.f_Open(_File, EFileOpen_ShareAll | EFileOpen_ReadAttribs);
-			return File.f_GetWriteTime();
+			return CFile::fs_GetWriteTime(_File);
 		}
 		
 		void CFileSystemInterface_Disk::f_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags) const
