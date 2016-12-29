@@ -956,6 +956,7 @@ namespace NMib
 			NStr::CStr f_GetLockFile() const;
 
 			ELockResult f_Lock(fp64 _TimeoutSeconds = -1); // _TimeoutSeconds < 0 == Forever
+			void f_LockWithException(fp64 _TimeoutSeconds = -1); // _TimeoutSeconds < 0 == Forever
 			void f_Unlock();
 
 			bint f_HasLock() const;	// Do I have the lock?

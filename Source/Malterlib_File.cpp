@@ -2792,6 +2792,19 @@ namespace NMib
 			return mp_FilePath;
 		}
 
+		void CLockFile::f_LockWithException(fp64 _TimeoutSeconds)
+		{
+			ELockResult LockResult = f_Lock(_TimeoutSeconds);
+			switch (LockResult)
+			{
+			case ELockResult_Locked: break;
+			case ELockResult_TimedOut: DMibError("Timed out waiting for lock");
+			case ELockResult_NoAccess: DMibError("Access denied");
+			case ELockResult_DoesNotExist: DMibError("Lock file does not exist");
+			default: DMibError("Unknown error");
+			}
+		}
+		
 		CLockFile::ELockResult CLockFile::f_Lock(fp64 _TimeoutSeconds)
 		{
 			if (mp_FilePath.f_IsEmpty())
