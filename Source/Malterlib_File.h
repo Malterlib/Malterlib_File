@@ -444,7 +444,7 @@ namespace NMib
 			static void fs_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bint _bRecursive = true, bint _bRaw = false, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
 			static bint fs_FileIsSame(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName);
 			static NContainer::TCVector<uint8> fs_ReadFileTry(const NStr::CStr &_ToFileName);
-			static bint fs_CopyFileDiff(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);
+			static bint fs_CopyFileDiff(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange = {});
 			static bint fs_CopyFileDiffDate(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);
 			static bint fs_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bint _bCopyDate);
 			static void fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);

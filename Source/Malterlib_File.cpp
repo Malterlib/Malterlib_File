@@ -943,14 +943,14 @@ namespace NMib
 			}
 
 		}
-		bint CFile::fs_CopyFileDiff(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs)
+		bint CFile::fs_CopyFileDiff(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange)
 		{
 			int32 nTimes = 20 * 30; // 30 seconds
 			while (1)
 			{
 				try
 				{
-					return fsp_CopyFileDiff(_SourceData, NStr::CStr(), _ToFileName, _FileTime, _AddAttribs, fg_Default());
+					return fsp_CopyFileDiff(_SourceData, NStr::CStr(), _ToFileName, _FileTime, _AddAttribs, _OnChange);
 				}
 				catch (CExceptionFile const &)
 				{
