@@ -1097,7 +1097,7 @@ namespace NMib
 					m_bDestroyException = false;
 				}
 
-				~CFileInternal() throw(...)
+				~CFileInternal() noexcept(false)
 				{
 					try
 					{

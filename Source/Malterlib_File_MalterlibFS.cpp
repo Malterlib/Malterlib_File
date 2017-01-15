@@ -377,7 +377,7 @@ namespace NMib
 		CVirtualFS::CDirectoryCacheEntry *CVirtualFS::CDirectoryCache::f_GetExistingCacheEntry(CClusterID _DirectoryCluster, NStr::CStr const &_Path)
 		{			
 			CFileInternal *pFile = m_pVirtualFS->fp_OpenFile(_DirectoryCluster); 
-			if (!pFile->m_FileRecord.m_FileAttributes & EFileAttrib_Directory)
+			if (!(pFile->m_FileRecord.m_FileAttributes & EFileAttrib_Directory))
 			{
 				m_pVirtualFS->fp_CloseFile(pFile);
 				return nullptr;
