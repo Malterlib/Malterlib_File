@@ -896,7 +896,7 @@ namespace NMib
 
 			if (!fs_FileExists(_ToFileName))
 				return false;
-			File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareAll);
+			File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 
 			NStream::CFilePos FileLen = File.f_GetLength();
 			if (NStream::CFilePos(_SourceData.f_GetLen()) != FileLen)
@@ -983,7 +983,7 @@ namespace NMib
 				}
 				else
 				{
-					File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareRead);
+					File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
 
 					NStream::CFilePos FileLen = File.f_GetLength();
 					if (NStream::CFilePos(_SourceData.f_GetLen()) != FileLen)
@@ -1039,7 +1039,7 @@ namespace NMib
 					
 					{
 						NFile::CFile File;
-						File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead);
+						File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
 						File.f_Write(_SourceData.f_GetArray(), SourceLen);
 						
 						if (_AddAttribs != EFileAttrib_None)
@@ -1182,7 +1182,7 @@ namespace NMib
 		bint CFile::fsp_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange, bool _bRemoveWriteProtection)
 		{
 			NFile::CFile File;
-			File.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll);
+			File.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 			NContainer::TCVector<uint8> SourceData;
 			mint FileLen = File.f_GetLength();
 			SourceData.f_SetLen(FileLen);

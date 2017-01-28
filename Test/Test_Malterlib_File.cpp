@@ -570,9 +570,7 @@ namespace
 
 						CFile::fs_RenameFile(TestFileName2, TestFileName3, Progress);
 						DMibTest(DMibExpr(CFile::fs_FileExists(TestFileName3, EFileAttrib_File)));
-#ifdef DPlatformFamily_OSX
-						DMibTest(DMibExpr(Progress.m_bCalled) == DMibExpr(true));
-#endif
+						DMibTest(DMibExpr(Progress.m_bCalled) == DMibExpr(false));
 						
 						DMibTest(DMibExpr(TCThrowsException<NMib::NFile::CExceptionFile>()) == DMibLExpr(CFile::fs_RenameFile(TestFileName2 + "NotExist", TestFileName3, Progress)));
 
