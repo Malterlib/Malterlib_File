@@ -907,7 +907,7 @@ namespace NMib
 				DestData.f_SetLen(FileLen);
 				File.f_Read(DestData.f_GetArray(), FileLen);
 
-				if (DestData != _SourceData)
+				if (NMem::fg_MemCmp(DestData.f_GetArray(), _SourceData.f_GetArray(), FileLen) != 0)
 					bChanged = true;
 			}
 
@@ -971,96 +971,70 @@ namespace NMib
 				return false;
 			}
 
-			bint bChanged = false;
 			bool bExists = true;
 
 			{
 				NFile::CFile File;
 				if (!CFile::fs_FileExists(_ToFileName, EFileAttrib_File))
-				{
-					bChanged = true;
 					bExists = false;
-				}
-				else
-				{
-					File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
-
-					NStream::CFilePos FileLen = File.f_GetLength();
-					if (NStream::CFilePos(_SourceData.f_GetLen()) != FileLen)
-						bChanged = true;
-					if (!bChanged)
-					{
-						NContainer::TCVector<uint8> DestData;
-						DestData.f_SetLen(FileLen);
-						File.f_Read(DestData.f_GetArray(), FileLen);
-
-						if (DestData != _SourceData)
-							bChanged = true;
-					}
-				}
 			}
 
-			if (bChanged)
+			EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
+			
+			if (_OnChange)
 			{
-				EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
-				
-				if (_OnChange)
-				{
-					if (bExists)
-						Action = _OnChange(EDiffCopyChange_FileChanged, _FromFileName, _ToFileName, NStr::CStr());
-					else
-						Action = _OnChange(EDiffCopyChange_FileCreated, _FromFileName, _ToFileName, NStr::CStr());
-				}
-				
-				if (Action == EDiffCopyChangeAction_Perform)
-				{				
-					if (_bRemoveWriteProtection)
-					{
-						if (CFile::fs_FileExists(_ToFileName, EFileAttrib_File))
-							CFile::fs_MakeFileWritable(_ToFileName, true);
-					}
-					
-					NStream::CFilePos SourceLen = _SourceData.f_GetLen();
-					
-					NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_RandomID() + ".tmp");
-					
-					auto Cleanup = g_OnScopeExit > [&]
-						{
-							try
-							{
-								if (CFile::fs_FileExists(TempFileName))
-									CFile::fs_DeleteFile(TempFileName); 
-							}
-							catch (NFile::CExceptionFile const &)
-							{
-							}
-						}
-					;
-					
-					{
-						NFile::CFile File;
-						File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
-						File.f_Write(_SourceData.f_GetArray(), SourceLen);
-						
-						if (_AddAttribs != EFileAttrib_None)
-						{
-							EFileAttrib CurrentAttribs = File.f_GetAttributes();
-							File.f_SetAttributes(CurrentAttribs | _AddAttribs);
-						}
-						File.f_SetWriteTime(_FileTime);
-					}
-					
-					if (CFile::fs_FileExists(_ToFileName))
-						CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
-					else
-						CFile::fs_RenameFile(TempFileName, _ToFileName);
-					Cleanup.f_Clear();
-					
-					return true;
-				}
+				if (bExists)
+					Action = _OnChange(EDiffCopyChange_FileChanged, _FromFileName, _ToFileName, NStr::CStr());
+				else
+					Action = _OnChange(EDiffCopyChange_FileCreated, _FromFileName, _ToFileName, NStr::CStr());
 			}
-			else if (_OnChange)
-				_OnChange(EDiffCopyChange_NoChange, _FromFileName, _ToFileName, NStr::CStr());
+			
+			if (Action == EDiffCopyChangeAction_Perform)
+			{				
+				if (_bRemoveWriteProtection)
+				{
+					if (CFile::fs_FileExists(_ToFileName, EFileAttrib_File))
+						CFile::fs_MakeFileWritable(_ToFileName, true);
+				}
+				
+				NStream::CFilePos SourceLen = _SourceData.f_GetLen();
+				
+				NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_RandomID() + ".tmp");
+				
+				auto Cleanup = g_OnScopeExit > [&]
+					{
+						try
+						{
+							if (CFile::fs_FileExists(TempFileName))
+								CFile::fs_DeleteFile(TempFileName); 
+						}
+						catch (NFile::CExceptionFile const &)
+						{
+						}
+					}
+				;
+				
+				{
+					NFile::CFile File;
+					File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
+					File.f_Write(_SourceData.f_GetArray(), SourceLen);
+					
+					if (_AddAttribs != EFileAttrib_None)
+					{
+						EFileAttrib CurrentAttribs = File.f_GetAttributes();
+						File.f_SetAttributes(CurrentAttribs | _AddAttribs);
+					}
+					File.f_SetWriteTime(_FileTime);
+				}
+				
+				if (CFile::fs_FileExists(_ToFileName))
+					CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
+				else
+					CFile::fs_RenameFile(TempFileName, _ToFileName);
+				Cleanup.f_Clear();
+				
+				return true;
+			}
 			return false;
 		}
 
@@ -1096,8 +1070,6 @@ namespace NMib
 		}
 		bint CFile::fsp_CopyFileDiffDate(const NContainer::TCVector<uint8> &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs)
 		{
-			bint bChanged = false;
-
 			NFile::CFile File;
 			NTime::CTime OldTime;
 			if (NFile::CFile::fs_FileExists(_ToFileName))
@@ -1109,7 +1081,6 @@ namespace NMib
 					return false;
 				File.f_Close();
 			}
-
 
 			if (fsp_FileIsSame(_SourceData, _ToFileName))
 			{
@@ -1126,40 +1097,17 @@ namespace NMib
 			if (!fsp_OpenFile(File, _ToFileName, EFileOpen_Read | EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_ShareRead, _FileTime))
 				return false;
 
-			NStream::CFilePos FileLen = File.f_GetLength();
-			if (NStream::CFilePos(_SourceData.f_GetLen()) != FileLen)
-				bChanged = true;
-			if (!bChanged)
+			NStream::CFilePos SourceLen = _SourceData.f_GetLen();
+			File.f_SetPosition(0);
+			File.f_SetLength(SourceLen);
+			File.f_Write(_SourceData.f_GetArray(), SourceLen);
+			if (_AddAttribs != EFileAttrib_None)
 			{
-				NContainer::TCVector<uint8> DestData;
-				DestData.f_SetLen(FileLen);
-				File.f_Read(DestData.f_GetArray(), FileLen);
-
-				if (DestData != _SourceData)
-					bChanged = true;
+				EFileAttrib CurrentAttribs = File.f_GetAttributes();
+				File.f_SetAttributes(CurrentAttribs | _AddAttribs);
 			}
-
-			if (bChanged)
-			{
-				NStream::CFilePos SourceLen = _SourceData.f_GetLen();
-				File.f_SetPosition(0);
-				File.f_SetLength(SourceLen);
-				File.f_Write(_SourceData.f_GetArray(), SourceLen);
-				if (_AddAttribs != EFileAttrib_None)
-				{
-					EFileAttrib CurrentAttribs = File.f_GetAttributes();
-					File.f_SetAttributes(CurrentAttribs | _AddAttribs);
-				}
-				File.f_SetWriteTime(_FileTime);
-				return true;
-			}
-			if (_FileTime > OldTime)
-			{
-				File.f_SetWriteTime(_FileTime);
-				return true;
-			}
-
-			return false;
+			File.f_SetWriteTime(_FileTime);
+			return true;
 		}
 
 		bint CFile::fs_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bint _bCopyDate)
