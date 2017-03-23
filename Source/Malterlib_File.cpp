@@ -1874,13 +1874,16 @@ namespace NMib
 			return fs_SetOwnerAndGroupRecursive(_Path, "", _Group, _bFollowLinks);
 		}
 
-		NDataProcessing::CHashDigest_MD5 CFile::fs_GetFileChecksum(const NStr::CStr &_Path)
+		template <typename tf_CHash>
+		static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CMibFilePos *o_pLength)
 		{
 			CFile File;
-			File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
+			File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 
 			CMibFilePos Length = File.f_GetLength();
-			NDataProcessing::CHash_MD5 Checksum;
+			if (o_pLength)
+				*o_pLength = Length;
+			tf_CHash Checksum;
 
 			while (Length)
 			{
@@ -1894,6 +1897,16 @@ namespace NMib
 
 			return Checksum;
 		}
+
+		NDataProcessing::CHashDigest_MD5 CFile::fs_GetFileChecksum(const NStr::CStr &_Path, CMibFilePos *o_pLength)
+		{
+			return fg_GetFileChecksum<NDataProcessing::CHash_MD5>(_Path, o_pLength);
+		}
+		
+		NDataProcessing::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CMibFilePos *o_pLength)
+		{
+			return fg_GetFileChecksum<NDataProcessing::CHash_SHA256>(_Path, o_pLength);
+		}		
 
 		NDataProcessing::CHashDigest_MD5 CFile::fs_GetDirectoryChecksum
 			(

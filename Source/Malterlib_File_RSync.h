@@ -5,7 +5,7 @@
 
 namespace NMib
 {
-	namespace NDataProcessing
+	namespace NFile
 	{
 		class CRSyncServer
 		{
@@ -18,7 +18,13 @@ namespace NMib
 
 			void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
 			
-			bint f_ProcessPacket(NContainer::TCVector<uint8> const &_ClientData, NContainer::TCVector<uint8> &_ToSendToClient, bint &_bWantOneMoreProcess);
+			bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient);
+		};
+		
+		enum ERSyncClientFlag
+		{
+			ERSyncClientFlag_None = 0
+			, ERSyncClientFlag_TruncateOutput = DMibBit(0)
 		};
 
 		class CRSyncClient
@@ -27,13 +33,26 @@ namespace NMib
 			NPtr::TCUniquePointer<CImplementation> mp_pImpl;
 			
 		public:
-			CRSyncClient(NStream::CBinaryStream &_OldFile, NStream::CBinaryStream &_NewFile, uint32 _MinChunkSize, uint32 _MaxChunkSize, uint32 _MaxPacketSize);
+			CRSyncClient
+				(
+					NStream::CBinaryStream &_OldFile
+					, NStream::CBinaryStream &_NewFile
+					, uint32 _MinChunkSize
+					, uint32 _MaxChunkSize
+					, uint32 _MaxPacketSize
+					, NStream::CBinaryStream *_pTempStream = nullptr
+					, ERSyncClientFlag _Flags = ERSyncClientFlag_TruncateOutput  
+				)
+			;
 			~CRSyncClient();
 			
-			bint f_ProcessPacket(NContainer::TCVector<uint8> const &_ServerData, NContainer::TCVector<uint8> &_ToSendToServer, bint &_bWantOneMoreProcess);
+			bool f_ProcessPacket(NContainer::CSecureByteVector const &_ServerData, NContainer::CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess);
 			uint64 f_GetRawBytes();
 			void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
 		};
 	}
 }
 
+#ifndef DMibPNoShortCuts
+	using namespace NMib::NFile;
+#endif
