@@ -1142,7 +1142,21 @@ namespace NMib
 				return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime::fs_NowUTC(), Attribs, _OnChange, _bRemoveWriteProtection);
 		}
 
-
+		void CFile::fs_Touch(const NStr::CStr &_File)
+		{
+			if (CFile::fs_FileExists(_File))
+			{
+				NFile::CFile Temp;
+				Temp.f_Open(_File, EFileOpen_ShareAll | EFileOpen_WriteAttribs | EFileOpen_ReadAttribs | EFileOpen_NoLocalCache);
+				Temp.f_SetWriteTime(NTime::CTime::fs_NowUTC());
+			}
+			else
+			{
+				NFile::CFile Temp;
+				Temp.f_Open(_File, EFileOpen_ShareAll | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_NoLocalCache);
+			}
+		}
+		
 		void CFile::fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
 		{
 			NSys::NFile::fg_Rename(_FileFrom, _FileTo);
@@ -2871,5 +2885,10 @@ namespace NMib
 		{
 			f_Stop();
 		}	
+
+		bool CFileChangeNotification::CNotification::operator < (CNotification const &_Right) const
+		{
+			return NContainer::fg_TupleReferences(m_Notification, m_Path, m_PathFrom) < NContainer::fg_TupleReferences(_Right.m_Notification, _Right.m_Path, _Right.m_PathFrom);
+		}
 	}
 }

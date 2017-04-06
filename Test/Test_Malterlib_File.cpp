@@ -317,7 +317,6 @@ namespace
 						CFile::fs_CreateDirectory(TestFileDir);
 						DMibTest(DMibExpr(CFile::fs_FileExists(TestFileDir, EFileAttrib_Directory))) (NMib::NTest::ETest_FailAndStop);
 					}
-
 					if (NMib::NFile::CFileChangeNotification::fs_Supported())
 					{
 						{
@@ -412,6 +411,416 @@ namespace
 
 						DMibExpect(Files.f_Contains(TestFileName), >=, 0);
 					}
+					
+					bool bPollOSX = false;
+#ifdef DPlatformFamily_OSX
+					bPollOSX = true;
+//					bPollOSX = CSystem::ms_PlatformVersion < 10'07'00;
+#endif
+					
+					if (NMib::NFile::CFileChangeNotification::fs_Supported())
+					{
+						CStr TestDir = TestFileDir + "/TestDir2";
+						if (CFile::fs_FileExists(TestDir))
+							CFile::fs_DeleteDirectoryRecursive(TestDir);
+						if (CFile::fs_FileExists(CFile::fs_GetPath(TestDir) + "/SubDir2"))
+							CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetPath(TestDir) + "/SubDir2");
+						CFile::fs_CreateDirectory(TestDir);
+#ifdef DPlatformFamily_OSX
+						NSys::fg_Thread_Sleep(1.5); // Wait for old notifications to be unqueued
+#endif
+						
+						auto fSleep = [&]
+							{
+								if (bPollOSX)
+									NSys::fg_Thread_Sleep(1.5f);
+#ifdef DPlatformFamily_Windows
+								NSys::fg_Thread_Sleep(0.01f);
+#endif
+							}
+						;
+						
+						fSleep();
+						
+						NMib::NThread::CEventAutoResetReportable Event;
+						CFileChangeNotification FileChangeNotification;
+						FileChangeNotification.f_Open(TestDir, EFileChange_All, &Event);
+						
+						auto fTrace = [&](CStr const &_Change, CFileChangeNotification::CNotification const &_Notification)
+							{
+#if 0
+								CStr NotName;
+								switch (_Notification.m_Notification)
+								{
+								case EFileChangeNotification_Undefined: NotName = "Undefined"; break;
+								case EFileChangeNotification_Unknown: NotName = "Unknown"; break;
+								case EFileChangeNotification_Added:	NotName = "Added"; break;
+								case EFileChangeNotification_Removed: NotName = "Removed"; break;
+								case EFileChangeNotification_Modified: NotName = "Modified"; break;
+								case EFileChangeNotification_Renamed: NotName = "Renamed"; break;
+								}
+
+								DMibTrace2("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
+#endif
+							}
+						;
+						auto fWaitForChange = [&](CStr const &_Desc) -> CFileChangeNotification::CNotification
+							{
+								CFileChangeNotification::CNotification Notification;
+								while (!FileChangeNotification.f_GetNotification(Notification))
+								{
+									DMibExpectFalse(Event.f_WaitTimeout(10.0))(ETest_FailAndStop)(ETestFlag_Aggregated);
+								}
+								
+								fTrace(_Desc, Notification);
+								
+								return Notification;
+							}
+						;
+						auto fHasChange = [&]() -> bool
+							{
+								CFileChangeNotification::CNotification Notification;
+								bool bHasChange = false;
+								while (FileChangeNotification.f_GetNotification(Notification))
+								{
+									fTrace("Extra change", Notification);
+									bHasChange = true;
+								}
+								return bHasChange;
+							}
+						;
+						
+						{
+							DMibTestPath("Create directory");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_CreateDirectory(TestDir + "/SubDir");
+
+							auto Change0 = fWaitForChange("CreateDir: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "SubDir");
+
+							auto Change1 = fWaitForChange("CreateDir: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Create file");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_Touch(TestDir + "/SubDir/File.tst");
+
+							auto Change0 = fWaitForChange("CreateFile: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "SubDir/File.tst");
+
+							auto Change1 = fWaitForChange("CreateFile: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "SubDir");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Touch file");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_Touch(TestDir + "/SubDir/File.tst");
+
+							auto Change0 = fWaitForChange("Touch file: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change0.m_Path, ==, "SubDir/File.tst");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Rename file");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_RenameFile(TestDir + "/SubDir/File.tst", TestDir + "/File.tst");
+
+#ifdef DPlatformFamily_Windows
+							auto Change00 = fWaitForChange("RenameFile: Change00");
+							DMibExpect(Change00.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change00.m_Path, ==, "SubDir/File.tst");
+							
+							auto Change01 = fWaitForChange("RenameFile: Change01");
+							DMibExpect(Change01.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change01.m_Path, ==, "File.tst");
+#else
+							auto Change0 = fWaitForChange("RenameFile: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Renamed);
+							DMibExpect(Change0.m_Path, ==, "File.tst");
+							DMibExpect(Change0.m_PathFrom, ==, "SubDir/File.tst");
+#endif
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							
+							Notifications[fWaitForChange("RenameFile: Change1")];
+							Notifications[fWaitForChange("RenameFile: Change2")];
+							auto iChange = Notifications.f_GetIterator();
+							auto Change1 = *iChange;
+							++iChange;
+							auto Change2 = *iChange;
+							++iChange;
+							
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "");
+
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "SubDir");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Hard link");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_CreateHardLink(TestDir + "/File.tst", TestDir + "/File2.tst");
+
+							auto Change0 = fWaitForChange("CreateHardLink: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "File2.tst");
+
+							auto Change1 = fWaitForChange("CreateHardLink: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "");
+
+							if (bPollOSX)
+							{
+								auto Change2 = fWaitForChange("CreateHardLink: Change2");
+								DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change2.m_Path, ==, "File.tst");
+
+								auto Change3 = fWaitForChange("CreateHardLink: Change3");
+								DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change3.m_Path, ==, "File2.tst");
+							}
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Touch hard link");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_Touch(TestDir + "/File.tst");
+
+							auto Change0 = fWaitForChange("TouchHardLink: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change0.m_Path, ==, "File.tst");
+
+#ifdef DPlatformFamily_OSX
+							auto Change1 = fWaitForChange("TouchHardLink: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "File2.tst");
+#endif
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Rename hard link");
+							DMibExpectFalse(fHasChange() && "Before");
+
+							CFile::fs_RenameFile(TestDir + "/File.tst", TestDir + "/File4.tst");
+
+							auto Change0 = fWaitForChange("RenameHardLink: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Renamed);
+							DMibExpect(Change0.m_Path, ==, "File4.tst");
+							DMibExpect(Change0.m_PathFrom, ==, "File.tst");
+
+							auto Change1 = fWaitForChange("RenameHardLink: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Rename hard link to different dir");
+							DMibExpectFalse(fHasChange() && "Before");
+
+							CFile::fs_RenameFile(TestDir + "/File2.tst", TestDir + "/SubDir/File3.tst");
+
+#ifdef DPlatformFamily_Windows
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							Notifications[fWaitForChange("RenameHardLink2: Change0")];
+							Notifications[fWaitForChange("RenameHardLink2: Change1")];
+							Notifications[fWaitForChange("RenameHardLink2: Change2")];
+							Notifications[fWaitForChange("RenameHardLink2: Change3")];
+							Notifications[fWaitForChange("RenameHardLink2: Change4")];
+							auto iNotification = Notifications.f_GetIterator();
+							auto Change0 = *iNotification;
+							++iNotification;
+							auto Change1 = *iNotification;
+							++iNotification;
+							auto Change2 = *iNotification;
+							++iNotification;
+							auto Change3 = *iNotification;
+							++iNotification;
+							auto Change4 = *iNotification;
+							++iNotification;
+
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "SubDir/File3.tst");
+
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change1.m_Path, ==, "File2.tst");
+
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change3.m_Path, ==, "File2.tst");
+
+							DMibExpect(Change4.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change4.m_Path, ==, "SubDir");
+#else
+							auto Change1 = fWaitForChange("RenameHardLink2: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Renamed);
+							DMibExpect(Change1.m_Path, ==, "SubDir/File3.tst");
+							DMibExpect(Change1.m_PathFrom, ==, "File2.tst");
+
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							Notifications[fWaitForChange("RenameHardLink2: Change2")];
+							Notifications[fWaitForChange("RenameHardLink2: Change3")];
+							
+							auto iChange = Notifications.f_GetIterator();
+							auto Change2 = *iChange;
+							++iChange;
+							auto Change3 = *iChange;
+							++iChange;
+							
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change3.m_Path, ==, "SubDir");
+#endif
+
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Rename subdir");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_RenameFile(TestDir + "/SubDir", TestDir + "/SubDir2");
+
+							auto Change0 = fWaitForChange("RenameSubDir: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Renamed);
+							DMibExpect(Change0.m_Path, ==, "SubDir2");
+							DMibExpect(Change0.m_PathFrom, ==, "SubDir");
+
+							auto Change1 = fWaitForChange("RenameSubDir: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Renamed);
+							DMibExpect(Change1.m_Path, ==, "SubDir2/File3.tst");
+							DMibExpect(Change1.m_PathFrom, ==, "SubDir/File3.tst");
+
+							auto Change2 = fWaitForChange("RenameSubDir: Change2");
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Delete hardlink");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_DeleteFile(TestDir + "/File4.tst");
+
+							auto Change0 = fWaitForChange("Delete hardlink: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change0.m_Path, ==, "File4.tst");
+
+							auto Change1 = fWaitForChange("Delete hardlink: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change1.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Move directory outside tree");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_RenameFile(TestDir + "/SubDir2", CFile::fs_GetPath(TestDir) + "/SubDir2");
+
+							auto Change0 = fWaitForChange("Move directory outside tree: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change0.m_Path, ==, "SubDir2");
+
+							auto Change1 = fWaitForChange("Move directory outside tree: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change1.m_Path, ==, "SubDir2/File3.tst");
+
+							auto Change2 = fWaitForChange("Move directory outside tree: Change1");
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Move directory into tree");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_RenameFile(CFile::fs_GetPath(TestDir) + "/SubDir2", TestDir + "/SubDir2");
+
+							auto Change0 = fWaitForChange("Move directory into tree: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "SubDir2");
+
+							auto Change1 = fWaitForChange("Move directory into tree: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change1.m_Path, ==, "SubDir2/File3.tst");
+
+							auto Change2 = fWaitForChange("Move directory into tree: Change1");
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Move directory outside tree 2");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_RenameFile(TestDir + "/SubDir2", CFile::fs_GetPath(TestDir) + "/SubDir2");
+
+							auto Change0 = fWaitForChange("Move directory outside tree 2: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change0.m_Path, ==, "SubDir2");
+
+							auto Change1 = fWaitForChange("Move directory outside tree 2: Change1");
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change1.m_Path, ==, "SubDir2/File3.tst");
+
+							auto Change2 = fWaitForChange("Move directory outside tree 2: Change1");
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpectFalse(fHasChange() && "After");
+						}
+						fSleep();
+						{
+							DMibTestPath("Delete directory outside tree");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetPath(TestDir) + "/SubDir2");
+							NSys::fg_Thread_Sleep(0.5);
+							DMibExpectFalse(fHasChange() && "After");
+						}
+#ifndef DPlatformFamily_Windows
+						fSleep();
+						{
+							DMibTestPath("Delete self");
+							DMibExpectFalse(fHasChange() && "Before");
+							CFile::fs_DeleteDirectoryRecursive(TestDir);
+							auto Change0 = fWaitForChange("Delete self: Change0");
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change0.m_Path, ==, "");
+							DMibExpectFalse(fHasChange() && "After");
+						}
+#endif
+
+						FileChangeNotification.f_Close();
+					}
+					
 
 					{
 						DMibTestPath("File attrib");

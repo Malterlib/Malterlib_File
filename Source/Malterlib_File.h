@@ -147,7 +147,7 @@ namespace NMib
 			void *fg_ChangeNotification_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreReportableAggregate *_pReportTo);
 			void fg_ChangeNotification_Close(void *_pNotification);
 			bint fg_ChangeNotification_Changed(void *_pNotification);
-			bint fg_ChangeNotification_GetNotification(void *_pNotification, NMib::NStr::CStr &_Path, NMib::NFile::EFileChangeNotification &_Notification);
+			bint fg_ChangeNotification_GetNotification(void *_pNotification, NMib::NStr::CStr &_Path, NMib::NFile::EFileChangeNotification &_Notification, NMib::NStr::CStr &_PathFrom);
 			bool fg_ChangeNotification_Supported();
 		}
 	}
@@ -200,15 +200,18 @@ namespace NMib
 			class CNotification
 			{
 			public:
-				EFileChangeNotification m_Notification;
+				EFileChangeNotification m_Notification = EFileChangeNotification_Undefined;
 				NStr::CStr m_Path;
+				NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
+
+				bool operator < (CNotification const &_Right) const;
 			};
 
 			bint f_GetNotification(CNotification &_ToFill)
 			{
 				if (!f_IsOpen())
 					DMibErrorFile("Notification not open");
-				if (NSys::NFile::fg_ChangeNotification_GetNotification(mp_pNotification, _ToFill.m_Path, _ToFill.m_Notification))
+				if (NSys::NFile::fg_ChangeNotification_GetNotification(mp_pNotification, _ToFill.m_Path, _ToFill.m_Notification, _ToFill.m_PathFrom))
 					return true;
 				return false;
 			}
@@ -460,6 +463,8 @@ namespace NMib
 			static void fs_CreateDirectory(const NStr::CStrNonTracked &_Path);
 			static void fs_DeleteFile(const NStr::CStrNonTracked &_File);
 			static void fs_DeleteDirectory(const NStr::CStrNonTracked &_File);
+
+			static void fs_Touch(const NStr::CStr &_File);
 
 			static bool fs_RemoveIncompatible
 				(
