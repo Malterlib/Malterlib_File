@@ -218,6 +218,40 @@ namespace NMib
 		}
 
 		template <typename tf_CStr>
+		bool CFile::fs_HasRelativeComponents(const tf_CStr &_Path)
+		{
+			auto const *pParse = _Path.f_GetStr();
+			auto const *pDirStart = pParse;
+			
+			auto fCheckPath = [&]
+				{
+					if (NStr::fg_StrCmp(pDirStart, "..", pParse - pDirStart) == 0 || NStr::fg_StrCmp(pDirStart, ".", pParse - pDirStart) == 0)
+						return true;
+					return false;
+				}
+			;
+
+			while (*pParse)
+			{
+				if (*pParse == '/')
+				{
+					if (fCheckPath())
+						return true;
+					++pParse;
+					pDirStart = pParse; 
+					continue;
+				}
+					
+				++pParse;
+			}
+			
+			if (fCheckPath())
+				return true;
+			
+			return false;
+		}
+		
+		template <typename tf_CStr>
 		tf_CStr CFile::fs_MakePathRelative(tf_CStr const& _AbsolutePath, tf_CStr const& _AbsoluteBase)
 		{
 			//auto Filename = fs_GetFile(_AbsolutePath);
@@ -270,7 +304,7 @@ namespace NMib
 
 			return "";			
 		}
-
+		
 		template <typename tf_CStr>
 		tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, const tf_CStr &_BasePath)
 		{

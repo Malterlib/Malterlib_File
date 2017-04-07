@@ -671,6 +671,9 @@ namespace NMib
 			static tf_CStr fs_GetExpandedPath(const tf_CStr &_Path, const tf_CStr &_BasePath);
 
 			template <typename tf_CStr>
+			static bool fs_HasRelativeComponents(const tf_CStr &_Path);
+
+			template <typename tf_CStr>
 			static bint fs_IsPathAbsolute(tf_CStr _Path);
 			template <typename tf_CStr>
 			static tf_CStr fs_MakePathRelative(tf_CStr const& _AbsolutePath, tf_CStr const& _AbsoluteBase);
