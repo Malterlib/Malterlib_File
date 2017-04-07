@@ -2,6 +2,7 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Cryptography/RandomID>
+#include <Mib/Encoding/EJSON>
 
 namespace NMib
 {
@@ -2889,6 +2890,108 @@ namespace NMib
 		bool CFileChangeNotification::CNotification::operator < (CNotification const &_Right) const
 		{
 			return NContainer::fg_TupleReferences(m_Notification, m_Path, m_PathFrom) < NContainer::fg_TupleReferences(_Right.m_Notification, _Right.m_Path, _Right.m_PathFrom);
+		}
+
+		NEncoding::CEJSON CFile::fs_AttribToJSON(EFileAttrib _Attribs)
+		{
+			NEncoding::CEJSON JSON;
+			auto &OutArray = JSON.f_Array();
+			
+			if (_Attribs & EFileAttrib_Directory)
+				OutArray.f_Insert("Directory");
+			if (_Attribs & EFileAttrib_Link)
+				OutArray.f_Insert("Link");
+			if (_Attribs & EFileAttrib_Hidden)
+				OutArray.f_Insert("Hidden");
+			if (_Attribs & EFileAttrib_ReadOnly)
+				OutArray.f_Insert("ReadOnly");
+			if (_Attribs & EFileAttrib_System)
+				OutArray.f_Insert("System");
+			if (_Attribs & EFileAttrib_File)
+				OutArray.f_Insert("File");
+			if (_Attribs & EFileAttrib_BackedUp)
+				OutArray.f_Insert("BackedUp");
+			if (_Attribs & EFileAttrib_Archive)
+				OutArray.f_Insert("Archive");
+			if (_Attribs & EFileAttrib_Executable)
+				OutArray.f_Insert("Executable");
+			if (_Attribs & EFileAttrib_EmulatedLink)
+				OutArray.f_Insert("EmulatedLink");
+			if (_Attribs & EFileAttrib_UserExecute)
+				OutArray.f_Insert("UserExecute");
+			if (_Attribs & EFileAttrib_UserRead)
+				OutArray.f_Insert("UserRead");
+			if (_Attribs & EFileAttrib_UserWrite)
+				OutArray.f_Insert("UserWrite");
+			if (_Attribs & EFileAttrib_GroupExecute)
+				OutArray.f_Insert("GroupExecute");
+			if (_Attribs & EFileAttrib_GroupRead)
+				OutArray.f_Insert("GroupRead");
+			if (_Attribs & EFileAttrib_GroupWrite)
+				OutArray.f_Insert("GroupWrite");
+			if (_Attribs & EFileAttrib_EveryoneExecute)
+				OutArray.f_Insert("EveryoneExecute");
+			if (_Attribs & EFileAttrib_EveryoneRead)
+				OutArray.f_Insert("EveryoneRead");
+			if (_Attribs & EFileAttrib_EveryoneWrite)
+				OutArray.f_Insert("EveryoneWrite");
+			if (_Attribs & EFileAttrib_UnixAttributesValid)
+				OutArray.f_Insert("UnixAttributesValid");
+			
+			return JSON;
+		}
+		
+		EFileAttrib CFile::fs_AttribFromJSON(NEncoding::CEJSON const &_JSON)
+		{
+			EFileAttrib Attribs = EFileAttrib_None;
+			
+			for (auto &Attrib : _JSON.f_Array())
+			{
+				NStr::CStr AttribStr = Attrib.f_String();
+			
+				if (AttribStr == "Directory")
+					Attribs |= EFileAttrib_Directory;
+				else if (AttribStr == "Link")
+					Attribs |= EFileAttrib_Link;
+				else if (AttribStr == "Hidden")
+					Attribs |= EFileAttrib_Hidden;
+				else if (AttribStr == "ReadOnly")
+					Attribs |= EFileAttrib_ReadOnly;
+				else if (AttribStr == "System")
+					Attribs |= EFileAttrib_System;
+				else if (AttribStr == "File")
+					Attribs |= EFileAttrib_File;
+				else if (AttribStr == "BackedUp")
+					Attribs |= EFileAttrib_BackedUp;
+				else if (AttribStr == "Archive")
+					Attribs |= EFileAttrib_Archive;
+				else if (AttribStr == "Executable")
+					Attribs |= EFileAttrib_Executable;
+				else if (AttribStr == "EmulatedLink")
+					Attribs |= EFileAttrib_EmulatedLink;
+				else if (AttribStr == "UserExecute")
+					Attribs |= EFileAttrib_UserExecute;
+				else if (AttribStr == "UserRead")
+					Attribs |= EFileAttrib_UserRead;
+				else if (AttribStr == "UserWrite")
+					Attribs |= EFileAttrib_UserWrite;
+				else if (AttribStr == "GroupExecute")
+					Attribs |= EFileAttrib_GroupExecute;
+				else if (AttribStr == "GroupRead")
+					Attribs |= EFileAttrib_GroupRead;
+				else if (AttribStr == "GroupWrite")
+					Attribs |= EFileAttrib_GroupWrite;
+				else if (AttribStr == "EveryoneExecute")
+					Attribs |= EFileAttrib_EveryoneExecute;
+				else if (AttribStr == "EveryoneRead")
+					Attribs |= EFileAttrib_EveryoneRead;
+				else if (AttribStr == "EveryoneWrite")
+					Attribs |= EFileAttrib_EveryoneWrite;
+				else if (AttribStr == "UnixAttributesValid")
+					Attribs |= EFileAttrib_UnixAttributesValid;
+			}
+			
+			return Attribs;
 		}
 	}
 }

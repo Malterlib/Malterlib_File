@@ -6,6 +6,29 @@
 
 namespace NMib
 {
+	namespace NEncoding
+	{
+		namespace NPrivate
+		{
+			template <template <typename t_CParent> class t_TCValue, typename t_CTypes>
+			class TCJSONValueBase;
+			struct CEJSONExtraTypes;
+		}
+		
+		template <typename t_CParent>
+		class TCEJSONValue;
+		
+		template <template <typename t_CParent> class t_TCValue, typename t_CTypes>
+		using TCJSON = t_TCValue<NPrivate::TCJSONValueBase<t_TCValue, t_CTypes>>;
+		
+		using CEJSON = TCJSON
+			<
+				TCEJSONValue
+				, NPrivate::CEJSONExtraTypes
+			>
+		;
+	}
+
 	namespace NFile
 	{
 		class CFileProgress
@@ -699,8 +722,9 @@ namespace NMib
 			static tf_CStr fs_GetDrive(const tf_CStr &_File);
 			template <typename tf_CStr>
 			static tf_CStr fs_GetFileNoExt(const tf_CStr &_File);
-
-
+			
+			static EFileAttrib fs_AttribFromJSON(NEncoding::CEJSON const &_JSON);
+			static NEncoding::CEJSON fs_AttribToJSON(EFileAttrib _Attribs);
 
 		private:
 			static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
