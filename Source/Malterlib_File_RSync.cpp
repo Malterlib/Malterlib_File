@@ -1138,12 +1138,8 @@ namespace NMib
 					}
 				}
 
-				CMibFilePos FileLen = 0;
 				if (mp_OldFile.f_IsValid())
-				{
 					mp_OldFile.f_SetPosition(0);
-					FileLen = mp_OldFile.f_GetLength();
-				}
 
 				CSecureByteVector History;
 				History.f_SetLen(ChunkSize);

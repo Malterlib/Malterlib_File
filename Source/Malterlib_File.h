@@ -98,9 +98,19 @@ namespace NMib
 			NTime::CTime fg_GetAccessTime(void *_pFile);
 			NTime::CTime fg_GetWriteTime(void *_pFile);
 
-			NTime::CTime fg_GetCreationTime(NMib::NStr::CStr const& _FileName);
+			void fg_SetCreationTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			void fg_SetAccessTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			void fg_SetWriteTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			NTime::CTime fg_GetCreationTime(NMib::NStr::CStr const &_FileName);
 			NTime::CTime fg_GetAccessTime(NMib::NStr::CStr const& _FileName);
 			NTime::CTime fg_GetWriteTime(NMib::NStr::CStr const& _FileName);
+
+			void fg_SetCreationTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			void fg_SetAccessTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			void fg_SetWriteTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+			NTime::CTime fg_GetCreationTimeOnLink(NMib::NStr::CStr const &_FileName);
+			NTime::CTime fg_GetAccessTimeOnLink(NMib::NStr::CStr const &_FileName);
+			NTime::CTime fg_GetWriteTimeOnLink(NMib::NStr::CStr const &_FileName);
 			
 			NMib::NStr::CStr fg_GetOwner(const NMib::NStr::CStr &_Path);
 			NMib::NStr::CStr fg_GetGroup(const NMib::NStr::CStr &_Path);
@@ -302,6 +312,7 @@ namespace NMib
 				bool m_bRecursive;
 				bool m_bFollowLinks = false;
 				NContainer::TCVector<NStr::CStr> m_ExcludePatterns;
+				NFunction::TCFunctionNoAlloc<void ()> m_fCheckAbort;
 
 				CFindFilesOptions(NStr::CStr const &_Path, bool _bRecursive)
 					: m_Path(_Path)
@@ -652,10 +663,19 @@ namespace NMib
 			static EFileAttrib fs_GetAttributesOnLink(NStr::CStr const &_FileName);
 			static bool fs_SetUnixAttributesRecursive(NStr::CStr const &_Path, EFileAttrib _FileAttributes, EFileAttrib _DirectoryAttributes, bool _bFollowLinks = false);
 			
+			static NTime::CTime fs_GetCreationTime(NStr::CStr const &_FileName);
+			static NTime::CTime fs_GetAccessTime(NStr::CStr const &_FileName);
+			static NTime::CTime fs_GetWriteTime(NStr::CStr const &_FileName);
+			static NTime::CTime fs_GetCreationTimeOnLink(NStr::CStr const &_FileName);
+			static NTime::CTime fs_GetAccessTimeOnLink(NStr::CStr const &_FileName);
+			static NTime::CTime fs_GetWriteTimeOnLink(NStr::CStr const &_FileName);
 			
-			static NTime::CTime fs_GetCreationTime(NStr::CStr const& _FileName);
-			static NTime::CTime fs_GetAccessTime(NStr::CStr const& _FileName);
-			static NTime::CTime fs_GetWriteTime(NStr::CStr const& _FileName);
+			static void fs_SetCreationTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+			static void fs_SetAccessTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+			static void fs_SetWriteTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+			static void fs_SetCreationTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+			static void fs_SetAccessTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+			static void fs_SetWriteTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
 			
 			static CMibFilePos fs_GetFileSize(const NStr::CStr &_Path);
 
@@ -764,9 +784,9 @@ namespace NMib
 			}
 
 			template <typename tf_CStr>
-			void f_Open(const tf_CStr &_FileName, EFileOpen _OpenFlags)
+			void f_Open(const tf_CStr &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None)
 			{
-				m_File.f_Open(_FileName, _OpenFlags);
+				m_File.f_Open(_FileName, _OpenFlags, _Attributes);
 			}
 
 			void f_Close()

@@ -16,6 +16,7 @@ namespace NMib
 					, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 					, bool _bCatchExceptions
 					, bool _bIncludeDirectories
+					, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 				)
 			{
 				auto fDoFind
@@ -43,6 +44,8 @@ namespace NMib
 							}
 							else
 								_fFoundFile(*pPath, Attribs, false);
+							if (_fCheckAbort)
+								_fCheckAbort();
 							pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 						}
 
@@ -70,6 +73,7 @@ namespace NMib
 					, const NStr::CStr &_Pattern
 					, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 					, bool _bCatchExceptions
+					, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 				)
 			{
 				auto fDoFind = [&]()
@@ -92,15 +96,17 @@ namespace NMib
 								{
 									if (_fFoundFile(*pPath, Attribs, true))
 									{
-										fg_FindFilesRecurse(*pPath + "/", _Pattern, _fFoundFile, _bCatchExceptions);
+										fg_FindFilesRecurse(*pPath + "/", _Pattern, _fFoundFile, _bCatchExceptions, _fCheckAbort);
 										_fFoundFile(*pPath, Attribs, false);
 									}
 								}
+								if (_fCheckAbort)
+									_fCheckAbort();
 								pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 							}
 						}
 
-						fg_FindFilesLeaf(_Path + _Pattern, _fFoundFile, false, false);
+						fg_FindFilesLeaf(_Path + _Pattern, _fFoundFile, false, false, _fCheckAbort);
 					}
 				;
 
@@ -126,6 +132,7 @@ namespace NMib
 					, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 					, bool _bCatchExceptions
 					, bool _bRecursive
+					, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort = {}
 				)
 			{
 				if (_bRecursive)
@@ -134,17 +141,10 @@ namespace NMib
 					NStr::CStr BasePath = CFile::fs_GetPath(Whole) + "/";
 					NStr::CStr Pattern = Whole.f_Extract(BasePath.f_GetLen());
 
-					fg_FindFilesRecurse
-						(
-							BasePath
-							, Pattern
-							, _fFoundFile
-							, _bCatchExceptions
-						)
-					;
+					fg_FindFilesRecurse(BasePath, Pattern, _fFoundFile, _bCatchExceptions, _fCheckAbort);
 				}
 				else
-					fg_FindFilesLeaf(_FindPath, _fFoundFile, _bCatchExceptions, true);
+					fg_FindFilesLeaf(_FindPath, _fFoundFile, _bCatchExceptions, true, _fCheckAbort);
 
 			}
 		}
@@ -634,12 +634,57 @@ namespace NMib
 		{
 			return NSys::NFile::fg_GetWriteTime(_FileName);
 		}
-			
+		
+		NTime::CTime CFile::fs_GetCreationTimeOnLink(NStr::CStr const &_FileName)
+		{
+			return NSys::NFile::fg_GetCreationTimeOnLink(_FileName);
+		}
+		
+		NTime::CTime CFile::fs_GetAccessTimeOnLink(NStr::CStr const &_FileName)
+		{
+			return NSys::NFile::fg_GetAccessTimeOnLink(_FileName);
+		}
+		
+		NTime::CTime CFile::fs_GetWriteTimeOnLink(NStr::CStr const &_FileName)
+		{
+			return NSys::NFile::fg_GetWriteTimeOnLink(_FileName);
+		}
+		
+		void CFile::fs_SetCreationTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetCreationTime(_FileName, _Time);
+		}
+		
+		void CFile::fs_SetAccessTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetAccessTime(_FileName, _Time);
+		}
+		
+		void CFile::fs_SetWriteTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetWriteTime(_FileName, _Time);
+		}
+		
+		void CFile::fs_SetCreationTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetCreationTimeOnLink(_FileName, _Time);
+		}
+		
+		void CFile::fs_SetAccessTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetAccessTimeOnLink(_FileName, _Time);
+		}
+		
+		void CFile::fs_SetWriteTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+		{
+			return NSys::NFile::fg_SetWriteTimeOnLink(_FileName, _Time);
+		}
 		
 		EFileAttrib CFile::fs_GetSupportedAttributes()
 		{
 			return NSys::NFile::fg_GetSupportedAttributes();
 		}
+
 		EFileAttrib CFile::fs_GetValidAttributes()
 		{
 			return NSys::NFile::fg_GetValidAttributes();
@@ -1440,6 +1485,7 @@ namespace NMib
 					, fg_DefaultFindFilter(&_Options, &fFoundFile)
 					, true
 					, _Options.m_bRecursive
+					, _Options.m_fCheckAbort
 				)
 			;
 
