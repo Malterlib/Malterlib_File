@@ -620,6 +620,16 @@ namespace NMib
 			return NSys::NFile::fg_GetAttributesOnLink(_FileName);
 		}
 		
+		CUniqueFileIdentifier CFile::fs_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName)
+		{
+			return NSys::NFile::fg_GetUniqueIdentifier(_FileName);
+		}
+		
+		CUniqueFileIdentifier CFile::fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName)
+		{
+			return NSys::NFile::fg_GetUniqueIdentifierOnLink(_FileName);
+		}
+		
 		NTime::CTime CFile::fs_GetCreationTime(NStr::CStr const& _FileName)
 		{
 			return NSys::NFile::fg_GetCreationTime(_FileName);

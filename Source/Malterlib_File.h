@@ -45,6 +45,28 @@ namespace NMib
 			uint32 m_ProcessID;
 			NStr::CStr m_Process;
 		};
+		
+		struct CUniqueFileIdentifier
+		{
+			uint64 m_VolumeID = TCLimitsInt<uint64>::mc_Max;
+			uint128 m_FileID = TCLimitsInt<uint64>::mc_Max;
+			
+			bool operator < (CUniqueFileIdentifier const &_Right) const
+			{
+				if (m_VolumeID < _Right.m_VolumeID)
+					return true;
+				else if (m_VolumeID > _Right.m_VolumeID)
+					return false;
+				return m_FileID < _Right.m_FileID;
+			}
+			
+			bool operator == (CUniqueFileIdentifier const &_Right) const
+			{
+				if (m_VolumeID != _Right.m_VolumeID)
+					return false;
+				return m_FileID == _Right.m_FileID;
+			}
+		};
 	}
 
 	namespace NSys
@@ -78,6 +100,9 @@ namespace NMib
 
 			NMib::NFile::EFileAttrib fg_GetAttributesOnLink(NMib::NStr::CStr const& _FileName);
 			void fg_SetAttributesOnLink(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
+			
+			NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName);
+			NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName);
 			
 			NMib::NFile::EFileAttrib fg_GetSupportedAttributes();
 			NMib::NFile::EFileAttrib fg_GetValidAttributes();
@@ -662,6 +687,9 @@ namespace NMib
 			static void fs_SetAttributesOnLink(NStr::CStr const &_FileName, EFileAttrib _Attribs);
 			static EFileAttrib fs_GetAttributesOnLink(NStr::CStr const &_FileName);
 			static bool fs_SetUnixAttributesRecursive(NStr::CStr const &_Path, EFileAttrib _FileAttributes, EFileAttrib _DirectoryAttributes, bool _bFollowLinks = false);
+			
+			static CUniqueFileIdentifier fs_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName);
+			static CUniqueFileIdentifier fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName);
 			
 			static NTime::CTime fs_GetCreationTime(NStr::CStr const &_FileName);
 			static NTime::CTime fs_GetAccessTime(NStr::CStr const &_FileName);
