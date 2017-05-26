@@ -210,13 +210,13 @@ namespace NMib::NFile
 						)
 						> [=](CSecureByteVector &&_Packet) -> TCContinuation<CSecureByteVector>
 						{
-							return TCContinuation<CSecureByteVector>::fs_RunProtected() > [&]
+							return TCContinuation<CSecureByteVector>::fs_RunProtected() > [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
 								{
 									if (!pRSyncState->m_pRSyncServer)
 										DMibError("RSync server destroyed");
-									
+
 									CSecureByteVector ToSendToClient;
-									pRSyncState->m_pRSyncServer->f_ProcessPacket(_Packet, ToSendToClient);
+									pRSyncState->m_pRSyncServer->f_ProcessPacket(Packet, ToSendToClient);
 
 									pRSyncState->m_ByteStats.m_nIncoming += _Packet.f_GetLen();
 									pRSyncState->m_ByteStats.m_nOutgoing += ToSendToClient.f_GetLen();
