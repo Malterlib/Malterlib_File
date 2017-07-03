@@ -267,7 +267,7 @@ namespace NMib::NFile
 					case 2:
 						{
 							auto &ManifestFileName = Config.m_Manifest.f_Get<2>();
-							_RSyncState.m_File.f_Open(ManifestFileName, EFileOpen_Read | EFileOpen_ShareRead);
+							_RSyncState.m_File.f_Open(ManifestFileName, EFileOpen_Read | EFileOpen_ShareAll);
 							_RSyncState.m_File >> *pManifest;
 							_RSyncState.m_File.f_SetPosition(0);
 							pBinaryStream = &_RSyncState.m_File;
@@ -310,7 +310,7 @@ namespace NMib::NFile
 				fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{
-					_RSyncState.m_File.f_Open(CFile::fs_AppendPath(pConfig->m_BasePath, FilePath), EFileOpen_Read | EFileOpen_ShareRead);
+					_RSyncState.m_File.f_Open(CFile::fs_AppendPath(pConfig->m_BasePath, FilePath), EFileOpen_Read | EFileOpen_ShareAll);
 					_RSyncState.m_pRSyncServer = fg_Construct(_RSyncState.m_File, 8*1024*1024);
 				}
 			)

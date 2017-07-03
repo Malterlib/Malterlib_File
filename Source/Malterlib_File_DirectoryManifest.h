@@ -85,8 +85,24 @@ namespace NMib::NFile
 		
 		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
 		
-		static void fs_UpdateManifestFile(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName, CDirectoryManifestFile &o_ManifestFile, NStr::CStr const &_OriginalPath);
-		static CDirectoryManifest fs_GetManifest(CDirectoryManifestConfig const &_Config, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort);
+		static EDirectoryManifestSyncFlag fs_GetSyncFlags(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName);
+		
+		static void fs_UpdateManifestFile
+			(
+				CDirectoryManifestConfig const &_Config
+				, NStr::CStr const &_FileName
+				, CDirectoryManifestFile &o_ManifestFile
+				, NStr::CStr const &_OriginalPath
+				, NFile::CFile::CFileChecksumState_SHA256 *o_pState = nullptr
+			)
+		;
+		static CDirectoryManifest fs_GetManifest
+			(
+				CDirectoryManifestConfig const &_Config
+				, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
+				, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates = nullptr
+			)
+		;
 	};
 }
 

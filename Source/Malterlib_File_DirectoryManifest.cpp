@@ -133,12 +133,33 @@ namespace NMib::NFile
 		return Manifest;
 	}
 	
+	EDirectoryManifestSyncFlag CDirectoryManifest::fs_GetSyncFlags(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName)
+	{
+		EDirectoryManifestSyncFlag OutFlags = EDirectoryManifestSyncFlag_None;
+		for (auto &Flags : _Config.m_AddSyncFlagsWildcards)
+		{
+			auto &Wildcard = _Config.m_AddSyncFlagsWildcards.fs_GetKey(Flags);
+			if (fg_StrMatchWildcard(_FileName.f_GetStr(), Wildcard.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
+				OutFlags |= Flags;
+		}
+
+		for (auto &Flags : _Config.m_RemoveSyncFlagsWildcards)
+		{
+			auto &Wildcard = _Config.m_RemoveSyncFlagsWildcards.fs_GetKey(Flags);
+			if (fg_StrMatchWildcard(_FileName.f_GetStr(), Wildcard.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
+				OutFlags &= ~Flags;
+		}
+		
+		return OutFlags;
+	}
+
 	void CDirectoryManifest::fs_UpdateManifestFile
 		(
 			CDirectoryManifestConfig const &_Config
 			, NStr::CStr const &_FileName
 			, CDirectoryManifestFile &o_ManifestFile
 			, NStr::CStr const &_OriginalPath
+			, NFile::CFile::CFileChecksumState_SHA256 *o_pState
 		)
 	{
 		using namespace NFile;
@@ -146,6 +167,7 @@ namespace NMib::NFile
 
 		auto OriginalFileName = CFile::fs_AppendPath(_Config.m_Root, _OriginalPath);
 		o_ManifestFile.m_OriginalPath = _OriginalPath;
+		o_ManifestFile.m_Flags = fs_GetSyncFlags(_Config, _FileName);
 		
 		if (o_ManifestFile.m_Attributes & EFileAttrib_Link)
 		{
@@ -159,27 +181,17 @@ namespace NMib::NFile
 		{
 			if (!(o_ManifestFile.m_Attributes & EFileAttrib_Directory))
 			{
-				CMibFilePos Length;
-				o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256(OriginalFileName, &Length);
-				o_ManifestFile.m_Length = Length;
+				o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
+					(
+						OriginalFileName
+						, o_pState
+					)
+				;
+				o_ManifestFile.m_Length = o_pState->m_Length;
 			}
 			o_ManifestFile.m_WriteTime = CFile::fs_GetWriteTime(OriginalFileName);
 			o_ManifestFile.m_Owner = CFile::fs_GetOwner(OriginalFileName);
 			o_ManifestFile.m_Group = CFile::fs_GetGroup(OriginalFileName);
-		}
-		
-		for (auto &Flags : _Config.m_AddSyncFlagsWildcards)
-		{
-			auto &Wildcard = _Config.m_AddSyncFlagsWildcards.fs_GetKey(Flags);
-			if (fg_StrMatchWildcard(_FileName.f_GetStr(), Wildcard.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
-				o_ManifestFile.m_Flags |= Flags;
-		}
-
-		for (auto &Flags : _Config.m_RemoveSyncFlagsWildcards)
-		{
-			auto &Wildcard = _Config.m_RemoveSyncFlagsWildcards.fs_GetKey(Flags);
-			if (fg_StrMatchWildcard(_FileName.f_GetStr(), Wildcard.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
-				o_ManifestFile.m_Flags &= ~Flags;
 		}
 	}
 	
@@ -246,7 +258,12 @@ namespace NMib::NFile
 		}
 	}
 	
-	CDirectoryManifest CDirectoryManifest::fs_GetManifest(CDirectoryManifestConfig const &_Config, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort)
+	CDirectoryManifest CDirectoryManifest::fs_GetManifest
+		(
+			CDirectoryManifestConfig const &_Config
+			, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
+			, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates
+		 )
 	{
 		CDirectoryManifest BackupManifest;
 
@@ -301,6 +318,19 @@ namespace NMib::NFile
 				ToRemove[RelativePath];
 				continue;
 			}
+			
+			try
+			{
+				CFile::CFileChecksumState_SHA256 ChecksumState;
+				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState);
+				
+				if (o_pAppendStates && (ManifestFile.m_Flags & EDirectoryManifestSyncFlag_Append))
+					(*o_pAppendStates)[RelativePath] = fg_Move(ChecksumState);
+			}
+			catch (NFile::CExceptionFile const &)
+			{
+				ToRemove[RelativePath];
+			}
 
 			CStr Directory = CFile::fs_GetPath(RelativePath);
 			while (!Directory.f_IsEmpty())
@@ -316,8 +346,6 @@ namespace NMib::NFile
 					ImplicitDirectories[Directory] = CDirectoryManifestConfig::CDestination{};
 				Directory = CFile::fs_GetPath(Directory);
 			}
-			
-			fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath);
 		}
 		
 		for (auto &File : ToRemove)
