@@ -445,9 +445,9 @@ namespace NMib
 		void CFile::f_Open(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 		{
 			NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
-			if (_OpenFlags & EFileOpen_Directory)
+			if (OpenFlags & EFileOpen_Directory || (OpenFlags & (EFileOpen_Read | EFileOpen_Write)) == EFileOpen_None)
 				OpenFlags |= EFileOpen_NoLocalCache;
-			if (!(_OpenFlags & EFileOpen_NoLocalCache))
+			if (!(OpenFlags & EFileOpen_NoLocalCache))
 				OpenFlags |= EFileOpen_Read;
 
 			f_Close();
@@ -1946,37 +1946,43 @@ namespace NMib
 		}
 
 		template <typename tf_CHash>
-		static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CMibFilePos *o_pLength)
+		static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CFile::TCFileChecksumState<tf_CHash> *o_pState)
 		{
 			CFile File;
 			File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 
 			CMibFilePos Length = File.f_GetLength();
-			if (o_pLength)
-				*o_pLength = Length;
-			tf_CHash Checksum;
+			if (o_pState)
+				o_pState->m_Length = Length;
+			tf_CHash Hash;
 
 			while (Length)
 			{
 				mint ThisTime = mint(fg_Min(Length, CMibFilePos(32768)));
 				uint8 Temp[32768];
 				File.f_Read(Temp, ThisTime);
-				Checksum.f_AddData(Temp, ThisTime);
+				Hash.f_AddData(Temp, ThisTime);
 
 				Length -= ThisTime;
 			}
+			
+			if (o_pState)
+			{
+				o_pState->m_Hash = Hash;
+				*(o_pState->m_pFile) = fg_Move(File);
+			}
 
-			return Checksum;
+			return Hash;
 		}
 
-		NDataProcessing::CHashDigest_MD5 CFile::fs_GetFileChecksum(const NStr::CStr &_Path, CMibFilePos *o_pLength)
+		NDataProcessing::CHashDigest_MD5 CFile::fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState)
 		{
-			return fg_GetFileChecksum<NDataProcessing::CHash_MD5>(_Path, o_pLength);
+			return fg_GetFileChecksum<NDataProcessing::CHash_MD5>(_Path, o_pState);
 		}
 		
-		NDataProcessing::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CMibFilePos *o_pLength)
+		NDataProcessing::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState)
 		{
-			return fg_GetFileChecksum<NDataProcessing::CHash_SHA256>(_Path, o_pLength);
+			return fg_GetFileChecksum<NDataProcessing::CHash_SHA256>(_Path, o_pState);
 		}		
 
 		NDataProcessing::CHashDigest_MD5 CFile::fs_GetDirectoryChecksum
