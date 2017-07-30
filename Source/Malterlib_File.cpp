@@ -777,16 +777,18 @@ namespace NMib
 		{
 			try
 			{
-				EFileAttrib Attribs = CFile::fs_GetAttributes(_LocalPath);
+				EFileAttrib SupportedAttributes = CFile::fs_GetSupportedAttributes();
+				EFileAttrib ValidAttributes = CFile::fs_GetValidAttributes();
+				EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);
 				if (_bWritable)
 				{
-					if ((Attribs & NMib::NFile::EFileAttrib_ReadOnly))
-						CFile::fs_SetAttributes(_LocalPath, Attribs & ~NMib::NFile::EFileAttrib_ReadOnly);
+					if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
+						CFile::fs_SetAttributes(_LocalPath, (Attributes & ~EFileAttrib_ReadOnly)  | (SupportedAttributes & EFileAttrib_UserWrite) | ValidAttributes);
 				}
 				else
 				{
-					if (!(Attribs & NMib::NFile::EFileAttrib_ReadOnly))
-						CFile::fs_SetAttributes(_LocalPath, Attribs | NMib::NFile::EFileAttrib_ReadOnly);
+					if (!(Attributes & NMib::NFile::EFileAttrib_ReadOnly))
+						CFile::fs_SetAttributes(_LocalPath, Attributes | NMib::NFile::EFileAttrib_ReadOnly);
 				}
 			}
 			catch (CExceptionFile const &)
@@ -800,8 +802,9 @@ namespace NMib
 		{
 			try
 			{
-				EFileAttrib Attribs = CFile::fs_GetAttributes(_LocalPath);;
-				if ((Attribs & NMib::NFile::EFileAttrib_ReadOnly))
+				EFileAttrib SupportedAttributes = CFile::fs_GetSupportedAttributes();
+				EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);;
+				if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
 					return false;
 				else
 					return true;
