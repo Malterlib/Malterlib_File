@@ -728,7 +728,7 @@ namespace NMib
 				DMibErrorFile("Position is past end of file");
 
 			NStream::CFilePos FileSize = fp_GetLength();
-			FileSize -= _Pos;
+			FileSize += _Pos;
 			if (FileSize < 0)
 				DMibErrorFile("Position is negative");
 
