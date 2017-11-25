@@ -508,6 +508,7 @@ namespace NMib
 			static void fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress);
 			static void fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 			static void fs_CopyFileRaw(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+			static void fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo);
 
 			static void fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 			static void fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);

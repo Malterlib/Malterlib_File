@@ -885,21 +885,26 @@ namespace NMib
 			NSys::NFile::fg_Copy(_FileFrom, _FileTo);
 		}
 
+		void CFile::fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo)
+		{
+			NStream::CFilePos Len = _FileFrom.f_GetLength() - _FileFrom.f_GetPosition();
+			while (Len)
+			{
+				mint ThisTime = fg_Min(Len, 32768);
+				ch8 Temp[32768];
+				_FileFrom.f_Read(Temp, ThisTime);
+				_FileTo.f_Write(Temp, ThisTime);
+				Len -= ThisTime;
+			}
+		}
+
 		void CFile::fs_CopyFileRaw(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
 		{
 			CFile InFile;
 			CFile OutFile;
 			InFile.f_Open(_FileFrom, EFileOpen_Read | EFileOpen_ShareAll);
 			OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
-			NStream::CFilePos Len = InFile.f_GetLength();
-			while (Len)
-			{
-				mint ThisTime = fg_Min(Len, 32768);
-				ch8 Temp[32768];
-				InFile.f_Read(Temp, ThisTime);
-				OutFile.f_Write(Temp, ThisTime);
-				Len -= ThisTime;
-			}
+			fs_CopyFileRaw(InFile, OutFile);
 		}
 
 		void CFile::fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags)
