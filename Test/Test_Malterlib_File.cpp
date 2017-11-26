@@ -427,13 +427,19 @@ namespace
 							CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetPath(TestDir) + "/SubDir2");
 						CFile::fs_CreateDirectory(TestDir);
 #ifdef DPlatformFamily_OSX
-						NSys::fg_Thread_Sleep(1.5); // Wait for old notifications to be unqueued
+						if (CSystem::ms_PlatformVersion < 10'13'00)
+						{
+							NSys::fg_Thread_Sleep(1.5); // Wait for old notifications to be unqueued
+						}
 #endif
 						
 						auto fSleep = [&]
 							{
-								if (bPollOSX)
-									NSys::fg_Thread_Sleep(1.5f);
+								if (CSystem::ms_PlatformVersion < 10'13'00)
+								{
+									if (bPollOSX)
+										NSys::fg_Thread_Sleep(1.5f);
+								}
 #ifdef DPlatformFamily_Windows
 								NSys::fg_Thread_Sleep(0.01f);
 #endif
@@ -569,6 +575,15 @@ namespace
 							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change2.m_Path, ==, "SubDir");
 
+#ifdef DPlatformFamily_OSX
+							if (CSystem::ms_PlatformVersion >= 10'13'00)
+							{
+								auto Change3 = fWaitForChange("RenameFile: Change3");
+								DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change3.m_Path, ==, "File.tst");
+							}
+#endif
+
 							DMibExpectFalse(fHasChange() && "After");
 						}
 						fSleep();
@@ -630,6 +645,18 @@ namespace
 							auto Change1 = fWaitForChange("RenameHardLink: Change1");
 							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change1.m_Path, ==, "");
+
+#ifdef DPlatformFamily_OSX
+							if (CSystem::ms_PlatformVersion >= 10'13'00)
+							{
+								auto Change2 = fWaitForChange("RenameHardLink: Change2");
+								auto Change3 = fWaitForChange("RenameHardLink: Change3");
+								DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change2.m_Path, ==, "File2.tst");
+								DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change3.m_Path, ==, "File4.tst");
+							}
+#endif
 
 							DMibExpectFalse(fHasChange() && "After");
 						}
@@ -696,6 +723,17 @@ namespace
 							DMibExpect(Change3.m_Path, ==, "SubDir");
 #endif
 
+#ifdef DPlatformFamily_OSX
+							if (CSystem::ms_PlatformVersion >= 10'13'00)
+							{
+								auto Change4 = fWaitForChange("RenameHardLink2: Change4");
+								auto Change5 = fWaitForChange("RenameHardLink2: Change5");
+								DMibExpect(Change4.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change4.m_Path, ==, "SubDir/File3.tst");
+								DMibExpect(Change5.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change5.m_Path, ==, "File4.tst");
+							}
+#endif
 
 							DMibExpectFalse(fHasChange() && "After");
 						}
@@ -719,6 +757,14 @@ namespace
 							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change2.m_Path, ==, "");
 
+#ifdef DPlatformFamily_OSX
+							if (CSystem::ms_PlatformVersion >= 10'13'00)
+							{
+								auto Change3 = fWaitForChange("RenameSubDir: Change2");
+								DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change3.m_Path, ==, "SubDir2");
+							}
+#endif
 							DMibExpectFalse(fHasChange() && "After");
 						}
 						fSleep();
@@ -802,7 +848,7 @@ namespace
 							DMibTestPath("Delete directory outside tree");
 							DMibExpectFalse(fHasChange() && "Before");
 							CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetPath(TestDir) + "/SubDir2");
-							NSys::fg_Thread_Sleep(0.5);
+							fSleep();
 							DMibExpectFalse(fHasChange() && "After");
 						}
 #ifndef DPlatformFamily_Windows
