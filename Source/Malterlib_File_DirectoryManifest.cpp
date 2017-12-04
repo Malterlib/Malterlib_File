@@ -160,6 +160,7 @@ namespace NMib::NFile
 			, CDirectoryManifestFile &o_ManifestFile
 			, NStr::CStr const &_OriginalPath
 			, NFile::CFile::CFileChecksumState_SHA256 *o_pState
+		 	, NFile::EFileOpen _FileOpenFlags
 		)
 	{
 		using namespace NFile;
@@ -181,10 +182,18 @@ namespace NMib::NFile
 		{
 			if (!(o_ManifestFile.m_Attributes & EFileAttrib_Directory))
 			{
+				NFile::CFile::CFileChecksumState_SHA256 TempState;
+				auto pState = o_pState;
+				if (_FileOpenFlags != NFile::EFileOpen_None)
+				{
+					if (!pState)
+						pState = &TempState;
+					pState->m_pFile->f_Open(OriginalFileName, _FileOpenFlags);
+				}
 				o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
 					(
 						OriginalFileName
-						, o_pState
+						, pState
 					)
 				;
 				o_ManifestFile.m_Length = o_pState->m_Length;
@@ -263,6 +272,7 @@ namespace NMib::NFile
 			CDirectoryManifestConfig const &_Config
 			, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 			, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates
+		 	, NFile::EFileOpen _FileOpenFlags
 		 )
 	{
 		CDirectoryManifest BackupManifest;
@@ -322,13 +332,14 @@ namespace NMib::NFile
 			try
 			{
 				CFile::CFileChecksumState_SHA256 ChecksumState;
-				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState);
+				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState, _FileOpenFlags);
 				
 				if (o_pAppendStates && (ManifestFile.m_Flags & EDirectoryManifestSyncFlag_Append))
 					(*o_pAppendStates)[RelativePath] = fg_Move(ChecksumState);
 			}
 			catch (NFile::CExceptionFile const &)
 			{
+				// TODO: Report this error somewhere
 				ToRemove[RelativePath];
 			}
 
