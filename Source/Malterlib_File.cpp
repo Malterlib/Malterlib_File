@@ -469,9 +469,10 @@ namespace NMib
 		void CFile::f_Open(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 		{
 			NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
-			if (_OpenFlags & EFileOpen_Directory)
+			if ((_OpenFlags & EFileOpen_Directory) || !(_OpenFlags & (EFileOpen_Read | EFileOpen_Write)))
 				OpenFlags |= EFileOpen_NoLocalCache;
-			if (!(_OpenFlags & EFileOpen_NoLocalCache))
+
+			if (!(OpenFlags & EFileOpen_NoLocalCache))
 				OpenFlags |= EFileOpen_Read;
 
 			f_Close();
