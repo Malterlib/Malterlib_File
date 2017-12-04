@@ -1957,8 +1957,18 @@ namespace NMib
 		template <typename tf_CHash>
 		static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CFile::TCFileChecksumState<tf_CHash> *o_pState)
 		{
-			CFile File;
-			File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
+			CFile *pFile = nullptr;
+			CFile LocalFile;
+
+			if (o_pState)
+				pFile = &(*o_pState->m_pFile);
+			else
+				pFile = &LocalFile;
+
+			auto &File = *pFile;
+
+			if (!File.f_IsValid())
+				File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 
 			CMibFilePos Length = File.f_GetLength();
 			if (o_pState)
@@ -1976,10 +1986,7 @@ namespace NMib
 			}
 			
 			if (o_pState)
-			{
 				o_pState->m_Hash = Hash;
-				*(o_pState->m_pFile) = fg_Move(File);
-			}
 
 			return Hash;
 		}
