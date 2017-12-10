@@ -466,7 +466,7 @@ namespace
 								case EFileChangeNotification_Renamed: NotName = "Renamed"; break;
 								}
 
-								DMibTrace2("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
+								DMibConErrOut2("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
 #endif
 							}
 						;
@@ -543,24 +543,44 @@ namespace
 						{
 							DMibTestPath("Rename file");
 							DMibExpectFalse(fHasChange() && "Before");
+
 							CFile::fs_RenameFile(TestDir + "/SubDir/File.tst", TestDir + "/File.tst");
 
 #ifdef DPlatformFamily_Windows
-							auto Change00 = fWaitForChange("RenameFile: Change00");
-							DMibExpect(Change00.m_Notification, ==, EFileChangeNotification_Removed);
-							DMibExpect(Change00.m_Path, ==, "SubDir/File.tst");
-							
-							auto Change01 = fWaitForChange("RenameFile: Change01");
-							DMibExpect(Change01.m_Notification, ==, EFileChangeNotification_Added);
-							DMibExpect(Change01.m_Path, ==, "File.tst");
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							Notifications[fWaitForChange("RenameFile: Change0")];
+							Notifications[fWaitForChange("RenameFile: Change1")];
+							Notifications[fWaitForChange("RenameFile: Change2")];
+							Notifications[fWaitForChange("RenameFile: Change3")];
+
+							auto iChange = Notifications.f_GetIterator();
+							auto Change0 = *iChange;
+							++iChange;
+							auto Change1 = *iChange;
+							++iChange;
+							auto Change2 = *iChange;
+							++iChange;
+							auto Change3 = *iChange;
+							++iChange;
+
+							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+							DMibExpect(Change0.m_Path, ==, "File.tst");
+
+							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
+							DMibExpect(Change1.m_Path, ==, "SubDir/File.tst");
+
+							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change2.m_Path, ==, "");
+
+							DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
+							DMibExpect(Change3.m_Path, ==, "SubDir");
 #else
 							auto Change0 = fWaitForChange("RenameFile: Change0");
 							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Renamed);
 							DMibExpect(Change0.m_Path, ==, "File.tst");
 							DMibExpect(Change0.m_PathFrom, ==, "SubDir/File.tst");
-#endif
 							TCSet<CFileChangeNotification::CNotification> Notifications;
-							
+
 							Notifications[fWaitForChange("RenameFile: Change1")];
 							Notifications[fWaitForChange("RenameFile: Change2")];
 							auto iChange = Notifications.f_GetIterator();
@@ -568,13 +588,12 @@ namespace
 							++iChange;
 							auto Change2 = *iChange;
 							++iChange;
-							
+
 							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change1.m_Path, ==, "");
 
 							DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change2.m_Path, ==, "SubDir");
-
 #ifdef DPlatformFamily_OSX
 							if (CSystem::ms_PlatformVersion >= 10'13'00)
 							{
@@ -583,7 +602,7 @@ namespace
 								DMibExpect(Change3.m_Path, ==, "File.tst");
 							}
 #endif
-
+#endif
 							DMibExpectFalse(fHasChange() && "After");
 						}
 						fSleep();
