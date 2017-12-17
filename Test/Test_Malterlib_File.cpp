@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Test/Exception>
@@ -1697,14 +1697,134 @@ namespace
 					}
 				}
 #endif
-				
 				CFile::fs_DeleteDirectoryRecursive(CurrentDir);
 			};
+			DMibTestSuite("Time")
+			{
+				CStr CurrentDir = CFile::fs_GetCurrentDirectory() + "/FileTest3";
+				if (CFile::fs_FileExists(CurrentDir))
+					CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
+				CFile::fs_CreateDirectory(CurrentDir);
 
+				NTime::CTime CreationTime = NTime::CTimeConvert::fs_CreateTime(2005, 01, 01, 22, 16, 05, 0.75757575757575757575);
+				NTime::CTime ModificationTime = NTime::CTimeConvert::fs_CreateTime(2005, 05, 01, 22, 16, 05, 0.75757575757575757575);
+				NTime::CTime AccessTime = NTime::CTimeConvert::fs_CreateTime(2005, 06, 01, 22, 16, 05, 0.75757575757575757575);
+
+				NTime::CTimeSpan Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(0.000000001);
+#if defined(DPlatformFamily_OSX)
+				if (CSystem::ms_PlatformVersion < 10'13'00)
+					Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(2.0);
+#endif
+
+				auto fEqualEnough = [&](NTime::CTime const &_Left, NTime::CTime const &_Right)
+					{
+						if (_Left > _Right)
+						{
+							if ((_Left - _Right) > Precision)
+								return false;
+						}
+						else
+						{
+							if ((_Right - _Left) > Precision)
+								return false;
+						}
+
+						return true;
+					}
+				;
+
+				{
+					DMibTestPath("ByFile");
+					CStr TestFileName = CFile::fs_AppendPath(CurrentDir, "ByFile.file");
+					{
+						CFile File;
+						File.f_Open(TestFileName, EFileOpen_Write);
+						File.f_SetCreationTime(CreationTime);
+						File.f_SetWriteTime(ModificationTime);
+						File.f_SetAccessTime(AccessTime);
+					}
+					{
+						CFile File;
+						File.f_Open(TestFileName, EFileOpen_Read);
+#ifndef DPlatformFamily_Linux
+						DMibExpectTrue(fEqualEnough(File.f_GetCreationTime(), CreationTime));
+#endif
+						DMibExpectTrue(fEqualEnough(File.f_GetWriteTime(), ModificationTime));
+						DMibExpectTrue(fEqualEnough(File.f_GetAccessTime(), AccessTime));
+					}
+				}
+				{
+					DMibTestPath("ByPath");
+					CStr TestFileName = CFile::fs_AppendPath(CurrentDir, "ByPath.file");
+					{
+						CFile File;
+						File.f_Open(TestFileName, EFileOpen_Write);
+					}
+					CFile::fs_SetCreationTime(TestFileName, CreationTime);
+					CFile::fs_SetWriteTime(TestFileName, ModificationTime);
+					CFile::fs_SetAccessTime(TestFileName, AccessTime);
+#ifndef DPlatformFamily_Linux
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), CreationTime));
+#endif
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), AccessTime));
+				}
+				{
+					DMibTestPath("OnLinks");
+					CStr TestFileNameLinkedTo = CFile::fs_AppendPath(CurrentDir, "LinkedTo.file");
+					{
+						CFile File;
+						File.f_Open(TestFileNameLinkedTo, EFileOpen_Write);
+					}
+					CStr TestFileName = CFile::fs_AppendPath(CurrentDir, "OnLink.file");
+					CFile::fs_CreateSymbolicLink("LinkedTo.file", TestFileName, EFileAttrib_File, ESymbolicLinkFlag_Relative);
+
+					CFile::fs_SetCreationTime(TestFileName, CreationTime);
+					CFile::fs_SetWriteTime(TestFileName, ModificationTime);
+					CFile::fs_SetAccessTime(TestFileName, AccessTime);
+#ifndef DPlatformFamily_Linux
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), CreationTime));
+#endif
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), AccessTime));
+				}
+				{
+					DMibTestPath("Links");
+					CStr TestFileNameLinkedTo = CFile::fs_AppendPath(CurrentDir, "LinkedTo2.file");
+					{
+						CFile File;
+						File.f_Open(TestFileNameLinkedTo, EFileOpen_Write);
+					}
+					CStr TestFileName = CFile::fs_AppendPath(CurrentDir, "Link.file");
+					CFile::fs_CreateSymbolicLink("LinkedTo2.file", TestFileName, EFileAttrib_File, ESymbolicLinkFlag_Relative);
+					NTime::CTime LinkedToFileTime = NTime::CTimeConvert::fs_CreateTime(2008, 06, 01, 22, 16, 05, 0.75757575757575757575);;
+
+					CFile::fs_SetCreationTimeOnLink(TestFileName, CreationTime);
+					CFile::fs_SetCreationTime(TestFileName, LinkedToFileTime);
+
+					CFile::fs_SetWriteTimeOnLink(TestFileName, ModificationTime);
+					CFile::fs_SetWriteTime(TestFileName, LinkedToFileTime);
+
+					CFile::fs_SetAccessTime(TestFileName, LinkedToFileTime);
+					CFile::fs_SetAccessTimeOnLink(TestFileName, AccessTime);
+
+#ifndef DPlatformFamily_Linux
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTimeOnLink(TestFileName), CreationTime));
+#endif
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTimeOnLink(TestFileName), ModificationTime));
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTimeOnLink(TestFileName), AccessTime));
+
+#ifndef DPlatformFamily_Linux
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), LinkedToFileTime));
+#endif
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), LinkedToFileTime));
+					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), LinkedToFileTime));
+				}
+
+				CFile::fs_DeleteDirectoryRecursive(CurrentDir);
+			};
 		}
 	};
 	
 	DMibTestRegister(CFile_Tests, Malterlib::File);
 }
-
-
