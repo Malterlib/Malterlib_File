@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Core/Core>
@@ -662,7 +662,7 @@ namespace NMib
 					DMibSafeCheck(m_InUse.f_IsEmpty(), "This should not happed. Did you close all files?");
 
 					f_Flush();
-					m_Tree.f_DeleteAll();
+					m_Tree.f_DeleteAllDefiniteType();
 				}
 
 				void f_Flush(CClusterCacheEntry *_pCluster)
@@ -813,7 +813,7 @@ namespace NMib
 				{
 					DMibSafeCheck(m_InUse.f_IsEmpty(), "This should not happed. Did you close all files?");
 					f_Flush();
-					m_Tree.f_DeleteAll();
+					m_Tree.f_DeleteAllDefiniteType();
 				}
 
 				void f_Flush()

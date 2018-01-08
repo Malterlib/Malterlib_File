@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_MalterlibFS.h"
@@ -45,7 +45,7 @@ namespace NMib
 				~CFile()
 				{
 					f_SetParent(nullptr);
-					m_Children.f_DeleteAll();
+					m_Children.f_DeleteAllDefiniteType();
 					if (m_FileClusterIDLink.f_IsInTree())
 						m_pTree->m_FileClusters.f_Remove(this);
 					if (m_DirectoryIDLink.f_IsInTree())
@@ -308,8 +308,8 @@ namespace NMib
 			{
 				m_Roots.f_Clear();
 
-				m_FileClusters.f_DeleteAll();
-				m_Directories.f_DeleteAll();
+				m_FileClusters.f_DeleteAllDefiniteType();
+				m_Directories.f_DeleteAllDefiniteType();
 			}
 
 			NIntrusive::TCAVLTree<CFile::CLinkTraits_m_FileClusterIDLink, CFile::CCompareFileClusterID> m_FileClusters;
