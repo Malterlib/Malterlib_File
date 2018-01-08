@@ -1711,25 +1711,29 @@ namespace
 				NTime::CTime AccessTime = NTime::CTimeConvert::fs_CreateTime(2005, 06, 01, 22, 16, 05, 0.75757575757575757575);
 
 				NTime::CTimeSpan Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(0.000000001);
-#if defined(DPlatformFamily_OSX)
+#if defined(DPlatformFamily_Windows)
+				Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(0.0000001);
+#elif defined(DPlatformFamily_OSX)
 				if (CSystem::ms_PlatformVersion < 10'13'00)
 					Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(2.0);
 #endif
 
-				auto fEqualEnough = [&](NTime::CTime const &_Left, NTime::CTime const &_Right)
+				auto fDiffFileTime = [&](NTime::CTime const &_Left, NTime::CTime const &_Right) -> fp64
 					{
 						if (_Left > _Right)
 						{
-							if ((_Left - _Right) > Precision)
-								return false;
+							auto Diff = (_Left - _Right);
+							if (Diff > Precision)
+								return Diff.f_GetSecondsFraction();
 						}
 						else
 						{
-							if ((_Right - _Left) > Precision)
-								return false;
+							auto Diff = (_Right - _Left);
+							if (Diff > Precision)
+								return Diff.f_GetSecondsFraction();
 						}
 
-						return true;
+						return 0.0;
 					}
 				;
 
@@ -1747,10 +1751,10 @@ namespace
 						CFile File;
 						File.f_Open(TestFileName, EFileOpen_Read);
 #ifndef DPlatformFamily_Linux
-						DMibExpectTrue(fEqualEnough(File.f_GetCreationTime(), CreationTime));
+						DMibExpectFalse(fDiffFileTime(File.f_GetCreationTime(), CreationTime));
 #endif
-						DMibExpectTrue(fEqualEnough(File.f_GetWriteTime(), ModificationTime));
-						DMibExpectTrue(fEqualEnough(File.f_GetAccessTime(), AccessTime));
+						DMibExpectFalse(fDiffFileTime(File.f_GetWriteTime(), ModificationTime));
+						DMibExpectFalse(fDiffFileTime(File.f_GetAccessTime(), AccessTime));
 					}
 				}
 				{
@@ -1764,10 +1768,17 @@ namespace
 					CFile::fs_SetWriteTime(TestFileName, ModificationTime);
 					CFile::fs_SetAccessTime(TestFileName, AccessTime);
 #ifndef DPlatformFamily_Linux
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), CreationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetCreationTime(TestFileName), CreationTime));
 #endif
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), AccessTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetAccessTime(TestFileName), AccessTime));
+
+					// Link on non-link file
+#ifndef DPlatformFamily_Linux
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetCreationTimeOnLink(TestFileName), CreationTime));
+#endif
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetWriteTimeOnLink(TestFileName), ModificationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetAccessTimeOnLink(TestFileName), AccessTime));
 				}
 				{
 					DMibTestPath("OnLinks");
@@ -1783,10 +1794,10 @@ namespace
 					CFile::fs_SetWriteTime(TestFileName, ModificationTime);
 					CFile::fs_SetAccessTime(TestFileName, AccessTime);
 #ifndef DPlatformFamily_Linux
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), CreationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetCreationTime(TestFileName), CreationTime));
 #endif
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), AccessTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetWriteTime(TestFileName), ModificationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetAccessTime(TestFileName), AccessTime));
 				}
 				{
 					DMibTestPath("Links");
@@ -1809,16 +1820,16 @@ namespace
 					CFile::fs_SetAccessTimeOnLink(TestFileName, AccessTime);
 
 #ifndef DPlatformFamily_Linux
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTimeOnLink(TestFileName), CreationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetCreationTimeOnLink(TestFileName), CreationTime));
 #endif
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTimeOnLink(TestFileName), ModificationTime));
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTimeOnLink(TestFileName), AccessTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetWriteTimeOnLink(TestFileName), ModificationTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetAccessTimeOnLink(TestFileName), AccessTime));
 
 #ifndef DPlatformFamily_Linux
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetCreationTime(TestFileName), LinkedToFileTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetCreationTime(TestFileName), LinkedToFileTime));
 #endif
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetWriteTime(TestFileName), LinkedToFileTime));
-					DMibExpectTrue(fEqualEnough(CFile::fs_GetAccessTime(TestFileName), LinkedToFileTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetWriteTime(TestFileName), LinkedToFileTime));
+					DMibExpectFalse(fDiffFileTime(CFile::fs_GetAccessTime(TestFileName), LinkedToFileTime));
 				}
 
 				CFile::fs_DeleteDirectoryRecursive(CurrentDir);
