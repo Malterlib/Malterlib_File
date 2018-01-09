@@ -95,15 +95,15 @@ namespace NMib::NFile
 	CExceptionPointer CDirectorySyncSend::CInternal::f_CheckFileName(CStr const &_FileName)
 	{
 		if (CFile::fs_IsPathAbsolute(_FileName))
-			return fg_ExceptionPointer(DMibErrorInstance("Absolute paths not allowed"));
+			return NException::fg_ExceptionPointer(DMibErrorInstance("Absolute paths not allowed"));
 
 		if (CFile::fs_HasRelativeComponents(_FileName))
-			return fg_ExceptionPointer(DMibErrorInstance("Relative path components such as '..' are not allowed"));
+			return NException::fg_ExceptionPointer(DMibErrorInstance("Relative path components such as '..' are not allowed"));
 
 		{
 			CStr Error;
 			if (!CFile::fs_IsValidFilePath(_FileName, Error))
-				return fg_ExceptionPointer(DMibErrorInstance(fg_Format("The path cannot {}", Error)));
+				return NException::fg_ExceptionPointer(DMibErrorInstance(fg_Format("The path cannot {}", Error)));
 		}
 
 		return nullptr;
