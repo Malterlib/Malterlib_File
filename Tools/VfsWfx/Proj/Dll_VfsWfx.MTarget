@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 %Target Dll_VfsWfx
@@ -13,7 +13,7 @@
 	{
 		BaseName "VfsWfx"
 		BaseFileName "MalterlibVfs"
-		ModuleDefinitionFile "@(Builtin.BasePath)/@(Builtin.Function->RelativeBase('MSVC/VfsWfx.def'))"
+		ModuleDefinitionFile "@('MSVC/VfsWfx.def'->MakeAbsolute())"
 		{
 			!!PlatformType "Windows"
 		}
