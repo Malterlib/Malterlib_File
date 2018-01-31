@@ -522,18 +522,7 @@ namespace NMib
 						{
 							CPacket_ClientInit *pTypedPacket = (CPacket_ClientInit *)pPacket.f_Get();
 							CPacket_ServerInit ServerInit;
-#if 0
-							auto OldPos = mp_pFileToSend->f_GetPosition();
-							mp_pFileToSend->f_SetPosition(0);
-							NFile::CFile Out;
-							Out.f_Open(NStr::CStr("T:/Server.file"), NFile::EFileOpen_Write);
-							CSecureByteVector Data;
-							Data.f_SetLen(mp_pFileToSend->f_GetLength());
-							mp_pFileToSend->f_ConsumeBytes(Data.f_GetArray(), Data.f_GetLen());
-							mp_pFileToSend->f_SetPosition(0);
-							Out.f_Write(Data.f_GetArray(), Data.f_GetLen());				
-#endif
-														
+
 							TCVector<COutstandingRange> Outstanding;
 							COutstandingRange &Range = Outstanding.f_Insert();
 							Range.m_Start = 0;
@@ -683,20 +672,47 @@ namespace NMib
 			{
 			}
 
+			void f_RemoveChunk(uint64 _Start)
+			{
+				m_Chunks.f_Remove(_Start);
+			}
+
 			void f_WriteOut(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_InStream)
 			{
-				for (auto &Chunk : m_Chunks)
+				while (!m_Chunks.f_IsEmpty())
 				{
-					if (Chunk.f_OldFileStart() >= 0)
-					{
-						_OutStream.f_SetPosition(Chunk.f_Start());
-						_InStream.f_SetPosition(Chunk.f_OldFileStart());
-						_OutStream.f_FeedFromStream(_InStream, Chunk.f_Length());
-					}
+					auto const &Chunk = *m_Chunks.f_FindSmallest();
+
+					if (Chunk.f_OldFileStart() < 0)
+						return;
+
+					if (Chunk.f_Start() != _OutStream.f_GetPosition())
+						DMibError("Invalid rsync stream");
+
+					_InStream.f_SetPosition(Chunk.f_OldFileStart());
+					_OutStream.f_FeedFromStream(_InStream, Chunk.f_Length());
+					m_Chunks.f_Remove(m_Chunks.fs_GetKey(Chunk));
 				}
 			}
 
-			void f_WriteOutWithTemporary(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_InStream, NStream::CBinaryStream &_TemporaryStream)
+			void f_WriteOutFromTemporary(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_TemporaryStream)
+			{
+				while (!m_Chunks.f_IsEmpty())
+				{
+					auto &Chunk = *m_Chunks.f_FindSmallest();
+
+					if (Chunk.f_OldFileStart() < 0)
+						return;
+
+					if (Chunk.f_Start() != _OutStream.f_GetPosition())
+						DMibError("Invalid rsync stream");
+
+					_OutStream.f_FeedFromStream(_TemporaryStream, Chunk.f_Length());
+					m_Chunks.f_Remove(m_Chunks.fs_GetKey(Chunk));
+				}
+			}
+
+			void f_WriteOutToTemporary(NStream::CBinaryStream &_InStream, NStream::CBinaryStream &_TemporaryStream)
 			{
 				_TemporaryStream.f_SetPosition(0);
 				for (auto &Chunk : m_Chunks)
@@ -707,16 +723,7 @@ namespace NMib
 						_TemporaryStream.f_FeedFromStream(_InStream, Chunk.f_Length());
 					}
 				}
-				
 				_TemporaryStream.f_SetPosition(0);
-				for (auto &Chunk : m_Chunks)
-				{
-					if (Chunk.f_OldFileStart() >= 0)
-					{
-						_OutStream.f_SetPosition(Chunk.f_Start());
-						_OutStream.f_FeedFromStream(_TemporaryStream, Chunk.f_Length());
-					}
-				}
 			}
 
 			void f_GetOutstanding(TCVector<COutstandingRange> &_Outstanding, uint64 &_TotalBytes, uint64 &_ChecksumSizes, mint _ChunkSize)
@@ -1308,11 +1315,26 @@ namespace NMib
 					{
 						if (nData < Chunk.m_Length)
 							DMibError("Invalid rsync stream");
-						mp_NewFile.f_SetPosition(Chunk.m_Start);
+						if (mp_NewFile.f_GetPosition() != Chunk.m_Start)
+						{
+							if (mp_pTempStream)
+								mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+							else
+								mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+						}
+						if (mp_NewFile.f_GetPosition() != Chunk.m_Start)
+							DMibError("Invalid rsync stream");
 						mp_NewFile.f_FeedBytes(pData, Chunk.m_Length);
 						nData -= Chunk.m_Length;
 						pData += Chunk.m_Length;
+						mp_ServerFile.f_RemoveChunk(Chunk.m_Start);
 					}
+
+					if (mp_pTempStream)
+						mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+					else
+						mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+
 				}
 
 				bool bIsDone = mp_Outstanding.f_IsEmpty() && mp_LastAskedFor.f_IsEmpty() && mp_bSentDoneMessage && mp_bReceivedDoneMessage;
@@ -1387,7 +1409,7 @@ namespace NMib
 					// Finished
 					f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess);
 					if (mp_pTempStream)
-						mp_ServerFile.f_WriteOutWithTemporary(mp_NewFile, mp_OldFile, *mp_pTempStream);
+						mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream);
 					else
 						mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
 					mp_ClientMode = EClientMode_SyncOutstanding;
@@ -1398,9 +1420,8 @@ namespace NMib
 					if (mp_CurrentChunkSize <= mp_MinChunkSize)
 					{
 						if (mp_pTempStream)
-							mp_ServerFile.f_WriteOutWithTemporary(mp_NewFile, mp_OldFile, *mp_pTempStream);
-						else
-							mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+							mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream);
+
 						mp_RawBytesTotal = 0;
 						uint64 ChecksumSizes = 0;
 						mp_ServerFile.f_GetOutstanding(mp_Outstanding, mp_RawBytesTotal, ChecksumSizes, mp_CurrentChunkSize);
@@ -1450,21 +1471,7 @@ namespace NMib
 					{
 						mint OldFileSize;
 						if (mp_OldFile.f_IsValid())
-						{
-#if 0
-							auto OldPos = mp_OldFile.f_GetPosition();
-							mp_OldFile.f_SetPosition(0);
-							NFile::CFile Out;
-							Out.f_Open(NStr::CStr("T:/Client.file"), NFile::EFileOpen_Write);
-							CSecureByteVector Data;
-							Data.f_SetLen(mp_OldFile.f_GetLength());
-							mp_OldFile.f_ConsumeBytes(Data.f_GetArray(), Data.f_GetLen());
-							mp_OldFile.f_SetPosition(0);
-							Out.f_Write(Data.f_GetArray(), Data.f_GetLen());				
-
-#endif
 							OldFileSize = mp_OldFile.f_GetLength();
-						}
 						else
 							OldFileSize = 0;
 						while (mp_MaxChunkSize && mp_MaxChunkSize > OldFileSize/2)

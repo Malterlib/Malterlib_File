@@ -2,20 +2,59 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/File/RSync>
+#include <Mib/Cryptography/EncryptedStream>
 
 using namespace NMib::NFile;
 using namespace NMib;
 using namespace NMib::NMem;
 using namespace NMib::NStream;
 using namespace NMib::NContainer;
+using namespace NMib::NNet;
 
 namespace
 {
+	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::TCVector<uint8>>
+	class CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
+	{
+		typedef CBinaryStreamMemory<t_CStreamType, t_CVector> CParent;
+
+	private:
+		DMibClassNoCopyAllowed(CBinaryStreamMemorySequential);
+
+	public:
+		typedef t_CVector CStorage;
+
+		DMibStreamImplementProtected(CBinaryStreamMemorySequential);
+	public:
+		DMibStreamImplementOperators(CBinaryStreamMemorySequential);
+
+		CBinaryStreamMemorySequential(CStorage const& _Buffer)
+			: CParent(_Buffer)
+		{
+		}
+
+		CBinaryStreamMemorySequential(CStorage && _Buffer)
+			: CParent(fg_Move(_Buffer))
+		{
+		}
+
+		CBinaryStreamMemorySequential()
+		{
+		}
+
+		void f_SetPosition(CFilePos _Pos)
+		{
+			if (_Pos != 0 && CParent::f_GetPosition() != _Pos)
+				DMibExpect(_Pos, ==, CParent::f_GetPosition());
+
+			CParent::f_SetPosition(_Pos);
+		}
+	};
+
 	class CRSync_Tests : public NMib::NTest::CTest
 	{
 	public:
-
-		static void fs_DoRSync(CSecureByteVector const &_Orig, CSecureByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace)
+		static void fs_DoRSync(CSecureByteVector const &_Orig, CSecureByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			bool bServerDone = false;
 			mint TotalSizeClient = 0;
@@ -30,18 +69,45 @@ namespace
 				CBinaryStream *pClientOld = &ClientStream;
 				if (_bInPlace)
 					Synced = _Orig;
-				CBinaryStreamMemory<NStream::CBinaryStreamDefault, CSecureByteVector> ClientNewStream;
 
-				CBinaryStreamMemory<NStream::CBinaryStreamDefault, CSecureByteVector> TemporaryStream;
+				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CSecureByteVector> ClientNewStream;
+				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CSecureByteVector> TemporaryStream;
+
+				using CEncrypted = NCryptography::TCBinaryStream_Encrypted<CBinaryStream *>;
+				NPtr::TCUniquePointer<CEncrypted> pClientNewStreamEncrypted;
+				NPtr::TCUniquePointer<CEncrypted> pTemporaryStreamEncrypted;
+				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pKey;
+				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pIV;
+				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pHMACKey;
+				CBinaryStream *pClientNewStream = &ClientNewStream;
 				CBinaryStream *pTemporaryStream = nullptr;
 				if (_bInPlace)
 				{
 					pTemporaryStream = &TemporaryStream;
 					pClientOld = &ClientNewStream;
 				}
-				
+
+				if (_bEncrypt)
+				{
+					pKey = fg_Construct(CEncryptKeyIV::fs_GetRandomKey(ESSLCrypto_AES_256_CBC));
+					pIV = fg_Construct(CEncryptKeyIV::fs_GetRandomIV(ESSLCrypto_AES_256_CBC));
+					pHMACKey = fg_Construct(CEncryptKeyIV::fs_GetRandomHMACKey(ESSLDigest_SHA256));
+
+					pClientNewStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV, ESSLCrypto_AES_256_CBC}, ESSLDigest_SHA256, *pHMACKey);
+					pClientNewStreamEncrypted->f_SetBufferSize(16);
+					pClientNewStreamEncrypted->f_Open(pClientNewStream, EFileOpen_Write);
+					pClientNewStream = &*pClientNewStreamEncrypted;
+					if (pTemporaryStream)
+					{
+						pTemporaryStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV}, ESSLDigest_SHA256, *pHMACKey);
+						pTemporaryStreamEncrypted->f_SetBufferSize(16);
+						pTemporaryStreamEncrypted->f_Open(pTemporaryStream, EFileOpen_Read | EFileOpen_Write);
+						pTemporaryStream = &*pTemporaryStreamEncrypted;
+					}
+				}
+
 				CRSyncServer RSyncServer(ServerStream, 32*1024*1024);
-				CRSyncClient RSyncClient(*pClientOld, ClientNewStream, _MinChunk, _MaxChunk, 32*1024*1024, pTemporaryStream);
+				CRSyncClient RSyncClient(*pClientOld, *pClientNewStream, _MinChunk, _MaxChunk, 32*1024*1024, pTemporaryStream);
 				
 				TCVector<CSecureByteVector> ServerData;
 				TCVector<CSecureByteVector> ClientData;
@@ -77,8 +143,18 @@ namespace
 					
 				}
 				nRawBytes = RSyncClient.f_GetRawBytes();
-				
-				Synced = ClientNewStream.f_MoveVector();
+				if (_bEncrypt)
+				{
+					CSecureByteVector EncryptedData;
+					EncryptedData = ClientNewStream.f_MoveVector();
+					CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CSecureByteVector> DataStream(EncryptedData);
+					NCryptography::TCBinaryStream_Encrypted<CBinaryStream *> DecryptingStream(CEncryptKeyIV{*pKey, *pIV}, ESSLDigest_SHA256, *pHMACKey);
+					DecryptingStream.f_Open(&DataStream, EFileOpen_Read);
+					auto Length = DecryptingStream.f_GetLength();
+					DecryptingStream.f_ConsumeBytes(Synced.f_GetArray(Length), Length);
+				}
+				else
+					Synced = ClientNewStream.f_MoveVector();
 			}
 			Timer.f_Stop();
 //			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient << TotalSizeServer << nRawBytes << (TotalSizeClient + TotalSizeServer) << fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)) << Timer.f_GetTime() * 1000.0);
@@ -93,39 +169,56 @@ namespace
 			
 			return Ret;			
 		}
-		static void fs_DoTests(uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace)
+		static void fs_DoTests(uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
-			DMibTestCategory(NStr::CStr(NStr::CStr::CFormat("{} -> {}{}") << _MaxChunk << _MinChunk << (_bInPlace ? " In place" : "")))
+			DMibTestCategory(NStr::CStr(NStr::CStr::CFormat("{} -> {}{}{}") << _MaxChunk << _MinChunk << (_bInPlace ? " In place" : "") << (_bEncrypt ? "Encrypted stream" : "")))
 			{
 				DMibTestSuite("Same dual")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("aaa aaa"), CRSync_Tests::fs_ToVector("aaa aaa"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("aaa aaa"), CRSync_Tests::fs_ToVector("aaa aaa"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Same")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Addition")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Same longer")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Deletion")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Long")
 				{
 					NStr::CStr LongStr;
 					LongStr.f_AddChars('a', 1024*1024);
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector(""), CRSync_Tests::fs_ToVector(LongStr), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector(""), CRSync_Tests::fs_ToVector(LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 				DMibTestSuite("Reverse")
 				{
-					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("abcdefghijklmnopqr"), CRSync_Tests::fs_ToVector("qropmnklijghefcdab"), _MinChunk, _MaxChunk, _bInPlace);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("abcdefghijklmnopqr"), CRSync_Tests::fs_ToVector("qropmnklijghefcdab"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
+				};
+				DMibTestSuite("Non-sequential read for 16 byte blocks")
+				{
+					CRSync_Tests::fs_DoRSync
+						(
+							  CRSync_Tests::fs_ToVector("0123ABCD9abcdefEFGH56789abcdef0123456789IJKLf01MNOP6789abcdef0123456789abcdQRST23456789abcdef01234UVWXabcdef0123456789abcdef")
+						 	, CRSync_Tests::fs_ToVector("0123456789abcdefUVWXQRSTMNOPEFGHABCDIJKL0123456789abcdef....ABCD1234EFGH4567IJKL5678MNOP7890QRST9876UVWX")
+						 	, _MinChunk
+						 	, _MaxChunk
+						 	, _bInPlace
+						 	, _bEncrypt
+						)
+					;
+				};
+				DMibTestSuite("No intersection")
+				{
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("abcdefghijklmnopqr"), CRSync_Tests::fs_ToVector("0123456789"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				};
 			};
 		};
@@ -136,7 +229,7 @@ namespace
 			NStr::CStr EndFileName = NFile::CFile::fs_GetProgramDirectory() + "/" + _EndFile;
 			if (NFile::CFile::fs_FileExists(StartFileName) && NFile::CFile::fs_FileExists(EndFileName))
 			{
-				fs_DoRSync(NFile::CFile::fs_ReadFile(StartFileName), NFile::CFile::fs_ReadFile(EndFileName), 128, 1024*1024, false);
+				fs_DoRSync(NFile::CFile::fs_ReadFile(StartFileName), NFile::CFile::fs_ReadFile(EndFileName), 128, 1024*1024, false, false);
 			}
 		}
 
@@ -144,21 +237,25 @@ namespace
 		{
 			DMibTestCategory("Basic")
 			{
-				for (mint i = 0; i < 2; ++i)
+				for (mint e = 0; e < 2; ++e)
 				{
-					bool bInline = i != 0;
-					fs_DoTests(1, 1, bInline);
-					fs_DoTests(2, 2, bInline);
-					fs_DoTests(1, 2, bInline);
-					fs_DoTests(1, 4, bInline);
-					fs_DoTests(1, 8, bInline);
-					fs_DoTests(1, 16, bInline);
-					fs_DoTests(1, 32, bInline);
-					fs_DoTests(2, 32, bInline);
-					fs_DoTests(4, 32, bInline);
-					fs_DoTests(8, 32, bInline);
-					fs_DoTests(16, 32, bInline);
-					fs_DoTests(32, 32, bInline);
+					bool bEncrypt = e != 0;
+					for (mint i = 0; i < 2; ++i)
+					{
+						bool bInline = i != 0;
+						fs_DoTests(1, 1, bInline, bEncrypt);
+						fs_DoTests(2, 2, bInline, bEncrypt);
+						fs_DoTests(1, 2, bInline, bEncrypt);
+						fs_DoTests(1, 4, bInline, bEncrypt);
+						fs_DoTests(1, 8, bInline, bEncrypt);
+						fs_DoTests(1, 16, bInline, bEncrypt);
+						fs_DoTests(1, 32, bInline, bEncrypt);
+						fs_DoTests(2, 32, bInline, bEncrypt);
+						fs_DoTests(4, 32, bInline, bEncrypt);
+						fs_DoTests(8, 32, bInline, bEncrypt);
+						fs_DoTests(16, 32, bInline, bEncrypt);
+						fs_DoTests(32, 32, bInline, bEncrypt);
+					}
 				}
 			};
 			DMibTestCategory(CTestCategory("Custom files"))
