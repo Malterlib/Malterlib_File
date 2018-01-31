@@ -13,6 +13,23 @@
 
 namespace NMib::NFile
 {
+	enum EDirectorySyncStreamType : uint32
+	{
+		EDirectorySyncStreamType_None                            = DMibBit(0)
+		, EDirectorySyncStreamType_Source                        = DMibBit(1)
+		, EDirectorySyncStreamType_Destination                   = DMibBit(2)
+		, EDirectorySyncStreamType_Temp                          = DMibBit(3)
+		, EDirectorySyncStreamType_Manifest                      = DMibBit(4)
+		, EDirectorySyncStreamType_SourceDestination             = EDirectorySyncStreamType_Source   | EDirectorySyncStreamType_Destination
+		, EDirectorySyncStreamType_ManifestSource                = EDirectorySyncStreamType_Manifest | EDirectorySyncStreamType_Source
+		, EDirectorySyncStreamType_ManifestDestination           = EDirectorySyncStreamType_Manifest | EDirectorySyncStreamType_Destination
+		, EDirectorySyncStreamType_ManifestSourceDestination     = EDirectorySyncStreamType_Manifest | EDirectorySyncStreamType_SourceDestination
+		, EDirectorySyncStreamType_TempManifestSource            = EDirectorySyncStreamType_Temp     | EDirectorySyncStreamType_ManifestSource
+		, EDirectorySyncStreamType_TempManifestDestination       = EDirectorySyncStreamType_Temp     | EDirectorySyncStreamType_ManifestDestination
+		, EDirectorySyncStreamType_TempManifestSourceDestination = EDirectorySyncStreamType_Temp     | EDirectorySyncStreamType_ManifestSourceDestination
+		, EDirectorySyncStreamType_TempSourceDestination         = EDirectorySyncStreamType_Temp     | EDirectorySyncStreamType_SourceDestination
+	};
+
 	struct CDirectorySyncClient : public NConcurrency::CActor
 	{
 		enum : uint32 
@@ -32,6 +49,9 @@ namespace NMib::NFile
 	
 	struct CDirectorySyncStats
 	{
+		template <typename tf_CStream>
+		void f_Stream(tf_CStream &_Stream);
+
 		fp64 f_IncomingBytesPerSecond() const;
 		fp64 f_OutgoingBytesPerSecond() const;
 
@@ -40,21 +60,62 @@ namespace NMib::NFile
 		uint64 m_IncomingBytes = 0;
 		fp64 m_nSeconds = 0.0;
 	};
+
+	struct CDirectorySyncFileOptions
+	{
+		NPtr::TCUniquePointer<NStream::CBinaryStream> f_OpenFile
+			(
+				NStr::CStr const &_FileName
+				, EDirectorySyncStreamType _FileType
+				, EFileOpen _OpenFlags
+				, EFileAttrib _Attributes = EFileAttrib_None
+			)
+		; ///< Opens _FileName. If m_fOpenStream is set, use it
+
+		/// Utility function that produces a file path. If m_fFilePathRenamer is set, it will be called, otherwise _BasePath and _FileName is concatenated
+		NStr::CStr f_TransformFileName(NStr::CStr const &_BasePath, NStr::CStr const &_FileName, EDirectorySyncStreamType _FileType);
+
+		NFunction::TCFunctionMutable
+			<
+				NPtr::TCUniquePointer<NStream::CBinaryStream>
+				(
+					NStr::CStr const &_FileName
+					, EDirectorySyncStreamType _FileType
+					, NFile::EFileOpen _OpenFlags
+					, NFile::EFileAttrib _Attributes
+				)
+			>
+			m_fOpenStream
+		; ///< If set, this functor is called to produce a stream that is used instead of the default file stream
+
+		NFunction::TCFunctionMutable<NStr::CStr (NStr::CStr const &_BasePath, NStr::CStr const &_FileName, EDirectorySyncStreamType _FileType)>
+			m_fTransformFilePath
+		; 	///< If set, this functor is called to transform the file name used for file operations. Return a string starting <Internal> to specify that file
+			/// 	operations should not be performed for manifest files
+	};
 	
 	struct CDirectorySyncSend : public CDirectorySyncClient
 	{
 		struct CConfig
 		{
+			CConfig(); ///< Default constructor
+
+			CConfig(NStr::CStr const &_FileName); ///< Constructor for the case when only a single file is transferred
+
 			NStr::CStr m_BasePath;	///< Care has been taken to make sure that no files outside this directory can be downloaded. Also, only files that are specified in
 									///		the manifst can be downloaded.
 			NContainer::TCVariant<CDirectoryManifest, CDirectoryManifestConfig, NStr::CStr> m_Manifest;	///< Specify manifest, a config to generate a manifest, or a path to a file with
 																										///		an existing manifest that corresponds to the files available in m_BasePath.
 			NStorage::TCOptional<bool> m_bUseOriginalLocation;	///< Use the original location of files in manifest. Defaults to true when m_Manifest is a CDirectoryManifestConfig,
 																///		otherwise false
+			CDirectorySyncFileOptions m_FileOptions; ///< Functionality for transformation of file names and content
 		};
 
 		struct CSyncResult
 		{
+			template <typename tf_CStream>
+			void f_Stream(tf_CStream &_Stream);
+
 			CDirectorySyncStats m_Stats;
 			bool m_bFinished = false;
 		};
@@ -93,9 +154,20 @@ namespace NMib::NFile
 			, ESyncFlag_Group = DMibBit(2)
 			, ESyncFlag_Attributes = DMibBit(3)
 		};
+
+		enum EEasyConfigFlag : uint32
+		{
+			EEasyConfigFlag_None = 0
+			, EEasyConfigFlag_AllowOverwrite = DMibBit(0)
+			, EEasyConfigFlag_DestinationIsDirectory = DMibBit(1)
+		};
 		
 		struct CConfig
 		{
+			CConfig(); ///< Default constructor
+
+			CConfig(NStr::CStr const &_Destination, EEasyConfigFlag _Flags = EEasyConfigFlag_None); ///< Constructor for the case when only a single file is transferred, or when only a destination directory is specified.
+
 			NContainer::TCVariant<void, CDirectoryManifest, NStr::CStr> m_PreviousManifest;
 			NStr::CStr m_OutputManifestPath;
 
@@ -106,7 +178,9 @@ namespace NMib::NFile
 			
 			NContainer::TCSet<NStr::CStr> m_IncludeWildcards; ///< Relative to m_BasePath. Leave empty to include all files in manifest
 			NContainer::TCSet<NStr::CStr> m_ExcludeWildcards; ///< Relative to m_BasePath. Evaluated after include wild cards as a filtering step.
-			
+
+			CDirectorySyncFileOptions m_FileOptions; ///< Functionality for transformation of file names and content
+
 			EExcessFilesAction m_ExcessFilesAction = EExcessFilesAction_Ignore;
 			ESyncFlag m_SyncFlags = ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes;
 			
@@ -137,3 +211,6 @@ namespace NMib::NFile
 #ifndef DMibPNoShortCuts
 using namespace NMib::NFile;
 #endif
+
+#include "Malterlib_File_DirectorySync.hpp"
+

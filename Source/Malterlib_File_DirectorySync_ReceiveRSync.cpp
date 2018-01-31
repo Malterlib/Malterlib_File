@@ -92,7 +92,7 @@ namespace NMib::NFile
 	TCContinuation<void> CDirectorySyncReceive::CInternal::f_RSync
 		(
 			TCFunctionMutable<bool (CRunningSyncState &_State)> &&_fInitRSync
-			, TCFunctionMutable<TCContinuation<void> ()> &&_fOnDone
+			, TCFunctionMutable<TCContinuation<void> (CRunningSyncState &_State)> &&_fOnDone
 			, TCFunctionMutable<TCContinuation<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
 		)
 	{
@@ -116,7 +116,7 @@ namespace NMib::NFile
 			{
 				if (_bAlreadySynced)
 				{
-					fOnDone() > Continuation / [=]()
+					fOnDone(*pRSyncState) > Continuation / [=]()
 						{
 							pRSyncState->f_Destroy() > Continuation / [=, pCleanup = pCleanup]()
 								{
@@ -141,7 +141,7 @@ namespace NMib::NFile
 						RSyncState.m_fRunProtocol = fg_Move(_fRunRSync);
 						f_RunRSyncProtocol(pRSyncState) > Continuation / [=, fOnDone = fg_Move(fOnDone)]() mutable
 							{
-								fOnDone() > Continuation / [=]()
+								fOnDone(*pRSyncState) > Continuation / [=]()
 									{
 										pRSyncState->f_Destroy() > Continuation / [=, pCleanup = pCleanup]()
 											{

@@ -59,14 +59,14 @@ namespace NMib::NFile
 				[_FileName, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> bool
 				{
 					auto &Config = *pConfig;
-					
-					CStr Destination = CFile::fs_AppendPath(Config.m_BasePath, _FileName);
-					
+
 					auto *pManifestFile = pManifest->m_Files.f_FindEqual(_FileName);
-					
 					if (!pManifestFile)
 						return true;
-					
+
+					CStr Destination = Config.m_FileOptions.f_TransformFileName(Config.m_BasePath, _FileName, EDirectorySyncStreamType_Destination);
+					_RSyncState.m_DestinationFilename = Destination;
+
 					auto &ManifestFile = *pManifestFile;
 					
 					if (ManifestFile.m_Attributes & EFileAttrib_Link)
@@ -109,48 +109,84 @@ namespace NMib::NFile
 					CStr Source;
 					if (CFile::fs_FileExists(Destination))
 					{
-						Source = Destination;
-						if (CFile::fs_GetFileChecksum_SHA256(Source) == ManifestFile.m_Digest)
+						auto Stream = Config.m_FileOptions.f_OpenFile(Destination, EDirectorySyncStreamType_Destination, EFileOpen_Read | EFileOpen_ShareAll);
+						if (NDataProcessing::CHash_SHA256::fs_DigestFromStream(*Stream) == ManifestFile.m_Digest)
 							return true;
+						Source = Config.m_FileOptions.f_TransformFileName(Config.m_BasePath, _FileName, EDirectorySyncStreamType_Source);
 					}
-					else
-						Source = CFile::fs_AppendPath(Config.m_PreviousBasePath, _FileName);
-					
+					else if (Config.m_PreviousBasePath)
+						Source = Config.m_FileOptions.f_TransformFileName(Config.m_PreviousBasePath, _FileName, EDirectorySyncStreamType_Source);
+
 					CFile::fs_CreateDirectory(CFile::fs_GetPath(Destination));
 					
 					auto Attributes = EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite;
 
-					_RSyncState.m_File.f_Open(Destination, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll, Attributes);
-
 					if (Source != Destination)
 					{
-						if (CFile::fs_FileExists(Source))
-							_RSyncState.m_SourceFile.f_Open(Source, EFileOpen_Read | EFileOpen_ShareAll);
-						_RSyncState.m_pClient = fg_Construct(_RSyncState.m_SourceFile, _RSyncState.m_File, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput);
+						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+							(
+								Destination
+								, EDirectorySyncStreamType_Destination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, Attributes
+							)
+						;
+
+						if (Source && CFile::fs_FileExists(Source))
+							_RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+
+						_RSyncState.m_pClient
+							= fg_Construct(*_RSyncState.m_pSourceStream, *_RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
+						;
 					}
 					else
 					{
+						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+							(
+								Destination
+								, EDirectorySyncStreamType_SourceDestination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, Attributes
+							)
+						;
+
 						CStr TempFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.rsynctemp", fg_RandomID()));
 						_RSyncState.m_TempFiles.f_Insert(TempFileName);
 						CFile::fs_CreateDirectory(Config.m_TempDirectory);
 
-						_RSyncState.m_TempFile.f_Open(TempFileName, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll, Attributes);
-						_RSyncState.m_pClient = fg_Construct(_RSyncState.m_File, _RSyncState.m_File, 256, 4*1024*1024, 8*1024*1024, &_RSyncState.m_TempFile, ERSyncClientFlag_TruncateOutput);
+						_RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
+							(
+							 	TempFileName
+							 	, EDirectorySyncStreamType_TempSourceDestination
+							 	, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+							 	, Attributes
+							)
+						;
+						_RSyncState.m_pClient = fg_Construct
+							(
+							 	*_RSyncState.m_pSourceDestinationStream
+							 	, *_RSyncState.m_pSourceDestinationStream
+							 	, 256
+							 	, 4*1024*1024
+							 	, 8*1024*1024
+							 	, &*_RSyncState.m_pTempStream
+							 	, ERSyncClientFlag_TruncateOutput
+							)
+						;
 					}
 					
 					return false;
 				}
-				, [=, pConfig = m_pConfig, pManifest = m_pManifest]() -> TCContinuation<void>
+				, [=, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> TCContinuation<void>
 				{
 					auto &Config = *pConfig;
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
 						return fg_Explicit();
 					
-					return g_Dispatch(m_FileActor) > [=]
+					return g_Dispatch(m_FileActor) > [=, Destination = _RSyncState.m_DestinationFilename]
 						{
 							auto &Config = *pConfig;
-							CStr Destination = CFile::fs_AppendPath(Config.m_BasePath, _FileName);
-							
+
 							auto *pManifestFile = pManifest->m_Files.f_FindEqual(_FileName);
 							
 							if (!pManifestFile)

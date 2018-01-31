@@ -28,19 +28,23 @@ namespace NMib::NFile
 		
 		struct CRunningSyncState : public TCSharedPointerIntrusiveBase<ESharedPointerOption_SupportWeakPointer>
 		{
+			CRunningSyncState();
+			~CRunningSyncState();
 			TCContinuation<void> f_Destroy();
 			
 			TCActor<CSeparateThreadActor> m_FileActor;
-			
-			TCBinaryStreamFile<> m_File;
-			TCBinaryStreamFile<> m_SourceFile;
-			TCBinaryStreamFile<> m_TempFile;
-			
+
+			TCUniquePointer<NStream::CBinaryStream> m_pSourceDestinationStream = fg_Construct<TCBinaryStreamFile<>>();
+			TCUniquePointer<NStream::CBinaryStream> m_pSourceStream = fg_Construct<TCBinaryStreamFile<>>();
+			TCUniquePointer<NStream::CBinaryStream> m_pTempStream = fg_Construct<TCBinaryStreamFile<>>();
+
 			TCUniquePointer<CRSyncClient> m_pClient;
 			
 			CDirectorySyncClient::FRunRSync m_fRunProtocol;
 			
 			TCVector<CStr> m_TempFiles;
+
+			CStr m_DestinationFilename;
 			
 			CByteStats m_ByteStats;
 			bool m_bFinished = false;
@@ -58,14 +62,14 @@ namespace NMib::NFile
 		TCContinuation<void> f_RSync
 			(
 				TCFunctionMutable<bool (CRunningSyncState &_State)> &&_fInitRSync
-				, TCFunctionMutable<TCContinuation<void> ()> &&_fOnDone
+				, TCFunctionMutable<TCContinuation<void> (CRunningSyncState &_State)> &&_fOnDone
 				, TCFunctionMutable<TCContinuation<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
 			)
 		;
 		
 		void f_RunFileSyncs(TCContinuation<void> const &_Continuation);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
-		
+
 		CDirectorySyncReceive *m_pThis;
 		TCSharedPointer<CConfig> m_pConfig;
 		TCDistributedActorInterface<CDirectorySyncClient> m_Client;

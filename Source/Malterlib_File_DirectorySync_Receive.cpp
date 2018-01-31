@@ -22,6 +22,12 @@ namespace NMib::NFile
 	}
 	
 	CDirectorySyncReceive::~CDirectorySyncReceive() = default;
+	CDirectorySyncReceive::CInternal::CRunningSyncState::CRunningSyncState()
+	{
+	}
+
+	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
+
 	
 	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCContinuation<void>
 	{
@@ -35,9 +41,9 @@ namespace NMib::NFile
 				g_Dispatch(pThis->m_FileActor) > [pThis]
 					{
 						pThis->m_pClient.f_Clear();
-						pThis->m_File.f_Close();
-						pThis->m_SourceFile.f_Close();
-						pThis->m_TempFile.f_Close();
+						pThis->m_pSourceDestinationStream.f_Clear();
+						pThis->m_pSourceStream.f_Clear();
+						pThis->m_pTempStream.f_Clear();
 						for (auto &File : pThis->m_TempFiles)
 						{
 							try

@@ -32,7 +32,7 @@ namespace NMib::NFile
 			TCContinuation<CByteStats> f_Destroy();
 		
 			TCActor<CSeparateThreadActor> m_FileActor;
-			TCBinaryStreamFile<> m_File;
+			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
 			CBinaryStreamMemory<> m_FileMemory;
 			TCUniquePointer<CRSyncServer> m_pRSyncServer;
 			CByteStats m_ByteStats;
@@ -152,7 +152,7 @@ namespace NMib::NFile
 					{
 						pThis->m_pRSyncServer.f_Clear();
 						pThis->m_FileMemory.f_Clear();
-						pThis->m_File.f_Close();
+						pThis->m_pFile.f_Clear();
 						return pThis->m_ByteStats;
 					}
 					> Continuation
@@ -218,7 +218,7 @@ namespace NMib::NFile
 									CSecureByteVector ToSendToClient;
 									pRSyncState->m_pRSyncServer->f_ProcessPacket(Packet, ToSendToClient);
 
-									pRSyncState->m_ByteStats.m_nIncoming += _Packet.f_GetLen();
+									pRSyncState->m_ByteStats.m_nIncoming += Packet.f_GetLen();
 									pRSyncState->m_ByteStats.m_nOutgoing += ToSendToClient.f_GetLen();
 									
 									return ToSendToClient;
@@ -233,7 +233,7 @@ namespace NMib::NFile
 		
 		return Continuation;
 	}
-						
+
 	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCContinuation<FRunRSync>
 	{
 		auto &Internal = *mp_pInternal;
@@ -267,10 +267,16 @@ namespace NMib::NFile
 					case 2:
 						{
 							auto &ManifestFileName = Config.m_Manifest.f_Get<2>();
-							_RSyncState.m_File.f_Open(ManifestFileName, EFileOpen_Read | EFileOpen_ShareAll);
-							_RSyncState.m_File >> *pManifest;
-							_RSyncState.m_File.f_SetPosition(0);
-							pBinaryStream = &_RSyncState.m_File;
+							_RSyncState.m_pFile = Config.m_FileOptions.f_OpenFile
+								(
+								 	ManifestFileName
+								 	, EDirectorySyncStreamType_ManifestSource
+								 	, EFileOpen_Read | EFileOpen_ShareAll
+								)
+							;
+							*_RSyncState.m_pFile >> *pManifest;
+							_RSyncState.m_pFile->f_SetPosition(0);
+							pBinaryStream = &*_RSyncState.m_pFile;
 							break;
 						}
 					default:
@@ -305,13 +311,16 @@ namespace NMib::NFile
 		else
 			FilePath = _FileName;
 
+		FilePath = Internal.m_pConfig->m_FileOptions.f_TransformFileName(Internal.m_pConfig->m_BasePath, FilePath, EDirectorySyncStreamType_Source);
+
 		return Internal.f_StartRSync
 			(
 				fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{
-					_RSyncState.m_File.f_Open(CFile::fs_AppendPath(pConfig->m_BasePath, FilePath), EFileOpen_Read | EFileOpen_ShareAll);
-					_RSyncState.m_pRSyncServer = fg_Construct(_RSyncState.m_File, 8*1024*1024);
+					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+
+					_RSyncState.m_pRSyncServer = fg_Construct(*_RSyncState.m_pFile, 8*1024*1024);
 				}
 			)
 		;

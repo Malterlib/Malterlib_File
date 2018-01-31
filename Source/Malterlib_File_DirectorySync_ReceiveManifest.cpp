@@ -8,16 +8,9 @@ namespace NMib::NFile
 {
 	TCContinuation<void> CDirectorySyncReceive::CInternal::f_SyncManifest()
 	{
-		struct CState
-		{
-			CStr m_ManifestDestination;
-		};
-		
-		TCSharedPointer<CState> pState = fg_Construct();
-		
 		return f_RSync
 			(
-				[pState, pConfig = m_pConfig](CRunningSyncState &_RSyncState)
+				[pConfig = m_pConfig](CRunningSyncState &_RSyncState)
 				{
 					auto &Config = *pConfig;
 					
@@ -32,14 +25,27 @@ namespace NMib::NFile
 						{
 							auto &Manifest = Config.m_PreviousManifest.f_Get<1>();
 
-							PreviousManifestFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.manifest", fg_RandomID()));
-							_RSyncState.m_TempFiles.f_Insert(PreviousManifestFileName);
+							PreviousManifestFileName = Config.m_FileOptions.f_TransformFileName
+								(
+								 	Config.m_TempDirectory
+								 	, fg_Format("{}.manifest", fg_RandomID())
+								 	, EDirectorySyncStreamType_ManifestSource
+								)
+							;
+							if (!PreviousManifestFileName.f_StartsWith("<Internal>"))
+								_RSyncState.m_TempFiles.f_Insert(PreviousManifestFileName);
 
 							CFile::fs_CreateDirectory(Config.m_TempDirectory);
 
-							TCBinaryStreamFile<> Stream;
-							Stream.f_Open(PreviousManifestFileName, EFileOpen_Write);
-							Stream << Manifest;
+							TCUniquePointer<NStream::CBinaryStream> pStream = Config.m_FileOptions.f_OpenFile
+								(
+								 	PreviousManifestFileName
+								 	, EDirectorySyncStreamType_ManifestSource
+								 	, EFileOpen_Write
+								)
+							;
+
+							*pStream << Manifest;
 
 							break;
 						}
@@ -56,45 +62,96 @@ namespace NMib::NFile
 					CStr ManifestDestination = Config.m_OutputManifestPath;
 					if (ManifestDestination.f_IsEmpty())
 					{
-						ManifestDestination = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.manifest", fg_RandomID()));
-						_RSyncState.m_TempFiles.f_Insert(ManifestDestination);
+						ManifestDestination = Config.m_FileOptions.f_TransformFileName
+							(
+							 	Config.m_TempDirectory
+							 	, fg_Format("{}.manifest", fg_RandomID())
+							 	, EDirectorySyncStreamType_ManifestDestination
+							)
+						;
+						if (!ManifestDestination.f_StartsWith("<Internal>"))
+							_RSyncState.m_TempFiles.f_Insert(ManifestDestination);
 					}
 
-					CFile::fs_CreateDirectory(CFile::fs_GetPath(ManifestDestination));
-
-					_RSyncState.m_File.f_Open(ManifestDestination, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll);
+					if (!ManifestDestination.f_StartsWith("<Internal>"))
+						CFile::fs_CreateDirectory(CFile::fs_GetPath(ManifestDestination));
 
 					if (ManifestDestination != PreviousManifestFileName)
 					{
-						if (CFile::fs_FileExists(PreviousManifestFileName))
-							_RSyncState.m_SourceFile.f_Open(PreviousManifestFileName, EFileOpen_Read | EFileOpen_ShareAll);
-						_RSyncState.m_pClient = fg_Construct(_RSyncState.m_SourceFile, _RSyncState.m_File, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput);
+						if (PreviousManifestFileName && (PreviousManifestFileName.f_StartsWith("<Internal>") || CFile::fs_FileExists(PreviousManifestFileName)))
+						{
+							_RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile
+								(
+								 	PreviousManifestFileName
+								 	, EDirectorySyncStreamType_ManifestSource
+								 	, EFileOpen_Read | EFileOpen_ShareAll
+								)
+							;
+						}
+						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+							(
+								ManifestDestination
+								, EDirectorySyncStreamType_ManifestDestination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+							)
+						;
+						_RSyncState.m_pClient
+							= fg_Construct(*_RSyncState.m_pSourceStream, *_RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
+						;
 					}
 					else
 					{
-						CStr TempFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.rsynctemp", fg_RandomID()));
-						_RSyncState.m_TempFiles.f_Insert(TempFileName);
-						CFile::fs_CreateDirectory(Config.m_TempDirectory);
-
-						_RSyncState.m_TempFile.f_Open(TempFileName, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll);
-						_RSyncState.m_pClient = fg_Construct(_RSyncState.m_File, _RSyncState.m_File, 256, 4*1024*1024, 8*1024*1024, &_RSyncState.m_TempFile, ERSyncClientFlag_TruncateOutput);
+						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+							(
+								ManifestDestination
+								, EDirectorySyncStreamType_ManifestSourceDestination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+							)
+						;
+						CStr TempFileName = Config.m_FileOptions.f_TransformFileName
+							(
+							 	Config.m_TempDirectory
+							 	, fg_Format("{}.rsynctemp", fg_RandomID())
+							 	, EDirectorySyncStreamType_TempManifestSourceDestination
+							)
+						;
+						if (!TempFileName.f_StartsWith("<Internal>"))
+						{
+							_RSyncState.m_TempFiles.f_Insert(TempFileName);
+							CFile::fs_CreateDirectory(Config.m_TempDirectory);
+						}
+						_RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
+							(
+							 	TempFileName
+							 	, EDirectorySyncStreamType_TempManifestSourceDestination
+							 	, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+							)
+						;
+						_RSyncState.m_pClient = fg_Construct
+							(
+							 	*_RSyncState.m_pSourceDestinationStream
+							 	, *_RSyncState.m_pSourceDestinationStream
+							 	, 256
+							 	, 4*1024*1024
+							 	, 8*1024*1024
+							 	, &*_RSyncState.m_pTempStream
+							 	, ERSyncClientFlag_TruncateOutput
+							)
+						;
 					}
-					
-					pState->m_ManifestDestination = ManifestDestination;
-					
+
 					return false;
 				}
-				, [pState, this]() -> TCContinuation<void>
+				, [this](CRunningSyncState &_RSyncState) -> TCContinuation<void>
 				{
 					TCContinuation<void> Continuation;
 
-					g_Dispatch(m_FileActor) > [=]
+					g_Dispatch(m_FileActor) > [pSourceDestinationStream = fg_Move(_RSyncState.m_pSourceDestinationStream)]() mutable
 						{
 							CDirectoryManifest Manifest;
-							TCBinaryStreamFile<> Stream;
-							Stream.f_Open(pState->m_ManifestDestination, EFileOpen_Read | EFileOpen_ShareAll);
-							Stream >> Manifest;
-							
+							pSourceDestinationStream->f_SetPosition(0);
+							*pSourceDestinationStream >> Manifest;
+							pSourceDestinationStream.f_Clear();
 							return Manifest;
 						}
 						> Continuation / [=](CDirectoryManifest &&_Manifest)
@@ -106,7 +163,7 @@ namespace NMib::NFile
 
 					return Continuation;
 				}
-				, [this ](CActorSubscription &&_Subscription) -> TCContinuation<CDirectorySyncClient::FRunRSync>
+				, [this](CActorSubscription &&_Subscription) -> TCContinuation<CDirectorySyncClient::FRunRSync>
 				{
 					return DMibCallActor
 						(
