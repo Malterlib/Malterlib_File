@@ -45,11 +45,17 @@ Property
 	}
 }
 
+%Group "{Test}/{Malterlib_File}"
+{
+	Property.MalterlibLinkWithOpenSSL true
+}
+
 Property
 {
 	!!MalterlibEnableInternalTests true
 	
 	MalterlibTests "Malterlib_File;@(MalterlibTests)"
 	MalterlibTestFiles_Malterlib_File "@('Test/*'->MakeAbsolute())"
+	MalterlibTestExtraGroups_Malterlib_File "{Test}/{Malterlib_File}"
 }
 
