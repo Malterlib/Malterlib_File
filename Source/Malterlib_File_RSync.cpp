@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_RSync.h"
@@ -724,6 +724,7 @@ namespace NMib
 					}
 				}
 				_TemporaryStream.f_SetPosition(0);
+				_InStream.f_SetPosition(0);
 			}
 
 			void f_GetOutstanding(TCVector<COutstandingRange> &_Outstanding, uint64 &_TotalBytes, uint64 &_ChecksumSizes, mint _ChunkSize)
@@ -1409,7 +1410,10 @@ namespace NMib
 					// Finished
 					f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess);
 					if (mp_pTempStream)
+					{
 						mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream);
+						mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+					}
 					else
 						mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
 					mp_ClientMode = EClientMode_SyncOutstanding;
