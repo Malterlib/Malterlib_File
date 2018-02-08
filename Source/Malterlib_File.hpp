@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 namespace NMib
@@ -731,3 +731,24 @@ namespace NMib
 	}
 }
 
+namespace NMib::NStr
+{
+	template <typename tf_CTCStrTraitsLeft, typename tf_CRight>
+	TCStr<tf_CTCStrTraitsLeft> operator / (TCStrAggregate<tf_CTCStrTraitsLeft> const &_StrLeft, tf_CRight &&_StrRight)
+	{
+		return NFile::CFile::fs_AppendPath(TCStr<tf_CTCStrTraitsLeft>(_StrLeft), fg_Forward<tf_CRight>(_StrRight));
+	}
+
+	template <typename tf_CTCStrTraitsLeft, typename tf_CRight>
+	TCStr<tf_CTCStrTraitsLeft> operator / (TCStr<tf_CTCStrTraitsLeft> const &_StrLeft, tf_CRight &&_StrRight)
+	{
+		return NFile::CFile::fs_AppendPath(_StrLeft, fg_Forward<tf_CRight>(_StrRight));
+	}
+
+	template <typename tf_CTCStrTraitsLeft, typename tf_CRight>
+	TCStr<tf_CTCStrTraitsLeft> &operator /= (TCStr<tf_CTCStrTraitsLeft> &_StrLeft, tf_CRight &&_StrRight)
+	{
+		_StrLeft = NFile::CFile::fs_AppendPath(_StrLeft, fg_Forward<tf_CRight>(_StrRight));
+		return _StrLeft;
+	}
+}
