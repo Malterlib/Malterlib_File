@@ -159,7 +159,11 @@ namespace
 			Timer.f_Stop();
 //			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient << TotalSizeServer << nRawBytes << (TotalSizeClient + TotalSizeServer) << fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)) << Timer.f_GetTime() * 1000.0);
 			DMibTest(DMibExpr(bServerDone) == DMibExpr(true));
-			DMibTest(DMibExpr(Synced) == DMibExpr(_New));
+
+			ETestFlag TestFlags = ETestFlag_NoValuesOnSuccess;
+			if (_New.f_GetLen() > 64)
+				TestFlags |= ETestFlag_NoValues;
+			DMibTest(DMibExpr(Synced) == DMibExpr(_New))(TestFlags);
 		}
 		static CSecureByteVector fs_ToVector(const ch8 *_pStr)
 		{
