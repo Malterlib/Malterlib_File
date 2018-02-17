@@ -228,7 +228,16 @@ namespace NMib
 			~CFileChangeNotification()
 			{
 				if (NException::fg_UncaughtExceptions())
+				{
+					try
+					{
+						f_Close();
+					}
+					catch (NException::CException const &)
+					{
+					}
 					return;
+				}
 				f_Close();
 			}
 
