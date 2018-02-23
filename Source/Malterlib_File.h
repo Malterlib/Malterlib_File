@@ -152,6 +152,9 @@ namespace NMib
 			const NMib::NStr::CStr *fg_FindNext(void *_pFindContext, NMib::NFile::EFileAttrib &_FileAttribs); // Returns the fully qualified path. Returns nullptr when no more files are found
 			void fg_FindClose(void *_pFindContext);
 
+			void fg_Duplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
+			bool fg_TryDuplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
+
 			void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 			void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
 			void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
@@ -520,6 +523,9 @@ namespace NMib
 			static void fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 			static void fs_CopyFileRaw(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 			static void fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo);
+
+			static void fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+			static bool fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 
 			static void fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 			static void fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);

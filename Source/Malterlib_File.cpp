@@ -886,6 +886,16 @@ namespace NMib
 			NSys::NFile::fg_Copy(_FileFrom, _FileTo);
 		}
 
+		void CFile::fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+		{
+			NSys::NFile::fg_Duplicate(_FileFrom, _FileTo);
+		}
+
+		bool CFile::fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+		{
+			return NSys::NFile::fg_TryDuplicate(_FileFrom, _FileTo);
+		}
+
 		void CFile::fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo)
 		{
 			NStream::CFilePos Len = _FileFrom.f_GetLength() - _FileFrom.f_GetPosition();
