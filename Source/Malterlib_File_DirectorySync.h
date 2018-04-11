@@ -55,6 +55,9 @@ namespace NMib::NFile
 		fp64 f_IncomingBytesPerSecond() const;
 		fp64 f_OutgoingBytesPerSecond() const;
 
+		template <typename tf_CStr>
+		void f_Format(tf_CStr &o_Str) const;
+
 		uint64 m_nSyncedFiles = 0;
 		uint64 m_OutgoingBytes = 0;
 		uint64 m_IncomingBytes = 0;
