@@ -222,16 +222,16 @@ namespace
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1//Testing2/", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
 
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2/", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, -1)) == DMibExpr("\\\\?\\D:\\Testing1"));
+				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, -1)) == DMibExpr("\\\\?\\d:\\Testing1"));
 
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2", true, _MAX_PATH)) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, _MAX_PATH)) == DMibExpr("D:\\Testing1"));
+				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, _MAX_PATH)) == DMibExpr("d:\\Testing1"));
 
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2", true, _MAX_PATH)) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1", true, _MAX_PATH)) == DMibExpr("D:\\Testing1"));
 
 				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"))) == DMibExpr("//Testing/Testing1/Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\D:\\Testing1"))) == DMibExpr("D:/Testing1"));
+				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\D:\\Testing1"))) == DMibExpr("d:/Testing1"));
 			};
 
 			DMibTestSuite("Windows long paths")
@@ -738,13 +738,36 @@ namespace
 								DMibExpect(Change2.m_Path, ==, "");
 
 								DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
-								DMibExpect(Change3.m_Path, ==, "File2.tst");
+								DMibExpect(Change3.m_Path, ==, "SubDir");
 
 								DMibExpect(Change4.m_Notification, ==, EFileChangeNotification_Modified);
-								DMibExpect(Change4.m_Path, ==, "SubDir");
+								DMibExpect(Change4.m_Path, ==, "SubDir/File3.tst");
 							}
 							else
-#endif
+							{
+								TCSet<CFileChangeNotification::CNotification> Notifications;
+								Notifications[fWaitForChange("RenameHardLink2: Change0")];
+								Notifications[fWaitForChange("RenameHardLink2: Change1")];
+								Notifications[fWaitForChange("RenameHardLink2: Change2")];
+								auto iNotification = Notifications.f_GetIterator();
+								auto Change0 = *iNotification;
+								++iNotification;
+								auto Change1 = *iNotification;
+								++iNotification;
+								auto Change2 = *iNotification;
+								++iNotification;
+
+								DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change0.m_Path, ==, "");
+
+								DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+								DMibExpect(Change1.m_Path, ==, "File3.tst");
+
+								DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Renamed);
+								DMibExpect(Change2.m_Path, ==, "File3.tst");
+								DMibExpect(Change2.m_PathFrom, ==, "File2.tst");
+							}
+#else
 							{
 								auto Change1 = fWaitForChange("RenameHardLink2: Change1");
 								DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Renamed);
@@ -785,6 +808,7 @@ namespace
 								}
 #endif
 							}
+#endif
 
 							DMibExpectFalse(fHasChange() && "After");
 						}
