@@ -25,7 +25,7 @@ namespace NMib::NFile
 	void CDirectorySyncStats::f_Format(tf_CStr &o_Str) const
 	{
 		using namespace NStr;
-		o_Str += typename tf_CStr::CFormat("Files: {} Incoming: {ns } B ({fe2} MB/s) Outgoing: {ns } ({fe2} MB/s)\n")
+		o_Str += typename tf_CStr::CFormat("Files: {} Incoming: {ns } B ({fe2} MB/s) Outgoing: {ns } ({fe2} MB/s)")
 			<< m_nSyncedFiles
 			<< m_IncomingBytes
 			<< f_IncomingBytesPerSecond()/1'000'000.0
