@@ -746,6 +746,12 @@ namespace NMib::NStr
 	}
 
 	template <typename tf_CTCStrTraitsLeft, typename tf_CRight>
+	TCStr<tf_CTCStrTraitsLeft> operator / (TCStr<tf_CTCStrTraitsLeft> const &_StrLeft, typename TCStr<tf_CTCStrTraitsLeft>::CFormat &&_StrRight)
+	{
+		return NFile::CFile::fs_AppendPath(_StrLeft, TCStr<tf_CTCStrTraitsLeft>(_StrRight));
+	}
+
+	template <typename tf_CTCStrTraitsLeft, typename tf_CRight>
 	TCStr<tf_CTCStrTraitsLeft> &operator /= (TCStr<tf_CTCStrTraitsLeft> &_StrLeft, tf_CRight &&_StrRight)
 	{
 		_StrLeft = NFile::CFile::fs_AppendPath(_StrLeft, fg_Forward<tf_CRight>(_StrRight));
