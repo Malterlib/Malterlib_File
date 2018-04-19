@@ -200,8 +200,34 @@ namespace
 				DMibTestSuite("Long")
 				{
 					NStr::CStr LongStr;
-					LongStr.f_AddChars('a', 1024*1024);
+					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector(""), CRSync_Tests::fs_ToVector(LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
+				};
+				DMibTestSuite("Long Before")
+				{
+					NStr::CStr LongStr;
+					LongStr.f_AddChars('a', 256*1000);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("456"), CRSync_Tests::fs_ToVector(LongStr + "456"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
+				};
+				DMibTestSuite("Long After")
+				{
+					NStr::CStr LongStr;
+					LongStr.f_AddChars('a', 256*1000);
+					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
+				};
+				DMibTestSuite("Long Middle")
+				{
+					NStr::CStr LongStr;
+					LongStr.f_AddChars('a', 256*1000);
+					CRSync_Tests::fs_DoRSync
+						(
+						 	CRSync_Tests::fs_ToVector("Testing 123456"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr + "456")
+						 	, _MinChunk
+						 	, _MaxChunk
+						 	, _bInPlace
+						 	, _bEncrypt
+						)
+					;
 				};
 				DMibTestSuite("Reverse")
 				{

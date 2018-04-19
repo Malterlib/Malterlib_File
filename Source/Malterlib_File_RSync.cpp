@@ -1328,7 +1328,12 @@ namespace NMib
 						mp_NewFile.f_FeedBytes(pData, Chunk.m_Length);
 						nData -= Chunk.m_Length;
 						pData += Chunk.m_Length;
-						mp_ServerFile.f_RemoveChunk(Chunk.m_Start);
+
+						auto *pNextChunk = mp_ServerFile.m_Chunks.f_FindSmallest();
+						DMibCheck(pNextChunk);
+
+						if (pNextChunk && pNextChunk->f_End() == (Chunk.m_Start + Chunk.m_Length))
+							mp_ServerFile.m_Chunks.f_Remove(pNextChunk);
 					}
 
 					if (mp_pTempStream)
