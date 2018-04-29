@@ -2326,6 +2326,7 @@ namespace NMib
 
 			return Output;
 		}
+
 		bint CFile::fs_IsValidFilePath(const NStr::CStr &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart)
 		{
 			_InvalidReason = EInvalidPathReason_Valid;
@@ -2395,6 +2396,17 @@ namespace NMib
 			}
 
 			pParse = File;
+
+			// Parse away absolute starter
+			while (*pParse == '/')
+				++pParse;
+
+			if (!*pParse)
+			{
+				_InvalidReason = EInvalidPathReason_EndWithSlash;
+				return false;
+			}
+
 			while (*pParse)
 			{
 				const ch8 *pParseStart = pParse;
@@ -2490,7 +2502,41 @@ namespace NMib
 			}
 			return true;
 		}
-		
+
+		bool CFile::fs_IsSafeRelativePath(const NStr::CStr &_String, NStr::CStr &o_Error)
+		{
+			if (fs_IsPathAbsolute(_String))
+			{
+				o_Error = "be absolute";
+				return false;
+			}
+
+			if (fs_HasRelativeComponents(_String))
+			{
+			 	o_Error = "hanve relative path components '..' or '.'";
+				return false;
+			}
+
+			if (_String.f_StartsWith("/")) // Root or similar
+			{
+				o_Error = "be root";
+				return false;
+			}
+			if (_String.f_Find("//") >= 0) // Could mean special things
+			{
+				o_Error = "have //";
+				return false;
+			}
+
+			if (_String.f_IsEmpty())
+				return true;
+
+			if (!fs_IsValidFilePath(_String, o_Error))
+				return false;
+
+			return true;
+		}
+
 		bool CFile::fs_RemoveIncompatible
 			(
 				EFileAttrib _SourceAttribs

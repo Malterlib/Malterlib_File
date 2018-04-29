@@ -824,8 +824,8 @@ namespace NMib
 
 			static bint fs_IsValidFilePath(const NStr::CStr &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart);
 			static bint fs_IsValidFilePath(const NStr::CStr &_File, NStr::CStr &_Error);
-
-		};	
+			static bool fs_IsSafeRelativePath(const NStr::CStr &_File, NStr::CStr &o_Error);
+		};
 
 		template <typename t_CStreamType = NStream::CBinaryStreamDefault>
 		class TCBinaryStreamFile : public t_CStreamType

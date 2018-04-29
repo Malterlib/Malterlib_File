@@ -245,18 +245,10 @@ namespace NMib::NFile
 		{
 			if (!_Destination)
 				return;
-				
-			if (CFile::fs_IsPathAbsolute(*_Destination))
-				DMibError("Destinations cannot be absolute paths. They need to be relative to root.");
 
-			{
-				CStr Error;
-				if (!CFile::fs_IsValidFilePath(*_Destination, Error))
-					DMibError(fg_Format("Destinations cannot {}.", Error));
-			}
-			
-			if (CFile::fs_HasRelativeComponents(*_Destination))
-				DMibError("Destinations cannot contain relative path components '..' or '.'");
+			CStr Error;
+			if (!CFile::fs_IsSafeRelativePath(*_Destination, Error))
+				DMibError("Destinations cannot {}."_f << Error);
 		}
 		
 		template <typename tf_CContainer>
