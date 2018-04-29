@@ -4,6 +4,7 @@
 #include "Malterlib_File_ChangeNotificationActor.h"
 #include <Mib/Concurrency/ActorCallbackManager>
 #include <Mib/Concurrency/Actor/Timer>
+#include <Mib/Concurrency/ActorSubscription>
 
 namespace NMib::NFile
 {
@@ -17,25 +18,14 @@ namespace NMib::NFile
 	public:
 		struct CNotification
 		{
-			struct CAutoDestroy
+			struct CSavedChange
 			{
-				CNotification *m_pNotification = nullptr;
-				CInternal *m_pInternal = nullptr;
-				CAutoDestroy(CNotification *_pNotification, CInternal *_pInternal)
-					: m_pNotification(_pNotification)
-					, m_pInternal(_pInternal)
-				{
-				}
-				~CAutoDestroy()
-				{
-					if (m_pNotification)
-						m_pInternal->m_Notifications.f_Remove(*m_pNotification);
-				}
+				CFileChangeNotification::CNotification m_Notification;
+				uint64 m_Sequence = 0;
 			};
 			
 			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings const &_CoalesceSettings)
-				: m_CallbackManager(_pActor, false)
-				, m_pDestroyed(fg_Construct(false))
+				: m_pDestroyed(fg_Construct(false))
 				, m_CoalesceSettings(_CoalesceSettings)
 			{
 			}
@@ -48,17 +38,18 @@ namespace NMib::NFile
 
 			TCSharedPointer<bool> m_pDestroyed;
 			TCUniquePointer<CFileChangeNotifier> m_pNotifier;
-			TCActorSubscriptionManager<void (TCVector<CFileChangeNotification::CNotification> const &_Changes), false, CAutoDestroy> m_CallbackManager;
-			
-			TCVector<CFileChangeNotification::CNotification> m_Changes;
+
+			TCVector<CSavedChange> m_Changes;
 			TCMap<CStr, EFileChangeNotification> m_LastChange;
 			CCoalesceSettings m_CoalesceSettings;
+			TCActorFunctor<TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> m_fOnChange;
+			uint64 m_Sequence = 0;
 			mint m_nOutstanding = 0;
 			bool m_bScheduledTimeout = false;
 		};
 		
 		void fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change);
-		void fp_SendNotifications(CNotification *_pNotification);
+		void fp_SendNotifications(CNotification *_pNotification, bool _bForce);
 		
 		NContainer::TCLinkedList<CNotification> m_Notifications;
 	};
@@ -76,8 +67,7 @@ namespace NMib::NFile
 		(
 			NMib::NStr::CStr const &_Path
 			, NMib::NFile::EFileChange _OpenFlags
-			, NFunction::TCFunction<void (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> const &_fOnChange
-			, NConcurrency::TCActor<NConcurrency::CActor> const &_Actor
+			, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
 			, CCoalesceSettings const &_CoalesceSettings
 		)
 	{
@@ -90,8 +80,21 @@ namespace NMib::NFile
 		try
 		{				
 			auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
-			auto Callback = pNotification->m_CallbackManager.f_Register(_Actor, _fOnChange, pNotification, &Internal);
-			
+			pNotification->m_fOnChange = fg_Move(_fOnChange);
+
+			auto Callback = g_ActorSubscription > [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCContinuation<void>
+				{
+					if (*pDestroyed)
+						return fg_Explicit();
+
+					auto &Internal = *mp_pInternal;
+					pNotification->m_pNotifier.f_Clear();
+					Internal.fp_SendNotifications(pNotification, true);
+					Internal.m_Notifications.f_Remove(*pNotification);
+					return fg_Explicit();
+				}
+			;
+
 			pNotification->m_pNotifier = 
 				fg_Construct
 				(
@@ -147,8 +150,21 @@ namespace NMib::NFile
 			return;
 		
 		LastChange = _Change.m_Notification;
-		
-		Notification.m_Changes.f_Insert(_Change);
+
+		auto Sequence = ++Notification.m_Sequence;
+
+#ifdef DMibFileChangeNotificationsDebug
+		switch (_Change.m_Notification)
+		{
+		case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("@@@ {} Unknown {}\n", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("@@@ {} Added {}\n", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("@@@ {} Removed {}\n", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("@@@ {} Modified {}\n", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut("@@@ {} Renamed {} -> {}\n", Sequence, _Change.m_PathFrom, _Change.m_Path); break;
+		}
+#endif
+
+		Notification.m_Changes.f_Insert({_Change, Sequence});
 		
 		if (Notification.m_CoalesceSettings.m_Delay > 0.0)
 		{
@@ -162,21 +178,21 @@ namespace NMib::NFile
 			
 					_pNotification->m_bScheduledTimeout = false;
 					
-					fp_SendNotifications(_pNotification);
+					fp_SendNotifications(_pNotification, false);
 				}
 			;
 		}
 		else
-			fp_SendNotifications(_pNotification);
+			fp_SendNotifications(_pNotification, false);
 	}
 	
-	void CFileChangeNotificationActor::CInternal::fp_SendNotifications(CNotification *_pNotification)
+	void CFileChangeNotificationActor::CInternal::fp_SendNotifications(CNotification *_pNotification, bool _bForce)
 	{
 		auto &Notification = *_pNotification;
-		if (Notification.m_nOutstanding >= Notification.m_CoalesceSettings.m_nMaxOutstanding)
+		if (Notification.m_nOutstanding >= Notification.m_CoalesceSettings.m_nMaxOutstanding && !_bForce)
 			return;
 
-		TCVector<CFileChangeNotification::CNotification> Changes = fg_Move(Notification.m_Changes);
+		auto Changes = fg_Move(Notification.m_Changes);
 		Notification.m_LastChange.f_Clear();
 		
 		if (Changes.f_IsEmpty())
@@ -189,11 +205,38 @@ namespace NMib::NFile
 					return;
 				
 				--_pNotification->m_nOutstanding;
-				fp_SendNotifications(_pNotification);
+				fp_SendNotifications(_pNotification, false);
 			}
 		;
-		
-		Notification.m_CallbackManager.f_Call(Changes) > [pCleanup](auto &&)
+
+		TCVector<CFileChangeNotification::CNotification> Notifications;
+		for (auto &Change : Changes)
+		{
+			Notifications.f_Insert(Change.m_Notification);
+
+#ifdef DMibFileChangeNotificationsDebug
+			ch8 const *pForced = _bForce ? " FORCED" : "";
+
+			switch (Change.m_Notification.m_Notification)
+			{
+			case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("=== {}{} Unknown {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("=== {}{} Added {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("=== {}{} Removed {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("=== {}{} Modified {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut
+				(
+				 	"=== {}{} Renamed {} -> {}\n"
+				 	, Change.m_Sequence
+				 	, pForced
+				 	, Change.m_Notification.m_PathFrom
+				 	, Change.m_Notification.m_Path
+				);
+				break;
+			}
+#endif
+		}
+
+		Notification.m_fOnChange(Notifications) > [pCleanup](auto &&)
 			{
 			}
 		;

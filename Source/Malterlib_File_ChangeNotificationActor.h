@@ -4,6 +4,7 @@
 #include <Mib/Concurrency/ConcurrencyDefines>
 #include <Mib/Concurrency/ConcurrencyManager>
 #include <Mib/File/File>
+#include <Mib/Concurrency/ActorFunctor>
 
 namespace NMib
 {
@@ -25,8 +26,7 @@ namespace NMib
 				(
 					NMib::NStr::CStr const &_Path
 					, NMib::NFile::EFileChange _OpenFlags
-					, NFunction::TCFunction<void (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> const &_fOnChange
-					, NConcurrency::TCActor<NConcurrency::CActor> const &_Actor
+					, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
 					, CCoalesceSettings const &_CoalesceSettings
 				)
 			;

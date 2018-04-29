@@ -4,6 +4,14 @@
 #include <Mib/Cryptography/Hashes/MD5>
 #include <Mib/Cryptography/Hashes/SHA>
 
+//#	define DMibFileChangeNotificationsDebug
+
+#	if defined(DMibFileChangeNotificationsDebug)
+#		define DMibFileChangeNotificationsDebugOut DMibConOut2
+#	else
+#		define DMibFileChangeNotificationsDebugOut(...)  (void)0
+#	endif
+
 namespace NMib
 {
 	namespace NEncoding
