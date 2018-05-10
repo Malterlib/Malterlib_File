@@ -1659,6 +1659,38 @@ namespace
 					DMibExpect(FoundFiles1, ==, ExpectedFiles1);
 					DMibExpect(FoundFiles2, ==, ExpectedFiles2);
 				}
+				{
+					DMibTestPath("Symbolic Links");
+
+					{
+						auto Flags = CFile::fs_CanCreateSymbolicLink(EFileAttrib_Directory, ESymbolicLinkFlag_None) ? ESymbolicLinkFlag_None : ESymbolicLinkFlag_AllowEmulation;
+						CStr DirSymLinkDestination = CurrentDir + "/TestDirSym";
+						CFile::fs_CreateSymbolicLink(".", DirSymLinkDestination, EFileAttrib_Directory, ESymbolicLinkFlag_Relative | Flags);
+					}
+
+					CFile::CFindFilesOptions Options(CurrentDir + "/*", true);
+
+					Options.m_ExcludePatterns = fg_CreateVector<CStr>("*/Dir2/Dir1/*");
+					Options.m_bFollowLinks = false;
+					Options.m_AttribMask = EFileAttrib_File | EFileAttrib_Directory;
+
+					auto FoundFiles = fGetFiles(CFile::fs_FindFiles(Options));
+					FoundFiles.f_Sort();
+
+					TCVector<CStr> ExpectedFiles;
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir1");
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
+					
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir2");
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/Dir1");
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
+
+					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
+					ExpectedFiles.f_Insert(CurrentDir + "/TestDirSym");
+					ExpectedFiles.f_Sort();
+					
+					DMibExpect(FoundFiles, ==, ExpectedFiles);
+				}
 			};
 
 			DMibTestSuite("Symlink")
