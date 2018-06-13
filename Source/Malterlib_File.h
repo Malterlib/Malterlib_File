@@ -707,8 +707,8 @@ namespace NMib
 			static bint fs_FileExists(const NStr::CStr &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
 			static bint fs_FileExists(const NStr::CStrNonTracked &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
 			static ECheckFileRights fs_CheckFileRights(NStr::CStr const& _File, EFileRight _Rights);
-			static NDataProcessing::CHashDigest_MD5 fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState = nullptr);
-			static NDataProcessing::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState = nullptr);
+			static NDataProcessing::CHashDigest_MD5 fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+			static NDataProcessing::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 			static NDataProcessing::CHashDigest_MD5 fs_GetDirectoryChecksum
 				(
 					const NStr::CStr &_Path
