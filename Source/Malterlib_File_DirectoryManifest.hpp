@@ -47,7 +47,7 @@ namespace NMib::NFile
 			DMibError("Invalid directory manifest version");
 		DMibBinaryStreamVersion(_Stream, Version);
 
-		if (_Stream.mc_Direction == NStream::EStreamDirection_Feed)
+		if constexpr (tf_CStream::mc_bFeed)
 		{
 			uint32 nFiles = m_Files.f_GetLen();
 			_Stream << nFiles;
