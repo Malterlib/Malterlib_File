@@ -439,7 +439,10 @@ namespace NMib
 				auto Attribs = f_GetAttributes(FromFile);
 
 				if (_ToFS.f_FileExists(ToFile))
+				{
+					_ToFS.f_MakeFileWritable(ToFile);
 					_ToFS.f_DeleteFile(ToFile);
+				}
 				
 				if (Attribs & EFileAttrib_Link)
 				{
