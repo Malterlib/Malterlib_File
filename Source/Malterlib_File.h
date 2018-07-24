@@ -193,6 +193,7 @@ namespace NMib
 			NMib::NStr::CStr fg_GetUserLocalProgramDirectory();
 			NMib::NStr::CStr fg_GetUserLocalProgramCacheDirectory();
 			NMib::NStr::CStr fg_GetTemporaryDirectory();
+			NMib::NStr::CStr fg_GetRawTemporaryDirectory();
 			NMib::NStr::CStr fg_GetModulePath(void *_pCode);
             NMib::NStr::CStr fg_GetUserHomeDirectory();
             NMib::NStr::CStr fg_GetLogDirectory();
@@ -204,6 +205,7 @@ namespace NMib
 			NMib::NStr::CStrNonTracked fg_GetUserLocalProgramDirectoryNonTracked();
 			NMib::NStr::CStrNonTracked fg_GetUserLocalProgramCacheDirectoryNonTracked();
 			NMib::NStr::CStrNonTracked fg_GetTemporaryDirectoryNonTracked();
+			NMib::NStr::CStrNonTracked fg_GetRawTemporaryDirectoryNonTracked();
 			NMib::NStr::CStrNonTracked fg_GetModulePathNonTracked(void *_pCode);
             NMib::NStr::CStrNonTracked fg_GetUserHomeDirectoryNonTracked();
             NMib::NStr::CStrNonTracked fg_GetLogDirectoryNonTracked();
@@ -590,6 +592,7 @@ namespace NMib
 			static NStr::CStr fs_GetUserLocalProgramDirectory();
 			static NStr::CStr fs_GetUserLocalProgramCacheDirectory();
 			static NStr::CStr fs_GetTemporaryDirectory();
+			static NStr::CStr fs_GetRawTemporaryDirectory();
 			static NStr::CStr fs_GetModulePath(void *_pCode);
 			static NStr::CStr fs_GetProgramRoot(); // This can be set via CSystem::f_SetApplicationRoot(). Defaults to program directory.
 			static NStr::CStr fs_GetUserHomeDirectory();
@@ -602,6 +605,7 @@ namespace NMib
 			static NStr::CStrNonTracked fs_GetUserLocalProgramDirectoryNonTracked();
 			static NStr::CStrNonTracked fs_GetUserLocalProgramCacheDirectoryNonTracked();
 			static NStr::CStrNonTracked fs_GetTemporaryDirectoryNonTracked();
+			static NStr::CStrNonTracked fs_GetRawTemporaryDirectoryNonTracked();
 			static NStr::CStrNonTracked fs_GetModulePathNonTracked(void *_pCode);
 			static NStr::CStrNonTracked fs_GetProgramRootNonTracked(); // This can be set via CSystem::f_SetApplicationRoot(). Defaults to program directory.
 	        static NStr::CStrNonTracked fs_GetUserHomeDirectoryNonTracked();
@@ -663,9 +667,19 @@ namespace NMib
 				return fs_GetTemporaryDirectoryNonTracked();
 			}
 			template <typename tf_CStr>
+			static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMem::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetRawTemporaryDirectory()
+			{
+				return fs_GetRawTemporaryDirectoryNonTracked();
+			}
+			template <typename tf_CStr>
 			static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMem::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetTemporaryDirectory()
 			{
 				return fs_GetTemporaryDirectory();
+			}
+			template <typename tf_CStr>
+			static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMem::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetRawTemporaryDirectory()
+			{
+				return fs_GetRawTemporaryDirectory();
 			}
 			template <typename tf_CStr>
 			static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMem::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetModulePath(void *_pCode)

@@ -1321,6 +1321,11 @@ namespace NMib
 			return NSys::NFile::fg_GetTemporaryDirectory();
 		}
 
+		NStr::CStr CFile::fs_GetRawTemporaryDirectory()
+		{
+			return NSys::NFile::fg_GetRawTemporaryDirectory();
+		}
+
 		NStr::CStr CFile::fs_GetModulePath(void *_pCode)
 		{
 			return NSys::NFile::fg_GetModulePath(_pCode);
@@ -1379,6 +1384,11 @@ namespace NMib
 		NStr::CStrNonTracked CFile::fs_GetTemporaryDirectoryNonTracked()
 		{
 			return NSys::NFile::fg_GetTemporaryDirectoryNonTracked();
+		}
+
+		NStr::CStrNonTracked CFile::fs_GetRawTemporaryDirectoryNonTracked()
+		{
+			return NSys::NFile::fg_GetRawTemporaryDirectoryNonTracked();
 		}
 
 		NStr::CStrNonTracked CFile::fs_GetModulePathNonTracked(void *_pCode)

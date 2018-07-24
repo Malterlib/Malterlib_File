@@ -119,6 +119,7 @@ namespace
 				DMibTest(DMibExpr(CFile::fs_GetUserLocalProgramDirectory()) == DMibExpr(CFile::fs_GetUserLocalProgramDirectoryNonTracked()));
 				DMibTest(DMibExpr(CFile::fs_GetUserLocalProgramCacheDirectory()) == DMibExpr(CFile::fs_GetUserLocalProgramCacheDirectoryNonTracked()));
 				DMibTest(DMibExpr(CFile::fs_GetTemporaryDirectory()) == DMibExpr(CFile::fs_GetTemporaryDirectoryNonTracked()));
+				DMibTest(DMibExpr(CFile::fs_GetRawTemporaryDirectory()) == DMibExpr(CFile::fs_GetRawTemporaryDirectoryNonTracked()));
 				DMibTest(DMibExpr(CFile::fs_GetModulePath((void *)&CFile_Tests::fs_GetFileNoExt)) == DMibExpr(CFile::fs_GetModulePathNonTracked((void *)&CFile_Tests::fs_GetFileNoExt)));
 				DMibTest(DMibExpr(CFile::fs_GetProgramRoot()) == DMibExpr(CFile::fs_GetProgramRootNonTracked()));
 				DMibTest(DMibExpr(CFile::fs_GetUserHomeDirectory()) == DMibExpr(CFile::fs_GetUserHomeDirectoryNonTracked()));
