@@ -518,7 +518,7 @@ namespace NMib
 		tf_CStr CFile::fs_AppendPath(const tf_CStr &_Path, tf_CToAppend &&_Append)
 		{
 			if (_Path.f_IsEmpty())
-				return _Append;
+				return fg_Forward<tf_CToAppend>(_Append);
 			else if (NStr::fg_StrIsEmpty(_Append))
 				return _Path;
 			else
