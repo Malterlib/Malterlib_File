@@ -940,6 +940,11 @@ namespace NMib
 				return m_File.f_GetLength();
 			}
 
+			mint f_ContainerLengthLimit() const
+			{
+				return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
+			}
+
 			void f_SetLength(NStream::CFilePos _Length) 
 			{ 
 				return m_File.f_SetLength(_Length);

@@ -1518,6 +1518,11 @@ namespace NMib
 					return mp_pFile->m_FileRecord.m_FileSize;
 				}
 
+				mint f_ContainerLengthLimit() const
+				{
+					return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
+				}
+
 				void f_SetLength(NStream::CFilePos _Length) 
 				{ 
 					return mp_pFile->f_SetLength(_Length);
@@ -1867,6 +1872,11 @@ namespace NMib
 				return mp_pFile->f_GetLength();
 			}
 
+			mint f_ContainerLengthLimit() const
+			{
+				return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
+			}
+
 			void f_SetLength(NStream::CFilePos _Length) 
 			{ 
 				return mp_pFile->f_SetLength(_Length);
@@ -1956,6 +1966,11 @@ namespace NMib
 			NStream::CFilePos f_GetLength() const
 			{
 				return mp_File.f_GetLength();
+			}
+
+			mint f_ContainerLengthLimit() const
+			{
+				return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
 			}
 
 			void f_SetLength(NStream::CFilePos _Length) 
