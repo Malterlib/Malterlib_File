@@ -329,7 +329,8 @@ namespace NMib
 			
 			using CFileChecksumState_MD5 = TCFileChecksumState<NDataProcessing::CHash_MD5>;
 			using CFileChecksumState_SHA256 = TCFileChecksumState<NDataProcessing::CHash_SHA256>;
-			
+			using CFileChecksumState_SHA512 = TCFileChecksumState<NDataProcessing::CHash_SHA512>;
+
 			struct CFoundFile
 			{
 				NStr::CStr m_Path;
@@ -723,6 +724,7 @@ namespace NMib
 			static ECheckFileRights fs_CheckFileRights(NStr::CStr const& _File, EFileRight _Rights);
 			static NDataProcessing::CHashDigest_MD5 fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 			static NDataProcessing::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+			static NDataProcessing::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 			static NDataProcessing::CHashDigest_MD5 fs_GetDirectoryChecksum
 				(
 					const NStr::CStr &_Path

@@ -2024,7 +2024,12 @@ namespace NMib
 		NDataProcessing::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState, NStream::CFilePos _FileLength)
 		{
 			return fg_GetFileChecksum<NDataProcessing::CHash_SHA256>(_Path, o_pState, _FileLength);
-		}		
+		}
+
+		NDataProcessing::CHashDigest_SHA512 CFile::fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState, NStream::CFilePos _FileLength)
+		{
+			return fg_GetFileChecksum<NDataProcessing::CHash_SHA512>(_Path, o_pState, _FileLength);
+		}
 
 		NDataProcessing::CHashDigest_MD5 CFile::fs_GetDirectoryChecksum
 			(
