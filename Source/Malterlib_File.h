@@ -865,6 +865,30 @@ namespace NMib
 			{
 			}
 
+			template <typename tf_CType, typename tf_CStr>
+			static tf_CType fs_ReadFile(tf_CStr const &_FileName, EFileOpen _OpenFlags = EFileOpen_Read | EFileOpen_ShareAll)
+			{
+				TCBinaryStreamFile Stream;
+				Stream.f_Open(_FileName, _OpenFlags);
+				tf_CType Data;
+				Stream >> Data;
+				return Data;
+			}
+
+			template <typename tf_CType, typename tf_CStr>
+			static void fs_WriteFile
+				(
+				 	tf_CType const &_Data
+				 	, tf_CStr const &_FileName
+				 	, EFileOpen _OpenFlags = EFileOpen_Write | EFileOpen_ShareAll
+				 	, EFileAttrib _Attributes = EFileAttrib_None
+				)
+			{
+				TCBinaryStreamFile Stream;
+				Stream.f_Open(_FileName, _OpenFlags, _Attributes);
+				Stream << _Data;
+			}
+
 			template <typename tf_CStr>
 			void f_Open(const tf_CStr &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None)
 			{
