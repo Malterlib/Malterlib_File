@@ -153,6 +153,23 @@ namespace NMib::NFile
 		return OutFlags;
 	}
 
+	namespace
+	{
+		bool fg_IsUpToDate(CDirectoryManifestFile const &_PreviousManifestFile, CDirectoryManifestFile const &_ManifestFile, CStr const &_OriginalFileName)
+		{
+			if (_PreviousManifestFile.m_WriteTime != _ManifestFile.m_WriteTime)
+				return false;
+
+			if (_PreviousManifestFile.m_OriginalPath != _ManifestFile.m_OriginalPath)
+				return false;
+
+			if (_PreviousManifestFile.m_Length != CFile::fs_GetFileSize(_OriginalFileName))
+				return false;
+
+			return true;
+		}
+	}
+
 	void CDirectoryManifest::fs_UpdateManifestFile
 		(
 			CDirectoryManifestConfig const &_Config
@@ -161,6 +178,7 @@ namespace NMib::NFile
 			, NStr::CStr const &_OriginalPath
 			, NFile::CFile::CFileChecksumState_SHA256 *o_pState
 		 	, NFile::EFileOpen _FileOpenFlags
+		 	, CDirectoryManifestFile const *_pPreviousManifestFile
 		)
 	{
 		using namespace NFile;
@@ -180,27 +198,36 @@ namespace NMib::NFile
 		}
 		else
 		{
-			if (!(o_ManifestFile.m_Attributes & EFileAttrib_Directory))
-			{
-				NFile::CFile::CFileChecksumState_SHA256 TempState;
-				auto pState = o_pState;
-				if (_FileOpenFlags != NFile::EFileOpen_None)
-				{
-					if (!pState)
-						pState = &TempState;
-					pState->m_pFile->f_Open(OriginalFileName, _FileOpenFlags);
-				}
-				o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
-					(
-						OriginalFileName
-						, pState
-					)
-				;
-				o_ManifestFile.m_Length = o_pState->m_Length;
-			}
 			o_ManifestFile.m_WriteTime = CFile::fs_GetWriteTime(OriginalFileName);
 			o_ManifestFile.m_Owner = CFile::fs_GetOwner(OriginalFileName);
 			o_ManifestFile.m_Group = CFile::fs_GetGroup(OriginalFileName);
+
+			if (!(o_ManifestFile.m_Attributes & EFileAttrib_Directory))
+			{
+				if (_pPreviousManifestFile && fg_IsUpToDate(*_pPreviousManifestFile, o_ManifestFile, OriginalFileName))
+				{
+					o_ManifestFile.m_Digest = _pPreviousManifestFile->m_Digest;
+					o_ManifestFile.m_Length = _pPreviousManifestFile->m_Length;
+				}
+				else
+				{
+					NFile::CFile::CFileChecksumState_SHA256 TempState;
+					auto pState = o_pState;
+					if (_FileOpenFlags != NFile::EFileOpen_None)
+					{
+						if (!pState)
+							pState = &TempState;
+						pState->m_pFile->f_Open(OriginalFileName, _FileOpenFlags);
+					}
+					o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
+						(
+							OriginalFileName
+							, pState
+						)
+					;
+					o_ManifestFile.m_Length = o_pState->m_Length;
+				}
+			}
 		}
 	}
 	
@@ -265,7 +292,8 @@ namespace NMib::NFile
 			, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 			, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates
 		 	, NFile::EFileOpen _FileOpenFlags
-		 )
+			, CDirectoryManifest const *_pPreviousManifest
+		)
 	{
 		CDirectoryManifest BackupManifest;
 
@@ -324,7 +352,12 @@ namespace NMib::NFile
 			try
 			{
 				CFile::CFileChecksumState_SHA256 ChecksumState;
-				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState, _FileOpenFlags);
+
+				CDirectoryManifestFile const *pPreviousManifestFile = nullptr;
+				if (_pPreviousManifest && !(o_pAppendStates && (ManifestFile.m_Flags & EDirectoryManifestSyncFlag_Append)))
+					pPreviousManifestFile = _pPreviousManifest->m_Files.f_FindEqual(RelativePath);
+
+				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState, _FileOpenFlags, pPreviousManifestFile);
 				
 				if (o_pAppendStates && (ManifestFile.m_Flags & EDirectoryManifestSyncFlag_Append))
 					(*o_pAppendStates)[RelativePath] = fg_Move(ChecksumState);
@@ -369,6 +402,7 @@ namespace NMib::NFile
 				OriginalPath = File;
 			
 			ManifestFile.m_Attributes = CFile::fs_GetAttributes(CFile::fs_AppendPath(_Config.m_Root, OriginalPath));
+
 			fs_UpdateManifestFile(_Config, File, ManifestFile, OriginalPath);
 		}
 		
