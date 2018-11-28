@@ -15,7 +15,6 @@ namespace NMib
 					const NStr::CStr &_FindPath
 					, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 					, bool _bCatchExceptions
-					, bool _bIncludeDirectories
 					, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 				)
 			{
@@ -36,11 +35,8 @@ namespace NMib
 						{
 							if (Attribs & EFileAttrib_Directory)
 							{
-								 if (_bIncludeDirectories)
-								 {
-									 _fFoundFile(*pPath, Attribs, true);
-									 _fFoundFile(*pPath, Attribs, false);
-								 }
+								 _fFoundFile(*pPath, Attribs, true);
+								 _fFoundFile(*pPath, Attribs, false);
 							}
 							else
 								_fFoundFile(*pPath, Attribs, false);
@@ -62,9 +58,7 @@ namespace NMib
 					}
 				}
 				else
-				{
 					fDoFind();
-				}
 			}
 
 			void fg_FindFilesRecurse
@@ -100,13 +94,19 @@ namespace NMib
 										_fFoundFile(*pPath, Attribs, false);
 									}
 								}
+								else if
+									(
+									 	NStr::fg_StrMatchWildcard(CFile::fs_GetFile(*pPath).f_GetStr(), _Pattern.f_GetStr())
+									 	== NStr::EMatchWildcardResult_WholeStringMatchedAndPatternExhausted
+									)
+								{
+									_fFoundFile(*pPath, Attribs, false);
+								}
 								if (_fCheckAbort)
 									_fCheckAbort();
 								pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 							}
 						}
-
-						fg_FindFilesLeaf(_Path + _Pattern, _fFoundFile, false, false, _fCheckAbort);
 					}
 				;
 
@@ -121,9 +121,7 @@ namespace NMib
 					}
 				}
 				else
-				{
 					fDoFind();
-				}
 			}
 
 			void fg_FindFiles
@@ -144,7 +142,7 @@ namespace NMib
 					fg_FindFilesRecurse(BasePath, Pattern, _fFoundFile, _bCatchExceptions, _fCheckAbort);
 				}
 				else
-					fg_FindFilesLeaf(_FindPath, _fFoundFile, _bCatchExceptions, true, _fCheckAbort);
+					fg_FindFilesLeaf(_FindPath, _fFoundFile, _bCatchExceptions, _fCheckAbort);
 
 			}
 		}
