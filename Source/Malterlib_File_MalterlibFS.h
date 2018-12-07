@@ -1809,66 +1809,79 @@ namespace NMib
 
 			void f_Reset()
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_SetLength(0);
 				mp_pFile->f_Flush(false);
 			}
 
 			void f_Flush(bint _bLocalCacheOnly)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_Flush(_bLocalCacheOnly);
 			}
 			void f_SetCacheSize(mint _CacheSize)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_SetCacheSize(_CacheSize);
 			}
 
 			void f_FeedBytes(const void *_pMem, mint _nBytes)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_Write(_pMem, _nBytes);
 			}
 
 			void f_ConsumeBytes(void *_pMem, mint _nBytes)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_Read(_pMem, _nBytes);
 			}
 
 			bint f_IsValid() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_IsValid();
 			}
 
 			bint f_IsAtEndOfStream() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_IsAtEndOfFile();
 			}
 
 			NStream::CFilePos f_GetPosition() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_GetPosition();
 			}
 
 			void f_SetPosition(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_SetPosition(_Pos);
 			}
 
 			void f_SetPositionFromEnd(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_SetPositionFromEnd(_Pos);
 			}
 
 			void f_AddPosition(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_pFile->f_AddPosition(_Pos);
 			}
 
 			bint f_IsValidReadPosition(NStream::CFilePos _Pos) const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_IsValidReadPosition(_Pos);
 			}
 
 			NStream::CFilePos f_GetLength() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_GetLength();
 			}
 
@@ -1879,9 +1892,9 @@ namespace NMib
 
 			void f_SetLength(NStream::CFilePos _Length) 
 			{ 
+				DMibMemLightweightTrackDisableScope;
 				return mp_pFile->f_SetLength(_Length);
 			}
-
 		};
 
 		template <typename t_CStreamType = NStream::CBinaryStreamDefault>
@@ -1898,6 +1911,12 @@ namespace NMib
 			{
 			}
 
+			~TCBinaryStream_VirtualFSFile()
+			{
+				DMibMemLightweightTrackDisableScope;
+				mp_File.f_Close();
+			}
+
 			CVirtualFSFile &f_GetVFSFile()
 			{
 				return mp_File;
@@ -1905,66 +1924,79 @@ namespace NMib
 
 			void f_Reset()
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_SetLength(0);
 				mp_File.f_Flush(false);
 			}
 
 			void f_Flush(bint _bLocalCacheOnly)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_Flush(_bLocalCacheOnly);
 			}
 			void f_SetCacheSize(mint _CacheSize)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_SetCacheSize(_CacheSize);
 			}
 
 			void f_FeedBytes(const void *_pMem, mint _nBytes)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_Write(_pMem, _nBytes);
 			}
 
 			void f_ConsumeBytes(void *_pMem, mint _nBytes)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_Read(_pMem, _nBytes);
 			}
 
 			bint f_IsValid() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_IsValid();
 			}
 
 			bint f_IsAtEndOfStream() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_IsAtEndOfFile();
 			}
 
 			NStream::CFilePos f_GetPosition() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_GetPosition();
 			}
 
 			void f_SetPosition(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_SetPosition(_Pos);
 			}
 
 			void f_SetPositionFromEnd(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_SetPositionFromEnd(_Pos);
 			}
 
 			void f_AddPosition(NStream::CFilePos _Pos)
 			{
+				DMibMemLightweightTrackDisableScope;
 				mp_File.f_AddPosition(_Pos);
 			}
 
 			bint f_IsValidReadPosition(NStream::CFilePos _Pos) const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_IsValidReadPosition(_Pos);
 			}
 
 			NStream::CFilePos f_GetLength() const
 			{
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_GetLength();
 			}
 
@@ -1975,9 +2007,9 @@ namespace NMib
 
 			void f_SetLength(NStream::CFilePos _Length) 
 			{ 
+				DMibMemLightweightTrackDisableScope;
 				return mp_File.f_SetLength(_Length);
 			}
-
 		};
 	}
 

@@ -987,8 +987,8 @@ namespace NMib
 			struct CInnerHash
 			{
 				CHashDigest_MD5 m_Hash;
-				//TCVector<uint64, NMem::TCAllocator_Static<sizeof(uint64)*2, sizeof(uint64)>, CVectorBoundsDontCheck, CVectorData, TCVectorStaticData_GrowDouble<1>> m_Positions;
-				TCVector<uint64, CAllocator_Heap, CVectorBoundsDontCheck, CVectorData, TCVectorStaticData_GrowDouble<1>> m_Positions;
+				//TCVector<uint64, NMem::TCAllocator_Static<sizeof(uint64)*2, sizeof(uint64)>, TCVectorOptions<1>> m_Positions;
+				TCVector<uint64, CAllocator_Heap, TCVectorOptions<1, true, false>> m_Positions;
 				//TCVector<uint64> m_Positions;
 
 				CInnerHash(CHashDigest_MD5 const &_Hash)
