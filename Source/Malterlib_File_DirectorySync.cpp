@@ -29,12 +29,12 @@ namespace NMib::NFile
 	}
 
 	auto CDirectorySyncFileOptions::f_OpenFile(NStr::CStr const &_FileName, EDirectorySyncStreamType _FileType, EFileOpen _OpenFlags, EFileAttrib _Attributes)
-		-> NPtr::TCUniquePointer<NStream::CBinaryStream>
+		-> NStorage::TCUniquePointer<NStream::CBinaryStream>
 	{
 		if (m_fOpenStream)
 			return m_fOpenStream(_FileName, _FileType, _OpenFlags, _Attributes);
 
-		NPtr::TCUniquePointer<TCBinaryStreamFile<>> pStream = fg_Construct();
+		NStorage::TCUniquePointer<TCBinaryStreamFile<>> pStream = fg_Construct();
 		pStream->f_Open(_FileName, _OpenFlags, _Attributes);
 
 		return pStream;
@@ -90,7 +90,7 @@ namespace NMib::NFile
 
 
 		m_FileOptions.m_fOpenStream = [_Destination, _Flags](CStr const &_FileName, EDirectorySyncStreamType _FileType, EFileOpen _OpenFlags, EFileAttrib _Attributes)
-			-> NPtr::TCUniquePointer<NStream::CBinaryStream>
+			-> NStorage::TCUniquePointer<NStream::CBinaryStream>
 			{
 				if (!(_FileType & (EDirectorySyncStreamType_Temp | EDirectorySyncStreamType_Manifest)))
 				{
@@ -101,7 +101,7 @@ namespace NMib::NFile
 					}
 				}
 
-				NPtr::TCUniquePointer<TCBinaryStreamFile<>> pFile = fg_Construct();
+				NStorage::TCUniquePointer<TCBinaryStreamFile<>> pFile = fg_Construct();
 				pFile->f_Open(_FileName, _OpenFlags, _Attributes);
 				return pFile;
 			}

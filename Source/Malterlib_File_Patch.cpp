@@ -5,7 +5,7 @@
 
 namespace NMib::NFile
 {
-	using namespace NDataProcessing;
+	using namespace NCryptography;
 	
 	class CMalterlibPatchEncodeHelper
 	{
@@ -39,7 +39,7 @@ namespace NMib::NFile
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_nMapped - Pos1;
 					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMem::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
+						return NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
 					return Len0 < Len1;
 				}
 				inline_small bool operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
@@ -49,7 +49,7 @@ namespace NMib::NFile
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_FindLen - Pos1;
 					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMem::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, mc_MapLength) < 0;
+						return NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, mc_MapLength) < 0;
 					return Len0 < Len1;
 				}
 				inline_small bool operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
@@ -59,7 +59,7 @@ namespace NMib::NFile
 					mint Len0 = m_Context.m_FindLen - Pos1;
 					mint Len1 = m_Context.m_nMapped - Pos0;
 					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMem::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
+						return NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
 					return Len0 < Len1;
 				}
 				#else
@@ -69,7 +69,7 @@ namespace NMib::NFile
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_nMapped - Pos1;
-					auto Diff = NMem::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
+					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
 					if (Diff)
 						return Diff < 0;
 					return Len0 < Len1;
@@ -80,7 +80,7 @@ namespace NMib::NFile
 					mint Pos1 = _pSecond - m_Context.m_pFindData;
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_FindLen - Pos1;
-					auto Diff = NMem::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, fg_Min(Len0, Len1));
+					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, fg_Min(Len0, Len1));
 					if (Diff)
 						return Diff < 0;
 					return Len0 < Len1;
@@ -91,7 +91,7 @@ namespace NMib::NFile
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Len0 = m_Context.m_FindLen - Pos1;
 					mint Len1 = m_Context.m_nMapped - Pos0;
-					auto Diff = NMem::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
+					auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
 					if (Diff)
 						return Diff < 0;
 					return Len0 < Len1;
@@ -99,12 +99,12 @@ namespace NMib::NFile
 				#endif
 			};
 
-			DMibIntrusiveLink(CMappedChunk, NIntrusive::TCAVLLinkAggregate<>, m_TreeLink);
+			NIntrusive::TCAVLLinkAggregate<> m_TreeLink;
 			DMibListLinkSA_List(CMappedPos, m_Link) m_MappedPositions;
 		};
 		typedef DMibListLinkS_Iter(CMappedPos, m_Link) CMappedPosIter;
 
-		NIntrusive::TCAVLTree<CMappedChunk::CLinkTraits_m_TreeLink, CMappedChunk::CCompare> m_MappedTree;
+		NIntrusive::TCAVLTree<&CMappedChunk::m_TreeLink, CMappedChunk::CCompare> m_MappedTree;
 
 		NContainer::TCVector<CMappedChunk> m_MappedChunk;
 		NContainer::TCVector<CMappedPos> m_MappedPos;
@@ -114,7 +114,7 @@ namespace NMib::NFile
 		const uint8 *m_pFindData;
 		mint m_FindLen;
 
-		void f_MapOrig(const NContainer::TCVector<uint8> &_Orig)
+		void f_MapOrig(const NContainer::CByteVector &_Orig)
 		{
 			const uint8 *pOrig = _Orig.f_GetArray();
 			if (!pOrig)
@@ -153,7 +153,7 @@ namespace NMib::NFile
 			}
 		}
 
-		void f_CreatePatchData(const NContainer::TCVector<uint8> &_Orig, const NContainer::TCVector<uint8> &_Changed, NStream::CBinaryStreamMemory<> &_Stream)
+		void f_CreatePatchData(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed, NStream::CBinaryStreamMemory<> &_Stream)
 		{
 			m_pFindData = _Changed.f_GetArray();
 			m_FindLen = _Changed.f_GetLen();
@@ -247,7 +247,7 @@ namespace NMib::NFile
 
 	};
 
-	NContainer::TCVector<uint8> fg_MalterlibPatchEncode(const NContainer::TCVector<uint8> &_Orig, const NContainer::TCVector<uint8> &_Changed)
+	NContainer::CByteVector fg_MalterlibPatchEncode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed)
 	{
 		CMalterlibPatchEncodeHelper Helper;
 		Helper.f_MapOrig(_Orig);
@@ -269,7 +269,7 @@ namespace NMib::NFile
 		return Stream.f_MoveVector();
 	}
 
-	NContainer::TCVector<uint8> fg_MalterlibPatchDecode(const NContainer::TCVector<uint8> &_Orig, const NContainer::TCVector<uint8> &_PatchData)
+	NContainer::CByteVector fg_MalterlibPatchDecode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_PatchData)
 	{
 		NStream::CBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_PatchData.f_GetArray(), _PatchData.f_GetLen());
@@ -289,7 +289,7 @@ namespace NMib::NFile
 		if (_Orig.f_GetLen() != OrigSize || CHashDigest_MD5(HashOrig) != OrigHash)
 			DMibError("Original file does not match patch");
 
-		NContainer::TCVector<uint8> Changed;
+		NContainer::CByteVector Changed;
 		const uint8 *pOrigData = _Orig.f_GetArray();
 		Changed.f_SetLen(ChangedSize);
 		uint8 *pChangedData = Changed.f_GetArray();
@@ -321,7 +321,7 @@ namespace NMib::NFile
 				if (OrigPos + Size > OrigSize)
 					DMibError("Patch could not be applied: OrigPos + Size > OrigSize");
 
-				NMem::fg_MemCopy(pChangedData + Pos, pOrigData + OrigPos, Size);
+				NMemory::fg_MemCopy(pChangedData + Pos, pOrigData + OrigPos, Size);
 				Pos += Size;
 			}
 		}

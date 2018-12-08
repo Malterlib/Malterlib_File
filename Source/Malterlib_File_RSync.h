@@ -1,56 +1,53 @@
-﻿// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
 
-namespace NMib
+namespace NMib::NFile
 {
-	namespace NFile
+	class CRSyncServer
 	{
-		class CRSyncServer
-		{
-			class CImplementation;
-			NPtr::TCUniquePointer<CImplementation> mp_pImpl;
-			
-		public:
-			CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize);
-			~CRSyncServer();
+		class CImplementation;
+		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
 
-			void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
-			
-			bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient);
-		};
-		
-		enum ERSyncClientFlag
-		{
-			ERSyncClientFlag_None = 0
-			, ERSyncClientFlag_TruncateOutput = DMibBit(0)
-		};
+	public:
+		CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize);
+		~CRSyncServer();
 
-		class CRSyncClient
-		{
-			class CImplementation;
-			NPtr::TCUniquePointer<CImplementation> mp_pImpl;
-			
-		public:
-			CRSyncClient
-				(
-					NStream::CBinaryStream &_OldFile
-					, NStream::CBinaryStream &_NewFile
-					, uint32 _MinChunkSize
-					, uint32 _MaxChunkSize
-					, uint32 _MaxPacketSize
-					, NStream::CBinaryStream *_pTempStream = nullptr
-					, ERSyncClientFlag _Flags = ERSyncClientFlag_TruncateOutput  
-				)
-			;
-			~CRSyncClient();
-			
-			bool f_ProcessPacket(NContainer::CSecureByteVector const &_ServerData, NContainer::CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess);
-			uint64 f_GetRawBytes();
-			void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
-		};
-	}
+		void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
+
+		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient);
+	};
+
+	enum ERSyncClientFlag
+	{
+		ERSyncClientFlag_None = 0
+		, ERSyncClientFlag_TruncateOutput = DMibBit(0)
+	};
+
+	class CRSyncClient
+	{
+		class CImplementation;
+		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
+
+	public:
+		CRSyncClient
+			(
+				NStream::CBinaryStream &_OldFile
+				, NStream::CBinaryStream &_NewFile
+				, uint32 _MinChunkSize
+				, uint32 _MaxChunkSize
+				, uint32 _MaxPacketSize
+				, NStream::CBinaryStream *_pTempStream = nullptr
+				, ERSyncClientFlag _Flags = ERSyncClientFlag_TruncateOutput
+			)
+		;
+		~CRSyncClient();
+
+		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ServerData, NContainer::CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess);
+		uint64 f_GetRawBytes();
+		void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
+	};
 }
 
 #ifndef DMibPNoShortCuts

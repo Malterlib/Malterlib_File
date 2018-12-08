@@ -10,7 +10,7 @@ namespace NMib::NFile
 {
 	using namespace NContainer;
 	using namespace NConcurrency;
-	using namespace NPtr;
+	using namespace NStorage;
 	using namespace NStr;
 	
 	class CFileChangeNotificationActor::CInternal

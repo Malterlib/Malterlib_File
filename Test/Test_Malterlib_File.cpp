@@ -94,8 +94,8 @@ namespace
 				DMibTest(!DMibExpr(CFile::fs_IsValidFilePath("COM1", Error)));
 				DMibTest(!DMibExpr(CFile::fs_IsValidFilePath("COM2", Error)));
 				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("COM", Error)));
-				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("com.hansoft", Error)));
-				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("hansoft.com", Error)));
+				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("com.malterlib", Error)));
+				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("malterlib.com", Error)));
 			};
 			DMibTestSuite("Nice filename")
 			{
@@ -365,7 +365,7 @@ namespace
 							CFile File;
 							File.f_Open(TestFileName, EFileOpen_Read | EFileOpen_ShareAll);
 							ch8 Temp[8];
-							NMib::NMem::fg_MemClear(Temp);
+							NMib::NMemory::fg_MemClear(Temp);
 							File.f_Read(Temp, 7);
 							File.f_Close();
 							DMibTest(DMibExpr(fg_StrCmp(Temp, "Testing") == 0));
@@ -1052,7 +1052,7 @@ namespace
 						CFile File;
 						File.f_Open(TestFileName, EFileOpen_Read);
 						ch8 Temp[8];
-						NMib::NMem::fg_MemClear(Temp);
+						NMib::NMemory::fg_MemClear(Temp);
 						File.f_Read(Temp, 7);
 						File.f_Close();
 						DMibTest(DMibExpr(fg_StrCmp(Temp, "Testing") == 0));

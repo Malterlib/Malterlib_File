@@ -1,733 +1,729 @@
 // Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-namespace NMib
+namespace NMib::NFile
 {
-	namespace NFile
+	template <typename tf_CStr>
+	bint fs_IsPathAbsolute_Local(tf_CStr const& _Path)
 	{
-
-		template <typename tf_CStr>
-		bint fs_IsPathAbsolute_Local(tf_CStr const& _Path)
-		{		
-			if (_Path.f_IsEmpty())
-				return false;
-
-			if (_Path[0] == '/')
-				return true;
-
-
-			mint Len = _Path.f_GetLen();
-
-			if 
-				(		
-					NSys::NFile::fg_FileSystemHasDrives()
-					&& 	Len > 2 
-					&& 	_Path[1] == ':'
-					&& 	_Path[2] == '/'
-				)
-			{
-				return true;
-			}
-
+		if (_Path.f_IsEmpty())
 			return false;
+
+		if (_Path[0] == '/')
+			return true;
+
+
+		mint Len = _Path.f_GetLen();
+
+		if
+			(
+				NSys::NFile::fg_FileSystemHasDrives()
+				&& 	Len > 2
+				&& 	_Path[1] == ':'
+				&& 	_Path[2] == '/'
+			)
+		{
+			return true;
 		}
 
-		// Assumes _Path uses only / deliminators.
-		template <typename tf_CStr>
-		tf_CStr fs_ExtractPathRoot(tf_CStr &_Path)
+		return false;
+	}
+
+	// Assumes _Path uses only / deliminators.
+	template <typename tf_CStr>
+	tf_CStr fs_ExtractPathRoot(tf_CStr &_Path)
+	{
+		if (_Path.f_IsEmpty())
 		{
-			if (_Path.f_IsEmpty())
-			{
-				return tf_CStr();
-			}
-
-#ifdef DPlatformFamily_Windows
-			if (NStr::fg_StrCmpNoCase(_Path, "//?/UNC/", 8) == 0)
-			{
-				// Long UNC style, network.
-				aint iComputerEnd = NStr::fg_StrFindNoCase(8, _Path, "/");
-
-				if (iComputerEnd != -1)
-				{
-					iComputerEnd += 1;
-					tf_CStr Root = _Path.f_Left(iComputerEnd);
-					_Path = _Path.f_Extract(iComputerEnd);
-					return Root;
-				}
-				else
-					return tf_CStr(); // Malformed.
-			}
-			else if (NStr::fg_StrCmpNoCase(_Path, "//?/", 4) == 0)
-			{
-				// Long UNC style, local.
-				aint iDriveEnd = NStr::fg_StrFindNoCase(4, _Path, ":/");
-
-				if (iDriveEnd != -1)
-				{
-					iDriveEnd += 2;
-					tf_CStr Root = _Path.f_Left(iDriveEnd);
-					_Path = _Path.f_Extract(iDriveEnd);
-					return Root;
-				}
-				else
-					return tf_CStr(); // Malformed.
-			}
-			else if (NStr::fg_StrCmpNoCase(_Path, "//", 2) == 0)
-			{
-				// Normal UNC style
-				aint iComputerEnd = NStr::fg_StrFindNoCase(2, _Path, "/");
-
-				if (iComputerEnd != -1)
-				{
-					iComputerEnd += 1;
-					tf_CStr Root = _Path.f_Left(iComputerEnd);
-					_Path = _Path.f_Extract(iComputerEnd);
-					return Root;
-				}
-				else
-					return tf_CStr(); // Malformed.
-			}
-#endif
-
-			if (NSys::NFile::fg_FileSystemHasDrives())
-			{
-				aint iColon = _Path.f_Find(":/");
-
-				if (iColon != -1)
-				{
-					iColon += 2;
-					tf_CStr Drive = _Path.f_Left(iColon);
-					_Path = _Path.f_Extract(iColon);
-					return Drive;
-				}
-			}
-
-			if (_Path[0] == '/')
-			{
-				_Path = _Path.f_Extract(1);
-				return "/";
-			}
-
 			return tf_CStr();
 		}
 
-
-		enum EPathRootType
+#ifdef DPlatformFamily_Windows
+		if (NStr::fg_StrCmpNoCase(_Path, "//?/UNC/", 8) == 0)
 		{
-			EPathRootType_None,
-			EPathRootType_LocalDrive,
-			EPathRootType_Network,
+			// Long UNC style, network.
+			aint iComputerEnd = NStr::fg_StrFindNoCase(8, _Path, "/");
+
+			if (iComputerEnd != -1)
+			{
+				iComputerEnd += 1;
+				tf_CStr Root = _Path.f_Left(iComputerEnd);
+				_Path = _Path.f_Extract(iComputerEnd);
+				return Root;
+			}
+			else
+				return tf_CStr(); // Malformed.
+		}
+		else if (NStr::fg_StrCmpNoCase(_Path, "//?/", 4) == 0)
+		{
+			// Long UNC style, local.
+			aint iDriveEnd = NStr::fg_StrFindNoCase(4, _Path, ":/");
+
+			if (iDriveEnd != -1)
+			{
+				iDriveEnd += 2;
+				tf_CStr Root = _Path.f_Left(iDriveEnd);
+				_Path = _Path.f_Extract(iDriveEnd);
+				return Root;
+			}
+			else
+				return tf_CStr(); // Malformed.
+		}
+		else if (NStr::fg_StrCmpNoCase(_Path, "//", 2) == 0)
+		{
+			// Normal UNC style
+			aint iComputerEnd = NStr::fg_StrFindNoCase(2, _Path, "/");
+
+			if (iComputerEnd != -1)
+			{
+				iComputerEnd += 1;
+				tf_CStr Root = _Path.f_Left(iComputerEnd);
+				_Path = _Path.f_Extract(iComputerEnd);
+				return Root;
+			}
+			else
+				return tf_CStr(); // Malformed.
+		}
+#endif
+
+		if (NSys::NFile::fg_FileSystemHasDrives())
+		{
+			aint iColon = _Path.f_Find(":/");
+
+			if (iColon != -1)
+			{
+				iColon += 2;
+				tf_CStr Drive = _Path.f_Left(iColon);
+				_Path = _Path.f_Extract(iColon);
+				return Drive;
+			}
+		}
+
+		if (_Path[0] == '/')
+		{
+			_Path = _Path.f_Extract(1);
+			return "/";
+		}
+
+		return tf_CStr();
+	}
+
+
+	enum EPathRootType
+	{
+		EPathRootType_None,
+		EPathRootType_LocalDrive,
+		EPathRootType_Network,
+	};
+
+	// Assumes delimator is only /
+	template <typename tf_CStr>
+	bint fs_ComparePathRoots(tf_CStr const& _RootA, tf_CStr const& _RootB)
+	{
+#ifdef DPlatformFamily_Windows
+		if (_RootA.f_CmpNoCase(_RootB) == 0)
+			return true;
+#else
+		if (_RootA.f_Cmp(_RootB) == 0)
+			return true;
+#endif
+
+
+#ifdef DPlatformFamily_Windows
+		// Windows path insanity
+
+		auto fl_GetType = [](tf_CStr const& _Root, tf_CStr &_ID) -> EPathRootType
+		{
+			enum EPathRootType;
+
+			_ID.f_Clear();
+
+			if (_Root.f_CmpNoCase("//?/UNC/", 8) == 0)
+			{
+				aint iComputerEnd = NStr::fg_StrFind(8, _Root, "/");
+				if (iComputerEnd == -1)
+					return EPathRootType_None;
+
+				_ID = _Root.f_Extract(8, iComputerEnd - 8);
+				return EPathRootType_Network;
+			}
+			else if (_Root.f_Cmp("//?/", 4) == 0)
+			{
+				aint iDriveEnd = NStr::fg_StrFind(4, _Root, ":/");
+				if (iDriveEnd == -1)
+					return EPathRootType_None;
+
+				_ID = _Root.f_Extract(4, iDriveEnd - 4);
+				return EPathRootType_LocalDrive;
+			}
+			else if (_Root.f_Cmp("//", 2) == 0)
+			{
+				aint iComputerEnd = NStr::fg_StrFind(2, _Root, "/");
+				if (iComputerEnd == -1)
+					return EPathRootType_None;
+
+				_ID = _Root.f_Extract(2, iComputerEnd - 2);
+				return EPathRootType_Network;
+			}
+			else
+			{
+				aint iDriveEnd = _Root.f_Find(":/");
+				if (iDriveEnd == -1)
+					return EPathRootType_None;
+
+				_ID = _Root.f_Extract(0, iDriveEnd);
+				return EPathRootType_LocalDrive;
+			}
 		};
 
-		// Assumes delimator is only /
-		template <typename tf_CStr>
-		bint fs_ComparePathRoots(tf_CStr const& _RootA, tf_CStr const& _RootB)
-		{
-#ifdef DPlatformFamily_Windows
-			if (_RootA.f_CmpNoCase(_RootB) == 0)
-				return true;
-#else
-			if (_RootA.f_Cmp(_RootB) == 0)
-				return true;
-#endif
+		tf_CStr IDA, IDB;
 
+		EPathRootType TypeA = fl_GetType(_RootA, IDA);
+		EPathRootType TypeB = fl_GetType(_RootB, IDB);
 
-#ifdef DPlatformFamily_Windows
-			// Windows path insanity
+		if (TypeA != TypeB)
+			return false;
 
-			auto fl_GetType = [](tf_CStr const& _Root, tf_CStr &_ID) -> EPathRootType
-			{
-				enum EPathRootType;
+		if (IDA.f_CmpNoCase(IDB) != 0)
+			return false;
 
-				_ID.f_Clear();
-
-				if (_Root.f_CmpNoCase("//?/UNC/", 8) == 0)
-				{
-					aint iComputerEnd = NStr::fg_StrFind(8, _Root, "/");
-					if (iComputerEnd == -1)
-						return EPathRootType_None;
-
-					_ID = _Root.f_Extract(8, iComputerEnd - 8);
-					return EPathRootType_Network;
-				}
-				else if (_Root.f_Cmp("//?/", 4) == 0)
-				{
-					aint iDriveEnd = NStr::fg_StrFind(4, _Root, ":/");
-					if (iDriveEnd == -1)
-						return EPathRootType_None;
-
-					_ID = _Root.f_Extract(4, iDriveEnd - 4);
-					return EPathRootType_LocalDrive;
-				}
-				else if (_Root.f_Cmp("//", 2) == 0)
-				{
-					aint iComputerEnd = NStr::fg_StrFind(2, _Root, "/");
-					if (iComputerEnd == -1)
-						return EPathRootType_None;
-
-					_ID = _Root.f_Extract(2, iComputerEnd - 2);
-					return EPathRootType_Network;
-				}
-				else
-				{
-					aint iDriveEnd = _Root.f_Find(":/");
-					if (iDriveEnd == -1)
-						return EPathRootType_None;
-
-					_ID = _Root.f_Extract(0, iDriveEnd);
-					return EPathRootType_LocalDrive;
-				}
-			};
-
-			tf_CStr IDA, IDB;
-
-			EPathRootType TypeA = fl_GetType(_RootA, IDA);
-			EPathRootType TypeB = fl_GetType(_RootB, IDB);
-
-			if (TypeA != TypeB)
-				return false;
-
-			if (IDA.f_CmpNoCase(IDB) != 0)
-				return false;
-
-			return true;
+		return true;
 #endif			
 
-			return false;
-		}
+		return false;
+	}
 
 
 
-		template <typename tf_CStr>
-		bint CFile::fs_IsPathAbsolute(tf_CStr _Path)
+	template <typename tf_CStr>
+	bint CFile::fs_IsPathAbsolute(tf_CStr _Path)
+	{
+		fg_StrReplaceChar(_Path, '\\', '/');
+
+		return fs_IsPathAbsolute_Local(_Path);
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetFullPath(const tf_CStr &_Path, const tf_CStr &_Base)
+	{
+		if (_Base.f_IsEmpty() || fs_IsPathAbsolute(_Path))
+			return _Path;
+		else
 		{
-			fg_StrReplaceChar(_Path, '\\', '/');
-
-			return fs_IsPathAbsolute_Local(_Path);
+			return _Base + "/" + _Path;
 		}
+	}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetFullPath(const tf_CStr &_Path, const tf_CStr &_Base)
-		{
-			if (_Base.f_IsEmpty() || fs_IsPathAbsolute(_Path))
-				return _Path;
-			else
+	template <typename tf_CStr>
+	bool CFile::fs_HasRelativeComponents(const tf_CStr &_Path)
+	{
+		auto const *pParse = _Path.f_GetStr();
+		auto const *pDirStart = pParse;
+
+		auto fCheckPath = [&]
 			{
-				return _Base + "/" + _Path;
+				if (NStr::fg_StrCmp(pDirStart, "..", pParse - pDirStart) == 0 || NStr::fg_StrCmp(pDirStart, ".", pParse - pDirStart) == 0)
+					return true;
+				return false;
 			}
-		}
+		;
 
-		template <typename tf_CStr>
-		bool CFile::fs_HasRelativeComponents(const tf_CStr &_Path)
+		while (*pParse)
 		{
-			auto const *pParse = _Path.f_GetStr();
-			auto const *pDirStart = pParse;
-			
-			auto fCheckPath = [&]
-				{
-					if (NStr::fg_StrCmp(pDirStart, "..", pParse - pDirStart) == 0 || NStr::fg_StrCmp(pDirStart, ".", pParse - pDirStart) == 0)
-						return true;
-					return false;
-				}
-			;
-
-			while (*pParse)
+			if (*pParse == '/')
 			{
-				if (*pParse == '/')
-				{
-					if (fCheckPath())
-						return true;
-					++pParse;
-					pDirStart = pParse; 
-					continue;
-				}
-					
+				if (fCheckPath())
+					return true;
 				++pParse;
+				pDirStart = pParse;
+				continue;
 			}
-			
-			if (fCheckPath())
-				return true;
-			
-			return false;
+
+			++pParse;
 		}
-		
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_MakePathRelative(tf_CStr const& _AbsolutePath, tf_CStr const& _AbsoluteBase)
+
+		if (fCheckPath())
+			return true;
+
+		return false;
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_MakePathRelative(tf_CStr const& _AbsolutePath, tf_CStr const& _AbsoluteBase)
+	{
+		//auto Filename = fs_GetFile(_AbsolutePath);
+
+		auto Path = _AbsolutePath;
+		auto Base = _AbsoluteBase;
+
+		fg_StrReplaceChar(Path, '\\', '/');
+		fg_StrReplaceChar(Base, '\\', '/');
+
+		auto PathRoot = fs_ExtractPathRoot(Path);
+		auto BaseRoot = fs_ExtractPathRoot(Base);
+
+		if (!fs_ComparePathRoots(PathRoot, BaseRoot))
+			return _AbsolutePath;
+
+		tf_CStr PathSection, BaseSection;
+		tf_CStr Output;
+
+		while(1)
 		{
-			//auto Filename = fs_GetFile(_AbsolutePath);
+			PathSection = NStr::fg_GetStrSepNoTrim(Path, "/");
+			BaseSection = NStr::fg_GetStrSepNoTrim(Base, "/");
 
-			auto Path = _AbsolutePath;
-			auto Base = _AbsoluteBase;
-
-			fg_StrReplaceChar(Path, '\\', '/');
-			fg_StrReplaceChar(Base, '\\', '/');
-
-			auto PathRoot = fs_ExtractPathRoot(Path);
-			auto BaseRoot = fs_ExtractPathRoot(Base);
-
-			if (!fs_ComparePathRoots(PathRoot, BaseRoot))
-				return _AbsolutePath;
-
-			tf_CStr PathSection, BaseSection;
-			tf_CStr Output;
-
-			while(1)
-			{
-				PathSection = NStr::fg_GetStrSepNoTrim(Path, "/");
-				BaseSection = NStr::fg_GetStrSepNoTrim(Base, "/");
-
-				if (PathSection.f_IsEmpty() && BaseSection.f_IsEmpty())
-					break;
+			if (PathSection.f_IsEmpty() && BaseSection.f_IsEmpty())
+				break;
 
 #ifdef DPlatformFamily_Windows			
-				if (PathSection.f_CmpNoCase(BaseSection) != 0)
+			if (PathSection.f_CmpNoCase(BaseSection) != 0)
 #else
-				if (PathSection.f_Cmp(BaseSection) != 0)
+			if (PathSection.f_Cmp(BaseSection) != 0)
 #endif
-				{
-					if (!BaseSection.f_IsEmpty())
-						Output += "../";
-
-					while(!Base.f_IsEmpty())
-					{
-						BaseSection = NStr::fg_GetStrSepNoTrim(Base, "/");
-						Output += "../";
-					}
-					if (!PathSection.f_IsEmpty())
-						Output += PathSection + "/";
-					if (!Path.f_IsEmpty())
-						Output += Path + "/";
-					Output += "Dummy";
-					return fs_GetPath(Output);
-				}
-			}
-
-			return "";			
-		}
-		
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, const tf_CStr &_BasePath)
-		{
-			if (_Path.f_IsEmpty())
-				return _Path;
-				
-			tf_CStr Temp = _Path;
-
-			fg_StrReplaceChar(Temp, '\\', '/');
-
-			tf_CStr NewPath;
-
-			aint Len = Temp.f_GetLen();
-			if (Len > 0)
 			{
-				if (Len > 1 && Temp[0] == '/' && Temp[1] == '/')
-					;
-				else if (Len > 1 && Temp[1] == ':')
-					;
-				else
-				{
-					if (Temp[0] == '/')
-					{
-						if (NSys::NFile::fg_FileSystemHasDrives())
-							NewPath = fs_GetDrive(_BasePath);
-					}
-					else
-						NewPath = _BasePath;
-				}
-			}
-			else
-				NewPath = _BasePath;
+				if (!BaseSection.f_IsEmpty())
+					Output += "../";
 
-			aint iParse = 0;
-			while (Temp[iParse] == '/')
-			{
-				NewPath.f_AddChar('/');
-				++iParse;
+				while(!Base.f_IsEmpty())
+				{
+					BaseSection = NStr::fg_GetStrSepNoTrim(Base, "/");
+					Output += "../";
+				}
+				if (!PathSection.f_IsEmpty())
+					Output += PathSection + "/";
+				if (!Path.f_IsEmpty())
+					Output += Path + "/";
+				Output += "Dummy";
+				return fs_GetPath(Output);
 			}
-
-			while (iParse < Len)
-			{
-				aint iFind = NStr::fg_StrFindChar(iParse, Temp, '/');
-				tf_CStr SubPath;
-				if (iFind < 0)
-				{
-					SubPath = Temp.f_Extract(iParse);
-					iParse = Len;
-				}
-				else
-				{
-					mint FindLen = iFind - iParse;
-					SubPath = Temp.f_Extract(iParse, FindLen);
-					iParse += FindLen + 1;
-				}
-				if (SubPath == "..")
-				{
-					if (NewPath != "")
-					{
-						mint Len = NewPath.f_GetLen();
-						tf_CStr New = fs_GetPath(NewPath);
-						if (NewPath[aint(Len-1)] == '/')
-							;
-						else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
-							;
-						else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
-							;
-						else
-							NewPath = New;
-					}
-				}
-				else if (SubPath == ".")
-				{
-				}
-				else
-				{
-					if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
-						NewPath += "/" + SubPath;
-					else
-						NewPath += SubPath;
-				}
-			}
-
-			return NewPath;
 		}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, bint _bAddCurrentDir)
+		return "";
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, const tf_CStr &_BasePath)
+	{
+		if (_Path.f_IsEmpty())
+			return _Path;
+
+		tf_CStr Temp = _Path;
+
+		fg_StrReplaceChar(Temp, '\\', '/');
+
+		tf_CStr NewPath;
+
+		aint Len = Temp.f_GetLen();
+		if (Len > 0)
 		{
-			if (_Path.f_IsEmpty())
-				return _Path;
-				
-			tf_CStr Temp = _Path;
-
-			fg_StrReplaceChar(Temp, '\\', '/');
-
-			tf_CStr NewPath;
-
-			aint Len = Temp.f_GetLen();
-			if (Len > 0)
-			{
-				if (Len > 1 && Temp[0] == '/' && Temp[1] == '/')
-					;
-				else if (Len > 1 && Temp[1] == ':')
-					;
-				else
-				{
-					if (Temp[0] == '/')
-					{
-						if (NSys::NFile::fg_FileSystemHasDrives())
-							NewPath = fs_GetDrive(fs_GetCurrentDirectory<tf_CStr>());
-					}
-					else if (_bAddCurrentDir)
-						NewPath = fs_GetCurrentDirectory<tf_CStr>();
-				}
-			}
+			if (Len > 1 && Temp[0] == '/' && Temp[1] == '/')
+				;
+			else if (Len > 1 && Temp[1] == ':')
+				;
 			else
-				NewPath = fs_GetCurrentDirectory<tf_CStr>();
-
-			aint iParse = 0;
-			while (iParse < Len && Temp[iParse] == '/')
 			{
-				NewPath.f_AddChar('/');
-				++iParse;
-			}
-
-			while (iParse < Len)
-			{
-				aint iFind = NStr::fg_StrFindChar(iParse, Temp, '/');
-				tf_CStr SubPath;
-				if (iFind < 0)
+				if (Temp[0] == '/')
 				{
-					SubPath = Temp.f_Extract(iParse);
-					iParse = Len;
+					if (NSys::NFile::fg_FileSystemHasDrives())
+						NewPath = fs_GetDrive(_BasePath);
 				}
 				else
-				{
-					mint FindLen = iFind - iParse;
-					SubPath = Temp.f_Extract(iParse, FindLen);
-					iParse += FindLen + 1;
-				}
-				if (SubPath == "..")
-				{
-					if (NewPath != "")
-					{
-						mint Len = NewPath.f_GetLen();
-						tf_CStr New = fs_GetPath(NewPath);
-						if (NewPath[aint(Len-1)] == '/')
-							;
-						else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
-							;
-						else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
-							;
-						else
-							NewPath = New;
-					}
-				}
-				else if (SubPath == ".")
-				{
-				}
-				else
-				{
-					if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
-						NewPath += "/" + SubPath;
-					else
-						NewPath += SubPath;
-				}
+					NewPath = _BasePath;
 			}
+		}
+		else
+			NewPath = _BasePath;
 
-			return NewPath;
+		aint iParse = 0;
+		while (Temp[iParse] == '/')
+		{
+			NewPath.f_AddChar('/');
+			++iParse;
 		}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetPath(const tf_CStr &_File)
+		while (iParse < Len)
 		{
-			if (_File.f_IsEmpty() || _File == "/")
-				return tf_CStr();
-
-			tf_CStr Ret = _File;
-
-			fg_StrReplaceChar(Ret, '\\', '/');
-
-			aint iChar = fg_StrFindCharReverse(Ret, '/');
-
-			if (iChar == 0)
-				Ret = "/";
-			else if (iChar >= 0)
-				Ret = Ret.f_Left(iChar);
+			aint iFind = NStr::fg_StrFindChar(iParse, Temp, '/');
+			tf_CStr SubPath;
+			if (iFind < 0)
+			{
+				SubPath = Temp.f_Extract(iParse);
+				iParse = Len;
+			}
 			else
-				Ret = "";
+			{
+				mint FindLen = iFind - iParse;
+				SubPath = Temp.f_Extract(iParse, FindLen);
+				iParse += FindLen + 1;
+			}
+			if (SubPath == "..")
+			{
+				if (NewPath != "")
+				{
+					mint Len = NewPath.f_GetLen();
+					tf_CStr New = fs_GetPath(NewPath);
+					if (NewPath[aint(Len-1)] == '/')
+						;
+					else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
+						;
+					else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
+						;
+					else
+						NewPath = New;
+				}
+			}
+			else if (SubPath == ".")
+			{
+			}
+			else
+			{
+				if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
+					NewPath += "/" + SubPath;
+				else
+					NewPath += SubPath;
+			}
+		}
 
+		return NewPath;
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, bint _bAddCurrentDir)
+	{
+		if (_Path.f_IsEmpty())
+			return _Path;
+
+		tf_CStr Temp = _Path;
+
+		fg_StrReplaceChar(Temp, '\\', '/');
+
+		tf_CStr NewPath;
+
+		aint Len = Temp.f_GetLen();
+		if (Len > 0)
+		{
+			if (Len > 1 && Temp[0] == '/' && Temp[1] == '/')
+				;
+			else if (Len > 1 && Temp[1] == ':')
+				;
+			else
+			{
+				if (Temp[0] == '/')
+				{
+					if (NSys::NFile::fg_FileSystemHasDrives())
+						NewPath = fs_GetDrive(fs_GetCurrentDirectory<tf_CStr>());
+				}
+				else if (_bAddCurrentDir)
+					NewPath = fs_GetCurrentDirectory<tf_CStr>();
+			}
+		}
+		else
+			NewPath = fs_GetCurrentDirectory<tf_CStr>();
+
+		aint iParse = 0;
+		while (iParse < Len && Temp[iParse] == '/')
+		{
+			NewPath.f_AddChar('/');
+			++iParse;
+		}
+
+		while (iParse < Len)
+		{
+			aint iFind = NStr::fg_StrFindChar(iParse, Temp, '/');
+			tf_CStr SubPath;
+			if (iFind < 0)
+			{
+				SubPath = Temp.f_Extract(iParse);
+				iParse = Len;
+			}
+			else
+			{
+				mint FindLen = iFind - iParse;
+				SubPath = Temp.f_Extract(iParse, FindLen);
+				iParse += FindLen + 1;
+			}
+			if (SubPath == "..")
+			{
+				if (NewPath != "")
+				{
+					mint Len = NewPath.f_GetLen();
+					tf_CStr New = fs_GetPath(NewPath);
+					if (NewPath[aint(Len-1)] == '/')
+						;
+					else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
+						;
+					else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
+						;
+					else
+						NewPath = New;
+				}
+			}
+			else if (SubPath == ".")
+			{
+			}
+			else
+			{
+				if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
+					NewPath += "/" + SubPath;
+				else
+					NewPath += SubPath;
+			}
+		}
+
+		return NewPath;
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetPath(const tf_CStr &_File)
+	{
+		if (_File.f_IsEmpty() || _File == "/")
+			return tf_CStr();
+
+		tf_CStr Ret = _File;
+
+		fg_StrReplaceChar(Ret, '\\', '/');
+
+		aint iChar = fg_StrFindCharReverse(Ret, '/');
+
+		if (iChar == 0)
+			Ret = "/";
+		else if (iChar >= 0)
+			Ret = Ret.f_Left(iChar);
+		else
+			Ret = "";
+
+		return Ret;
+
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetMalterlibPath(const tf_CStr &_File)
+	{
+		tf_CStr Ret = _File;
+
+		if (!Ret.f_GetLen())
 			return Ret;
 
+		fg_StrReplaceChar(Ret, '\\', '/');
+
+		return Ret;
+
+	}
+
+	template <typename tf_CStr, typename tf_CToAppend>
+	tf_CStr CFile::fs_AppendPath(const tf_CStr &_Path, tf_CToAppend &&_Append)
+	{
+		if (_Path.f_IsEmpty())
+			return fg_Forward<tf_CToAppend>(_Append);
+		else if (NStr::fg_StrIsEmpty(_Append))
+			return _Path;
+		else
+		{
+			if (_Path[_Path.f_GetLen()-1] == '/')
+			{
+				tf_CStr Ret = _Path;
+				Ret += fg_Forward<tf_CToAppend>(_Append);
+				return Ret;
+			}
+			else
+			{
+				tf_CStr Ret = _Path;
+				Ret += "/";
+				Ret += fg_Forward<tf_CToAppend>(_Append);
+				return Ret;
+			}
+		}
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_RemovePathTopLevels(const tf_CStr &_Path, mint _Levels)
+	{
+		tf_CStr Ret = _Path;
+		while (_Levels && !Ret.f_IsEmpty())
+		{
+			aint iFind = Ret.f_FindChar('/');
+			if (iFind >= 0)
+				Ret = Ret.f_Extract(iFind + 1);
+			else
+				Ret.f_Clear();
+			--_Levels;
 		}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetMalterlibPath(const tf_CStr &_File)
-		{
-			tf_CStr Ret = _File;
+		return Ret;
+	}
 
-			if (!Ret.f_GetLen())
-				return Ret;
-				
-			fg_StrReplaceChar(Ret, '\\', '/');
 
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetFile(const tf_CStr &_File)
+	{
+		tf_CStr Ret = _File;
+
+		if (!Ret.f_GetLen())
 			return Ret;
 
-		}
+		fg_StrReplaceChar(Ret, '\\', '/');
 
-		template <typename tf_CStr, typename tf_CToAppend>
-		tf_CStr CFile::fs_AppendPath(const tf_CStr &_Path, tf_CToAppend &&_Append)
+		aint iChar = fg_StrFindCharReverse(Ret, '/');
+
+		if (iChar >= 0)
 		{
-			if (_Path.f_IsEmpty())
-				return fg_Forward<tf_CToAppend>(_Append);
-			else if (NStr::fg_StrIsEmpty(_Append))
-				return _Path;
-			else
-			{
-				if (_Path[_Path.f_GetLen()-1] == '/')
-				{
-					tf_CStr Ret = _Path;
-					Ret += fg_Forward<tf_CToAppend>(_Append);
-					return Ret;
-				}
-				else
-				{
-					tf_CStr Ret = _Path;
-					Ret += "/";
-					Ret += fg_Forward<tf_CToAppend>(_Append);
-					return Ret;
-				}
-			}
+			return Ret.f_Extract(iChar + 1);
 		}
-
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_RemovePathTopLevels(const tf_CStr &_Path, mint _Levels)
-		{
-			tf_CStr Ret = _Path;
-			while (_Levels && !Ret.f_IsEmpty())
-			{
-				aint iFind = Ret.f_FindChar('/');
-				if (iFind >= 0)
-					Ret = Ret.f_Extract(iFind + 1);
-				else
-					Ret.f_Clear();
-				--_Levels;
-			}
-
+		else
 			return Ret;
-		}
+	}
 
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetExtension(const tf_CStr &_File)
+	{
+		tf_CStr Ret = _File;
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetFile(const tf_CStr &_File)
+		if (!Ret.f_GetLen())
+			return Ret;
+
+		fg_StrReplaceChar(Ret, '\\', '/');
+
+		aint iDir = fg_StrFindCharReverse(Ret, '/');
+		aint iDot = fg_StrFindCharReverse(Ret, '.');
+
+		if (iDot >= 0 && iDot > iDir)
 		{
-			tf_CStr Ret = _File;
-
-			if (!Ret.f_GetLen())
-				return Ret;
-				
-			fg_StrReplaceChar(Ret, '\\', '/');
-
-			aint iChar = fg_StrFindCharReverse(Ret, '/');
-
-			if (iChar >= 0)
-			{
-				return Ret.f_Extract(iChar + 1);
-			}
-			else
-				return Ret;
+			return Ret.f_Extract(iDot + 1);
 		}
-
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetExtension(const tf_CStr &_File)
-		{
-			tf_CStr Ret = _File;
-
-			if (!Ret.f_GetLen())
-				return Ret;
-
-			fg_StrReplaceChar(Ret, '\\', '/');
-
-			aint iDir = fg_StrFindCharReverse(Ret, '/');
-			aint iDot = fg_StrFindCharReverse(Ret, '.');
-
-			if (iDot >= 0 && iDot > iDir)
-			{
-				return Ret.f_Extract(iDot + 1);
-			}
-			else
-				return "";
-		}
-
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetDrive(const tf_CStr &_File)
-		{
-			tf_CStr Ret = _File;
-
-			if (!Ret.f_GetLen())
-				return Ret;
-
-			fg_StrReplaceChar(Ret, '\\', '/');
-
-			mint Len = Ret.f_GetLen();
-			if (Len > 1 && Ret[1] == ':')
-				return Ret.f_Left(2);
-
-			if (Len > 1 && Ret[0] == '/' && Ret[1] == '/')
-			{
-				Ret = Ret.f_Extract(2);
-				aint iDir = fg_StrFindChar(Ret, '/');
-				if (iDir >= 0)
-					return "//" + Ret.f_Left(iDir);
-				else
-					return "//" + Ret;
-			}
-
+		else
 			return "";
-		}
+	}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetFileNoExt(const tf_CStr &_File)
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetDrive(const tf_CStr &_File)
+	{
+		tf_CStr Ret = _File;
+
+		if (!Ret.f_GetLen())
+			return Ret;
+
+		fg_StrReplaceChar(Ret, '\\', '/');
+
+		mint Len = Ret.f_GetLen();
+		if (Len > 1 && Ret[1] == ':')
+			return Ret.f_Left(2);
+
+		if (Len > 1 && Ret[0] == '/' && Ret[1] == '/')
 		{
-			tf_CStr Ret = _File;
-
-			if (!Ret.f_GetLen())
-				return Ret;
-
-			fg_StrReplaceChar(Ret, '\\', '/');
-
-			aint iDir = fg_StrFindCharReverse(Ret, '/');
-			aint iDot = fg_StrFindCharReverse(Ret, '.');
-
-			bint bHasDot = iDot >= 0 && (iDot > iDir || iDir < 0);
-
-			if (bHasDot)
-			{
-				if (iDir >= 0)
-					return Ret.f_Extract(iDir+1, iDot - (iDir + 1));
-				else
-					return Ret.f_Left(iDot);
-			}
+			Ret = Ret.f_Extract(2);
+			aint iDir = fg_StrFindChar(Ret, '/');
+			if (iDir >= 0)
+				return "//" + Ret.f_Left(iDir);
 			else
-			{
-				if (iDir >= 0)
-					return Ret.f_Extract(iDir+1);
-				else
-					return Ret;
-			}
+				return "//" + Ret;
 		}
 
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetCommonPathAndMakeRelative(tf_CStr & _oPath0, tf_CStr & _oPath1)
+		return "";
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetFileNoExt(const tf_CStr &_File)
+	{
+		tf_CStr Ret = _File;
+
+		if (!Ret.f_GetLen())
+			return Ret;
+
+		fg_StrReplaceChar(Ret, '\\', '/');
+
+		aint iDir = fg_StrFindCharReverse(Ret, '/');
+		aint iDot = fg_StrFindCharReverse(Ret, '.');
+
+		bint bHasDot = iDot >= 0 && (iDot > iDir || iDir < 0);
+
+		if (bHasDot)
 		{
-			mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
-			if (Len == 0)
-				return tf_CStr();
-
-			mint iPath = 0;
-			mint iLastFullPath = 0;
-			while (iPath < Len)
-			{
-				auto Char0 = _oPath0.f_GetAt(iPath);
-				auto Char1 = _oPath1.f_GetAt(iPath);
-
-				if (Char0 == '/' && Char1 == '\\')
-					;
-				else if (Char0 == '\\' && Char1 == '/')
-					;
-				else if (Char0 != Char1)
-					break;
-				if (Char0 == '/' || Char0 == '\\')
-					iLastFullPath = iPath;
-
-				++iPath;
-			}
-			
-			if (iPath == Len)
-			{
-				tf_CStr Ret = _oPath0;
-				_oPath0.f_Clear();
-				_oPath1.f_Clear();
+			if (iDir >= 0)
+				return Ret.f_Extract(iDir+1, iDot - (iDir + 1));
+			else
+				return Ret.f_Left(iDot);
+		}
+		else
+		{
+			if (iDir >= 0)
+				return Ret.f_Extract(iDir+1);
+			else
 				return Ret;
-			}
-			tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
-			_oPath0 = _oPath0.f_Extract(iLastFullPath+1);
-			_oPath1 = _oPath1.f_Extract(iLastFullPath+1);
+		}
+	}
+
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetCommonPathAndMakeRelative(tf_CStr & _oPath0, tf_CStr & _oPath1)
+	{
+		mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
+		if (Len == 0)
+			return tf_CStr();
+
+		mint iPath = 0;
+		mint iLastFullPath = 0;
+		while (iPath < Len)
+		{
+			auto Char0 = _oPath0.f_GetAt(iPath);
+			auto Char1 = _oPath1.f_GetAt(iPath);
+
+			if (Char0 == '/' && Char1 == '\\')
+				;
+			else if (Char0 == '\\' && Char1 == '/')
+				;
+			else if (Char0 != Char1)
+				break;
+			if (Char0 == '/' || Char0 == '\\')
+				iLastFullPath = iPath;
+
+			++iPath;
+		}
+
+		if (iPath == Len)
+		{
+			tf_CStr Ret = _oPath0;
+			_oPath0.f_Clear();
+			_oPath1.f_Clear();
 			return Ret;
 		}
-		template <typename tf_CStr>
-		tf_CStr CFile::fs_GetCommonPath(tf_CStr const& _oPath0, tf_CStr const& _oPath1)
+		tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
+		_oPath0 = _oPath0.f_Extract(iLastFullPath+1);
+		_oPath1 = _oPath1.f_Extract(iLastFullPath+1);
+		return Ret;
+	}
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetCommonPath(tf_CStr const& _oPath0, tf_CStr const& _oPath1)
+	{
+		mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
+		if (Len == 0)
+			return tf_CStr();
+
+		mint iPath = 0;
+		mint iLastFullPath = 0;
+		while (iPath < Len)
 		{
-			mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
-			if (Len == 0)
-				return tf_CStr();
+			auto Char0 = _oPath0.f_GetAt(iPath);
+			auto Char1 = _oPath1.f_GetAt(iPath);
 
-			mint iPath = 0;
-			mint iLastFullPath = 0;
-			while (iPath < Len)
-			{
-				auto Char0 = _oPath0.f_GetAt(iPath);
-				auto Char1 = _oPath1.f_GetAt(iPath);
+			if (Char0 == '/' && Char1 == '\\')
+				;
+			else if (Char0 == '\\' && Char1 == '/')
+				;
+			else if (Char0 != Char1)
+				break;
+			if (Char0 == '/' || Char0 == '\\')
+				iLastFullPath = iPath;
 
-				if (Char0 == '/' && Char1 == '\\')
-					;
-				else if (Char0 == '\\' && Char1 == '/')
-					;
-				else if (Char0 != Char1)
-					break;
-				if (Char0 == '/' || Char0 == '\\')
-					iLastFullPath = iPath;
+			++iPath;
+		}
 
-				++iPath;
-			}
-			
-			if (iPath == Len)
-			{
-				tf_CStr Ret = _oPath0;
-				return Ret;
-			}
-			tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
+		if (iPath == Len)
+		{
+			tf_CStr Ret = _oPath0;
 			return Ret;
 		}
+		tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
+		return Ret;
 	}
 }
 

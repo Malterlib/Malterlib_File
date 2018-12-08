@@ -3,11 +3,12 @@
 
 #include <Mib/Core/Core>
 
-namespace NMib
+namespace NMib::NFile
 {
-	namespace NFile
-	{
-		NContainer::TCVector<uint8> fg_MalterlibPatchEncode(const NContainer::TCVector<uint8> &_Orig, const NContainer::TCVector<uint8> &_Changed);
-		NContainer::TCVector<uint8> fg_MalterlibPatchDecode(const NContainer::TCVector<uint8> &_Orig, const NContainer::TCVector<uint8> &_PatchData);
-	}
+	NContainer::CByteVector fg_MalterlibPatchEncode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed);
+	NContainer::CByteVector fg_MalterlibPatchDecode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_PatchData);
 }
+
+#ifndef DMibPNoShortCuts
+	using namespace NMib::NFile;
+#endif

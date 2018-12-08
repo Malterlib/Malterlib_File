@@ -43,7 +43,7 @@ namespace NMib::NFile
 	
 	bool CDirectoryManifestFile::operator == (CDirectoryManifestFile const &_Right) const
 	{
-		return NContainer::fg_TupleReferences
+		return NStorage::fg_TupleReferences
 			(
 				m_Digest
 				, m_Length
@@ -54,7 +54,7 @@ namespace NMib::NFile
 				, m_Group
 				, m_Flags
 			)
-			== NContainer::fg_TupleReferences
+			== NStorage::fg_TupleReferences
 			(
 				_Right.m_Digest
 				, _Right.m_Length
@@ -119,7 +119,7 @@ namespace NMib::NFile
 				auto Digest = ManifestJSON["Digest"].f_Binary();
 				if (Digest.f_GetLen() != OutFile.m_Digest.fs_GetSize())
 					DMibError("Digest is wrong size");
-				NMem::fg_MemCopy(OutFile.m_Digest.f_GetData(), Digest.f_GetArray(), OutFile.m_Digest.fs_GetSize());
+				NMemory::fg_MemCopy(OutFile.m_Digest.f_GetData(), Digest.f_GetArray(), OutFile.m_Digest.fs_GetSize());
 			}
 			OutFile.m_Length = ManifestJSON["Length"].f_Integer();
 			OutFile.m_WriteTime = ManifestJSON["WriteTime"].f_Date();

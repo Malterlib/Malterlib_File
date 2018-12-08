@@ -6,35 +6,32 @@
 #include <Mib/File/File>
 #include <Mib/Concurrency/ActorFunctor>
 
-namespace NMib
+namespace NMib::NFile
 {
-	namespace NFile
+	class CFileChangeNotificationActor : public NConcurrency::CActor
 	{
-		class CFileChangeNotificationActor : public NConcurrency::CActor
+	public:
+		CFileChangeNotificationActor();
+		~CFileChangeNotificationActor();
+
+		struct CCoalesceSettings
 		{
-		public:
-			CFileChangeNotificationActor();
-			~CFileChangeNotificationActor();
-			
-			struct CCoalesceSettings
-			{
-				mint m_nMaxOutstanding = 5;
-				fp64 m_Delay = 1.0;
-			};
-			
-			NConcurrency::TCContinuation<NConcurrency::CActorSubscription> f_RegisterForChanges
-				(
-					NMib::NStr::CStr const &_Path
-					, NMib::NFile::EFileChange _OpenFlags
-					, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
-					, CCoalesceSettings const &_CoalesceSettings
-				)
-			;
-		private:
-			class CInternal;
-			NPtr::TCUniquePointer<CInternal> mp_pInternal;
+			mint m_nMaxOutstanding = 5;
+			fp64 m_Delay = 1.0;
 		};
-	}
+
+		NConcurrency::TCContinuation<NConcurrency::CActorSubscription> f_RegisterForChanges
+			(
+				NMib::NStr::CStr const &_Path
+				, NMib::NFile::EFileChange _OpenFlags
+				, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
+				, CCoalesceSettings const &_CoalesceSettings
+			)
+		;
+	private:
+		class CInternal;
+		NStorage::TCUniquePointer<CInternal> mp_pInternal;
+	};
 }
 
 #ifndef DMibPNoShortCuts

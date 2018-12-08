@@ -14,7 +14,7 @@ namespace NMib::NFile
 	using namespace NContainer;
 	using namespace NCryptography;
 	using namespace NFunction;
-	using namespace NPtr;
+	using namespace NStorage;
 	using namespace NFile;
 	using namespace NTime;
 	

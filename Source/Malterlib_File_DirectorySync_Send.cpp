@@ -13,7 +13,7 @@ namespace NMib::NFile
 	using namespace NContainer;
 	using namespace NAtomic;
 	using namespace NCryptography;
-	using namespace NPtr;
+	using namespace NStorage;
 	using namespace NFile;
 	using namespace NStream;
 	using namespace NFunction;

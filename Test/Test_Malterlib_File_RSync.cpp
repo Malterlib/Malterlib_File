@@ -6,20 +6,21 @@
 
 using namespace NMib::NFile;
 using namespace NMib;
-using namespace NMib::NMem;
+using namespace NMib::NMemory;
 using namespace NMib::NStream;
 using namespace NMib::NContainer;
-using namespace NMib::NNet;
+using namespace NMib::NNetwork;
 
 namespace
 {
-	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::TCVector<uint8>>
+	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::CByteVector>
 	class CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
 	{
 		typedef CBinaryStreamMemory<t_CStreamType, t_CVector> CParent;
 
 	private:
-		DMibClassNoCopyAllowed(CBinaryStreamMemorySequential);
+		CBinaryStreamMemorySequential(CBinaryStreamMemorySequential const &) = delete;
+		CBinaryStreamMemorySequential &operator = (CBinaryStreamMemorySequential const &) = delete;
 
 	public:
 		typedef t_CVector CStorage;
@@ -74,11 +75,11 @@ namespace
 				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CSecureByteVector> TemporaryStream;
 
 				using CEncrypted = NCryptography::TCBinaryStream_Encrypted<CBinaryStream *>;
-				NPtr::TCUniquePointer<CEncrypted> pClientNewStreamEncrypted;
-				NPtr::TCUniquePointer<CEncrypted> pTemporaryStreamEncrypted;
-				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pKey;
-				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pIV;
-				NPtr::TCUniquePointer<NContainer::CSecureByteVector> pHMACKey;
+				NStorage::TCUniquePointer<CEncrypted> pClientNewStreamEncrypted;
+				NStorage::TCUniquePointer<CEncrypted> pTemporaryStreamEncrypted;
+				NStorage::TCUniquePointer<NContainer::CSecureByteVector> pKey;
+				NStorage::TCUniquePointer<NContainer::CSecureByteVector> pIV;
+				NStorage::TCUniquePointer<NContainer::CSecureByteVector> pHMACKey;
 				CBinaryStream *pClientNewStream = &ClientNewStream;
 				CBinaryStream *pTemporaryStream = nullptr;
 				if (_bInPlace)

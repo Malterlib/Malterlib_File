@@ -161,7 +161,7 @@ public:
 		}
 	};
 
-	DMibIntrusiveLink(CFileSystem, NMib::NIntrusive::TCAVLLink<>, m_Link);
+	NMib::NIntrusive::TCAVLLink<> m_Link;
 
 	CFileSystem()
 	{

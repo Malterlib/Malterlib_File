@@ -32,7 +32,7 @@ namespace NMib::NFile
 		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(NEncoding::CEJSON const &_JSON);
 		static NEncoding::CEJSON fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags);
 
-		NDataProcessing::CHashDigest_SHA256 m_Digest;
+		NCryptography::CHashDigest_SHA256 m_Digest;
 		uint64 m_Length = 0;
 		NTime::CTime m_WriteTime;
 		NStr::CStr m_OriginalPath;
@@ -111,7 +111,7 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-using namespace NMib::NFile;
+	using namespace NMib::NFile;
 #endif
 
 #include "Malterlib_File_DirectoryManifest.hpp"

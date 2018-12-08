@@ -66,7 +66,7 @@ namespace NMib::NFile
 
 	struct CDirectorySyncFileOptions
 	{
-		NPtr::TCUniquePointer<NStream::CBinaryStream> f_OpenFile
+		NStorage::TCUniquePointer<NStream::CBinaryStream> f_OpenFile
 			(
 				NStr::CStr const &_FileName
 				, EDirectorySyncStreamType _FileType
@@ -80,7 +80,7 @@ namespace NMib::NFile
 
 		NFunction::TCFunctionMutable
 			<
-				NPtr::TCUniquePointer<NStream::CBinaryStream>
+				NStorage::TCUniquePointer<NStream::CBinaryStream>
 				(
 					NStr::CStr const &_FileName
 					, EDirectorySyncStreamType _FileType
@@ -107,7 +107,7 @@ namespace NMib::NFile
 
 			NStr::CStr m_BasePath;	///< Care has been taken to make sure that no files outside this directory can be downloaded. Also, only files that are specified in
 									///		the manifst can be downloaded.
-			NContainer::TCVariant<CDirectoryManifest, CDirectoryManifestConfig, NStr::CStr> m_Manifest;	///< Specify manifest, a config to generate a manifest, or a path to a file with
+			NStorage::TCVariant<CDirectoryManifest, CDirectoryManifestConfig, NStr::CStr> m_Manifest;	///< Specify manifest, a config to generate a manifest, or a path to a file with
 																										///		an existing manifest that corresponds to the files available in m_BasePath.
 			NStorage::TCOptional<bool> m_bUseOriginalLocation;	///< Use the original location of files in manifest. Defaults to true when m_Manifest is a CDirectoryManifestConfig,
 																///		otherwise false
@@ -137,7 +137,7 @@ namespace NMib::NFile
 
 		NConcurrency::TCContinuation<void> fp_Destroy() override;
 		
-		NPtr::TCUniquePointer<CInternal> mp_pInternal;
+		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
 
 	struct CDirectorySyncReceive : public NConcurrency::CActor
@@ -171,7 +171,7 @@ namespace NMib::NFile
 
 			CConfig(NStr::CStr const &_Destination, EEasyConfigFlag _Flags = EEasyConfigFlag_None); ///< Constructor for the case when only a single file is transferred, or when only a destination directory is specified.
 
-			NContainer::TCVariant<void, CDirectoryManifest, NStr::CStr> m_PreviousManifest;
+			NStorage::TCVariant<void, CDirectoryManifest, NStr::CStr> m_PreviousManifest;
 			NStr::CStr m_OutputManifestPath;
 
 			NStr::CStr m_TempDirectory = NFile::CFile::fs_GetTemporaryDirectory(); ///< Used to create temporary files used during RSync
@@ -207,12 +207,12 @@ namespace NMib::NFile
 
 		NConcurrency::TCContinuation<void> fp_Destroy() override;
 		
-		NPtr::TCUniquePointer<CInternal> mp_pInternal;
+		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
 }
 
 #ifndef DMibPNoShortCuts
-using namespace NMib::NFile;
+	using namespace NMib::NFile;
 #endif
 
 #include "Malterlib_File_DirectorySync.hpp"
