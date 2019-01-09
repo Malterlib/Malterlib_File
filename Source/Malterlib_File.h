@@ -1115,7 +1115,7 @@ namespace NMib::NFile
 		void f_SetLockFile(NStr::CStr const& _FilePath, NFile::EFileOpen _LockFlags = NFile::EFileOpen_Write);
 		NStr::CStr f_GetLockFile() const;
 
-		ELockResult f_Lock(fp64 _TimeoutSeconds = -1); // _TimeoutSeconds < 0 == Forever
+		ELockResult f_Lock(fp64 _TimeoutSeconds = -1, NStr::CStr *o_pLastError = nullptr); // _TimeoutSeconds < 0 == Forever
 		void f_LockWithException(fp64 _TimeoutSeconds = -1); // _TimeoutSeconds < 0 == Forever
 		void f_Unlock();
 

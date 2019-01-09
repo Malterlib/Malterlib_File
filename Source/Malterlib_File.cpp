@@ -2920,18 +2920,22 @@ namespace NMib::NFile
 
 	void CLockFile::f_LockWithException(fp64 _TimeoutSeconds)
 	{
-		ELockResult LockResult = f_Lock(_TimeoutSeconds);
+		using namespace NStr;
+
+		CStr LastError;
+		ELockResult LockResult = f_Lock(_TimeoutSeconds, &LastError);
+
 		switch (LockResult)
 		{
 		case ELockResult_Locked: break;
-		case ELockResult_TimedOut: DMibError("Timed out waiting for lock");
+		case ELockResult_TimedOut: DMibError("Timed out waiting for lock: {}"_f << LastError);
 		case ELockResult_NoAccess: DMibError("Access denied");
 		case ELockResult_DoesNotExist: DMibError("Lock file does not exist");
 		default: DMibError("Unknown error");
 		}
 	}
 
-	CLockFile::ELockResult CLockFile::f_Lock(fp64 _TimeoutSeconds)
+	CLockFile::ELockResult CLockFile::f_Lock(fp64 _TimeoutSeconds, NStr::CStr *o_pError)
 	{
 		if (mp_FilePath.f_IsEmpty())
 			DMibErrorFile("No lock file specified!");
@@ -2973,8 +2977,10 @@ namespace NMib::NFile
 				mp_LockFile.f_Open(mp_FilePath, mp_LockFlags);
 				break;
 			}
-			catch(NException::CException)
+			catch (NException::CException const &_Exception)
 			{
+				if (o_pError)
+					*o_pError = _Exception.f_GetErrorStr();
 			}
 
 			if (_TimeoutSeconds < 0.0)
