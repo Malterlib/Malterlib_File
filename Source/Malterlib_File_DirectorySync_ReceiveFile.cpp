@@ -12,7 +12,7 @@ namespace NMib::NFile
 		if (m_pConfig->m_ExcessFilesAction == EExcessFilesAction_Ignore)
 			return fg_Explicit();
 		
-		g_Dispatch(m_FileActor) > [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
+		g_Dispatch(m_FileActor) / [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
 			{
 				auto &Config = *pConfig;
 				auto &Manifest = *pManifest;
@@ -183,7 +183,7 @@ namespace NMib::NFile
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
 						return fg_Explicit();
 					
-					return g_Dispatch(m_FileActor) > [=, Destination = _RSyncState.m_DestinationFilename]
+					return g_Dispatch(m_FileActor) / [=, Destination = _RSyncState.m_DestinationFilename]
 						{
 							auto &Config = *pConfig;
 

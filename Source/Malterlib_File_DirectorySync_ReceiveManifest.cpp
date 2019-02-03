@@ -146,7 +146,7 @@ namespace NMib::NFile
 				{
 					TCContinuation<void> Continuation;
 
-					g_Dispatch(m_FileActor) > [pSourceDestinationStream = fg_Move(_RSyncState.m_pSourceDestinationStream)]() mutable
+					g_Dispatch(m_FileActor) / [pSourceDestinationStream = fg_Move(_RSyncState.m_pSourceDestinationStream)]() mutable
 						{
 							CDirectoryManifest Manifest;
 							pSourceDestinationStream->f_SetPosition(0);

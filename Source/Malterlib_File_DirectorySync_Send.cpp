@@ -140,7 +140,7 @@ namespace NMib::NFile
 				if (!pThis->m_pRSyncServer)
 					return Continuation.f_SetResult(CByteStats{});
 				
-				g_Dispatch(pThis->m_FileActor) > [pThis]
+				g_Dispatch(pThis->m_FileActor) / [pThis]
 					{
 						pThis->m_pRSyncServer.f_Clear();
 						pThis->m_FileMemory.f_Clear();
@@ -173,7 +173,7 @@ namespace NMib::NFile
 		
 		TCContinuation<FRunRSync> Continuation;
 		
-		g_Dispatch(RSyncState.m_FileActor) > [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
+		g_Dispatch(RSyncState.m_FileActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
 			{
 				fOpenRSync(*pRSyncState);
 			}
@@ -183,7 +183,7 @@ namespace NMib::NFile
 					(
 						g_ActorFunctor(pRSyncState->m_FileActor)
 						(
-							g_ActorSubscription > [=]() -> TCContinuation<void>
+							g_ActorSubscription / [=]() -> TCContinuation<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
 								
@@ -200,9 +200,9 @@ namespace NMib::NFile
 								return Continuation;
 							}
 						)
-						> [=](CSecureByteVector &&_Packet) -> TCContinuation<CSecureByteVector>
+						/ [=](CSecureByteVector &&_Packet) -> TCContinuation<CSecureByteVector>
 						{
-							return TCContinuation<CSecureByteVector>::fs_RunProtected() > [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
+							return TCContinuation<CSecureByteVector>::fs_RunProtected() / [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
 								{
 									if (!pRSyncState->m_pRSyncServer)
 										DMibError("RSync server destroyed");

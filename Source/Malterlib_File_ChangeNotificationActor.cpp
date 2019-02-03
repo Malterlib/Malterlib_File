@@ -82,7 +82,7 @@ namespace NMib::NFile
 			auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
 			pNotification->m_fOnChange = fg_Move(_fOnChange);
 
-			auto Callback = g_ActorSubscription > [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCContinuation<void>
+			auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCContinuation<void>
 				{
 					if (*pDestroyed)
 						return fg_Explicit();
@@ -114,7 +114,7 @@ namespace NMib::NFile
 						if (!ThisActor)
 							return;
 						
-						NConcurrency::g_Dispatch(ThisActor) > [=]
+						NConcurrency::g_Dispatch(ThisActor) / [=]
 							{
 								if (*pDestroyed)
 									return;

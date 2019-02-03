@@ -71,7 +71,7 @@ namespace NMib::NFile
 	TCContinuation<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState)
 	{
 		TCContinuation<void> Continuation;
-		g_Dispatch(m_FileActor) > [_pState]
+		g_Dispatch(m_FileActor) / [_pState]
 			{
 				TCContinuation<CByteStats> RunContinuation;
 				fsp_RunRSyncProtocol(_pState, {}, RunContinuation);
@@ -108,7 +108,7 @@ namespace NMib::NFile
 		;
 
 		TCContinuation<void> Continuation;
-		g_Dispatch(m_FileActor) > [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
+		g_Dispatch(m_FileActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
 				return fInitRSync(*pRSyncState);
 			}
@@ -129,7 +129,7 @@ namespace NMib::NFile
 				}
 				fStartRSync
 					(
-						g_ActorSubscription > [pRSyncState, Continuation]
+						g_ActorSubscription / [pRSyncState, Continuation]
 						{
 							if (!Continuation.f_IsSet() && !pRSyncState->m_bFinished)
 								Continuation.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));

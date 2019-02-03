@@ -38,7 +38,7 @@ namespace NMib::NFile
 				if (!pThis->m_pClient)
 					return Continuation.f_SetResult();
 				
-				g_Dispatch(pThis->m_FileActor) > [pThis]
+				g_Dispatch(pThis->m_FileActor) / [pThis]
 					{
 						pThis->m_pClient.f_Clear();
 						pThis->m_pSourceDestinationStream.f_Clear();
