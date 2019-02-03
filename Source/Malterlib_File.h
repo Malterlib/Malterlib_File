@@ -1077,6 +1077,11 @@ namespace NMib::NFile
 			return mp_pFile->f_GetLength();
 		}
 
+		mint f_ContainerLengthLimit() const
+		{
+			return NStream::fg_CapLengthLimit(mp_pFile->f_GetLength() - mp_pFile->f_GetPosition());
+		}
+
 		void f_SetLength(NStream::CFilePos _Length)
 		{
 			return mp_pFile->f_SetLength(_Length);
