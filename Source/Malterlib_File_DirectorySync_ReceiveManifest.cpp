@@ -6,7 +6,7 @@
 
 namespace NMib::NFile
 {
-	TCContinuation<void> CDirectorySyncReceive::CInternal::f_SyncManifest()
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncManifest()
 	{
 		return f_RSync
 			(
@@ -142,9 +142,9 @@ namespace NMib::NFile
 
 					return false;
 				}
-				, [this](CRunningSyncState &_RSyncState) -> TCContinuation<void>
+				, [this](CRunningSyncState &_RSyncState) -> TCFuture<void>
 				{
-					TCContinuation<void> Continuation;
+					TCPromise<void> Promise;
 
 					g_Dispatch(m_FileActor) / [pSourceDestinationStream = fg_Move(_RSyncState.m_pSourceDestinationStream)]() mutable
 						{
@@ -154,16 +154,16 @@ namespace NMib::NFile
 							pSourceDestinationStream.f_Clear();
 							return Manifest;
 						}
-						> Continuation / [=](CDirectoryManifest &&_Manifest)
+						> Promise / [=](CDirectoryManifest &&_Manifest)
 						{
 							m_pManifest = fg_Construct(fg_Move(_Manifest));
-							Continuation.f_SetResult();
+							Promise.f_SetResult();
 						}
 					;
 
-					return Continuation;
+					return Promise.f_MoveFuture();
 				}
-				, [this](CActorSubscription &&_Subscription) -> TCContinuation<CDirectorySyncClient::FRunRSync>
+				, [this](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
 					return DMibCallActor
 						(

@@ -20,11 +20,11 @@ namespace NMib::NFile
 			fp64 m_Delay = 1.0;
 		};
 
-		NConcurrency::TCContinuation<NConcurrency::CActorSubscription> f_RegisterForChanges
+		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_RegisterForChanges
 			(
 				NMib::NStr::CStr const &_Path
 				, NMib::NFile::EFileChange _OpenFlags
-				, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
+				, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
 				, CCoalesceSettings const &_CoalesceSettings
 			)
 		;

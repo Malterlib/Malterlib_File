@@ -30,7 +30,7 @@ namespace NMib::NFile
 		{
 			CRunningSyncState();
 			~CRunningSyncState();
-			TCContinuation<void> f_Destroy();
+			TCFuture<void> f_Destroy();
 			
 			TCActor<CSeparateThreadActor> m_FileActor;
 
@@ -52,22 +52,22 @@ namespace NMib::NFile
 		
 		CInternal(CDirectorySyncReceive *_pThis, CConfig &&_Config, TCDistributedActorInterface<CDirectorySyncClient> &&_Client);
 
-		TCContinuation<void> f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState);
+		TCFuture<void> f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState);
 		
-		TCContinuation<void> f_SyncManifest();
-		TCContinuation<void> f_HandleExcessFiles();
+		TCFuture<void> f_SyncManifest();
+		TCFuture<void> f_HandleExcessFiles();
 
-		TCContinuation<void> f_SyncFile(CStr const &_FileName);
+		TCFuture<void> f_SyncFile(CStr const &_FileName);
 
-		TCContinuation<void> f_RSync
+		TCFuture<void> f_RSync
 			(
 				TCFunctionMutable<bool (CRunningSyncState &_State)> &&_fInitRSync
-				, TCFunctionMutable<TCContinuation<void> (CRunningSyncState &_State)> &&_fOnDone
-				, TCFunctionMutable<TCContinuation<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
+				, TCFunctionMutable<TCFuture<void> (CRunningSyncState &_State)> &&_fOnDone
+				, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
 			)
 		;
 		
-		void f_RunFileSyncs(TCContinuation<void> const &_Continuation);
+		void f_RunFileSyncs(TCPromise<void> const &_Promise);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 
 		CDirectorySyncReceive *m_pThis;
@@ -89,7 +89,7 @@ namespace NMib::NFile
 			(
 				TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
 				, CSecureByteVector &&_ServerPacket
-				, TCContinuation<CByteStats> const &_Continuation
+				, TCPromise<CByteStats> const &_Promise
 			)
 		;
 	};

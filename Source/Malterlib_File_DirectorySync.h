@@ -38,13 +38,13 @@ namespace NMib::NFile
 			, EProtocolVersion = 0x101
 		};
 
-		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCContinuation<NContainer::CSecureByteVector> (NContainer::CSecureByteVector &&_Packet)>;
+		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CSecureByteVector> (NContainer::CSecureByteVector &&_Packet)>;
 		
 		CDirectorySyncClient();
 		
-		virtual NConcurrency::TCContinuation<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
-		virtual NConcurrency::TCContinuation<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
-		virtual NConcurrency::TCContinuation<void> f_Finished() = 0;
+		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
+		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
+		virtual NConcurrency::TCFuture<void> f_Finished() = 0;
 	};
 	
 	struct CDirectorySyncStats
@@ -126,16 +126,16 @@ namespace NMib::NFile
 		CDirectorySyncSend(CConfig &&_Config);
 		~CDirectorySyncSend();
 		
-		NConcurrency::TCContinuation<CSyncResult> f_GetResult();
+		NConcurrency::TCFuture<CSyncResult> f_GetResult();
 
 	private:
 		struct CInternal;
 
-		NConcurrency::TCContinuation<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
-		NConcurrency::TCContinuation<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
-		NConcurrency::TCContinuation<void> f_Finished() override;
+		NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
+		NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
+		NConcurrency::TCFuture<void> f_Finished() override;
 
-		NConcurrency::TCContinuation<void> fp_Destroy() override;
+		NConcurrency::TCFuture<void> fp_Destroy() override;
 		
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
@@ -200,12 +200,12 @@ namespace NMib::NFile
 		CDirectorySyncReceive(CConfig &&_Config, NConcurrency::TCDistributedActorInterface<CDirectorySyncClient> &&_Client);
 		~CDirectorySyncReceive();
 		
-		NConcurrency::TCContinuation<CSyncResult> f_PerformSync();
+		NConcurrency::TCFuture<CSyncResult> f_PerformSync();
 		
 	private:
 		struct CInternal;
 
-		NConcurrency::TCContinuation<void> fp_Destroy() override;
+		NConcurrency::TCFuture<void> fp_Destroy() override;
 		
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};

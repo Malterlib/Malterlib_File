@@ -42,7 +42,7 @@ namespace NMib::NFile
 			TCVector<CSavedChange> m_Changes;
 			TCMap<CStr, EFileChangeNotification> m_LastChange;
 			CCoalesceSettings m_CoalesceSettings;
-			TCActorFunctor<TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> m_fOnChange;
+			TCActorFunctor<TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> m_fOnChange;
 			uint64 m_Sequence = 0;
 			mint m_nOutstanding = 0;
 			bool m_bScheduledTimeout = false;
@@ -63,18 +63,18 @@ namespace NMib::NFile
 	{
 	}
 		
-	NConcurrency::TCContinuation<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
+	NConcurrency::TCFuture<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
 		(
 			NMib::NStr::CStr const &_Path
 			, NMib::NFile::EFileChange _OpenFlags
-			, NConcurrency::TCActorFunctor<NConcurrency::TCContinuation<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
+			, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
 			, CCoalesceSettings const &_CoalesceSettings
 		)
 	{
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
 			return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
 		
-		NConcurrency::TCContinuation<NConcurrency::CActorSubscription> Continuation;
+		NConcurrency::TCPromise<NConcurrency::CActorSubscription> Promise;
 		auto &Internal = *mp_pInternal;
 		
 		try
@@ -82,7 +82,7 @@ namespace NMib::NFile
 			auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
 			pNotification->m_fOnChange = fg_Move(_fOnChange);
 
-			auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCContinuation<void>
+			auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCFuture<void>
 				{
 					if (*pDestroyed)
 						return fg_Explicit();
@@ -129,16 +129,16 @@ namespace NMib::NFile
 				)
 			;
 			
-			Continuation.f_SetResult(fg_Move(Callback));
-			return Continuation;
+			Promise.f_SetResult(fg_Move(Callback));
+			return Promise.f_MoveFuture();
 		}
 		catch (NException::CException const &)
 		{
-			Continuation.f_SetCurrentException();
-			return Continuation;
+			Promise.f_SetCurrentException();
+			return Promise.f_MoveFuture();
 		}
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
 	void CFileChangeNotificationActor::CInternal::fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)

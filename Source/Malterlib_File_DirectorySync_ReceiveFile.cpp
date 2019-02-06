@@ -6,9 +6,9 @@
 
 namespace NMib::NFile
 {
-	TCContinuation<void> CDirectorySyncReceive::CInternal::f_HandleExcessFiles()
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_HandleExcessFiles()
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		if (m_pConfig->m_ExcessFilesAction == EExcessFilesAction_Ignore)
 			return fg_Explicit();
 		
@@ -46,13 +46,13 @@ namespace NMib::NFile
 					}
 				}
 			}
-			> Continuation
+			> Promise
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
-	TCContinuation<void> CDirectorySyncReceive::CInternal::f_SyncFile(CStr const &_FileName)
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncFile(CStr const &_FileName)
 	{
 		return f_RSync
 			(
@@ -177,7 +177,7 @@ namespace NMib::NFile
 					
 					return false;
 				}
-				, [=, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> TCContinuation<void>
+				, [=, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> TCFuture<void>
 				{
 					auto &Config = *pConfig;
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
@@ -228,7 +228,7 @@ namespace NMib::NFile
 						}
 					;
 				}
-				, [this, _FileName](CActorSubscription &&_Subscription) -> TCContinuation<CDirectorySyncClient::FRunRSync>
+				, [this, _FileName](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
 					return DMibCallActor
 						(
@@ -243,7 +243,7 @@ namespace NMib::NFile
 		;
 	}
 
-	void CDirectorySyncReceive::CInternal::f_RunFileSyncs(TCContinuation<void> const &_Continuation)
+	void CDirectorySyncReceive::CInternal::f_RunFileSyncs(TCPromise<void> const &_Promise)
 	{
 		auto &Config = *m_pConfig;
 	
@@ -254,22 +254,22 @@ namespace NMib::NFile
 			
 			++m_nRunningSyncs;
 			
-			f_SyncFile(FileName) > [this, _Continuation](TCAsyncResult<void> &&_Result)
+			f_SyncFile(FileName) > [this, _Promise](TCAsyncResult<void> &&_Result)
 				{
 					if (!_Result)
 						fg_AddStrSep(m_SyncErrors, _Result.f_GetExceptionStr(), "\n");
 					--m_nRunningSyncs;
-					f_RunFileSyncs(_Continuation);
+					f_RunFileSyncs(_Promise);
 				}
 			;
 		}
 		
-		if (m_PendingFileSyncs.f_IsEmpty() && m_nRunningSyncs == 0 && !_Continuation.f_IsSet())
+		if (m_PendingFileSyncs.f_IsEmpty() && m_nRunningSyncs == 0 && !_Promise.f_IsSet())
 		{
 			if (m_SyncErrors.f_IsEmpty())
-				_Continuation.f_SetResult();
+				_Promise.f_SetResult();
 			else
-				_Continuation.f_SetException(DMibErrorInstance(m_SyncErrors));
+				_Promise.f_SetException(DMibErrorInstance(m_SyncErrors));
 		}
 	}
 }

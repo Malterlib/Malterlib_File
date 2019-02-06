@@ -10,14 +10,14 @@ namespace NMib::NFile
 		(
 			TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
 			, CSecureByteVector &&_ServerPacket
-			, TCContinuation<CByteStats> const &_Continuation
+			, TCPromise<CByteStats> const &_Promise
 		)
 	{
 		auto &State = *_pState;
 		if (!State.m_pClient)
 		{
-			if (!_Continuation.f_IsSet())
-				_Continuation.f_SetException(DMibErrorInstance("RSync aborted"));
+			if (!_Promise.f_IsSet())
+				_Promise.f_SetException(DMibErrorInstance("RSync aborted"));
 			return;
 		}
 		
@@ -35,8 +35,8 @@ namespace NMib::NFile
 			}
 			catch (NException::CException const &_Exception)
 			{
-				if (!_Continuation.f_IsSet())
-					_Continuation.f_SetException(DMibErrorInstance(fg_Format("Exceptio running RSync protocol: {}", _Exception.f_GetErrorStr())));
+				if (!_Promise.f_IsSet())
+					_Promise.f_SetException(DMibErrorInstance(fg_Format("Exceptio running RSync protocol: {}", _Exception.f_GetErrorStr())));
 				return;
 			}
 			
@@ -45,16 +45,16 @@ namespace NMib::NFile
 			{
 				State.m_ByteStats.m_nOutgoing += ToSendToServer.f_GetLen();
 
-				State.m_fRunProtocol(fg_Move(ToSendToServer)) > [_pState, _Continuation](TCAsyncResult<CSecureByteVector> &&_ServerPacket)
+				State.m_fRunProtocol(fg_Move(ToSendToServer)) > [_pState, _Promise](TCAsyncResult<CSecureByteVector> &&_ServerPacket)
 					{
 						if (!_ServerPacket)
 						{
-							if (!_Continuation.f_IsSet())
-								_Continuation.f_SetException(DMibErrorInstance(fg_Format("Failed run RSync protocol: {}", _ServerPacket.f_GetExceptionStr())));
+							if (!_Promise.f_IsSet())
+								_Promise.f_SetException(DMibErrorInstance(fg_Format("Failed run RSync protocol: {}", _ServerPacket.f_GetExceptionStr())));
 							return;
 						}
 						
-						fsp_RunRSyncProtocol(_pState, fg_Move(*_ServerPacket), _Continuation);
+						fsp_RunRSyncProtocol(_pState, fg_Move(*_ServerPacket), _Promise);
 					}
 				;
 			}
@@ -63,37 +63,37 @@ namespace NMib::NFile
 		if (bDone)
 		{
 			State.m_bFinished = true;
-			if (!_Continuation.f_IsSet())
-				_Continuation.f_SetResult(State.m_ByteStats);
+			if (!_Promise.f_IsSet())
+				_Promise.f_SetResult(State.m_ByteStats);
 		}
 	}
 	
-	TCContinuation<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState)
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState)
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		g_Dispatch(m_FileActor) / [_pState]
 			{
-				TCContinuation<CByteStats> RunContinuation;
-				fsp_RunRSyncProtocol(_pState, {}, RunContinuation);
-				return RunContinuation;
+				TCPromise<CByteStats> RunPromise;
+				fsp_RunRSyncProtocol(_pState, {}, RunPromise);
+				return RunPromise.f_MoveFuture();
 			}
-			> Continuation / [this, Continuation](CByteStats &&_Stats)
+			> Promise / [this, Promise](CByteStats &&_Stats)
 			{
 				++m_Stats.m_nSyncedFiles;
 				m_Stats.m_OutgoingBytes += _Stats.m_nOutgoing;
 				m_Stats.m_IncomingBytes += _Stats.m_nIncoming;
-				Continuation.f_SetResult();
+				Promise.f_SetResult();
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
-	TCContinuation<void> CDirectorySyncReceive::CInternal::f_RSync
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_RSync
 		(
 			TCFunctionMutable<bool (CRunningSyncState &_State)> &&_fInitRSync
-			, TCFunctionMutable<TCContinuation<void> (CRunningSyncState &_State)> &&_fOnDone
-			, TCFunctionMutable<TCContinuation<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
+			, TCFunctionMutable<TCFuture<void> (CRunningSyncState &_State)> &&_fOnDone
+			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
 		)
 	{
 		CStr RSyncID = fg_RandomID();
@@ -107,20 +107,20 @@ namespace NMib::NFile
 			}
 		;
 
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		g_Dispatch(m_FileActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
 				return fInitRSync(*pRSyncState);
 			}
-			> Continuation / [=, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
+			> Promise / [=, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
 			{
 				if (_bAlreadySynced)
 				{
-					fOnDone(*pRSyncState) > Continuation / [=]()
+					fOnDone(*pRSyncState) > Promise / [=]()
 						{
-							pRSyncState->f_Destroy() > Continuation / [=, pCleanup = pCleanup]()
+							pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 								{
-									Continuation.f_SetResult();
+									Promise.f_SetResult();
 								}
 							;
 						}
@@ -129,23 +129,23 @@ namespace NMib::NFile
 				}
 				fStartRSync
 					(
-						g_ActorSubscription / [pRSyncState, Continuation]
+						g_ActorSubscription / [pRSyncState, Promise]
 						{
-							if (!Continuation.f_IsSet() && !pRSyncState->m_bFinished)
-								Continuation.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));
+							if (!Promise.f_IsSet() && !pRSyncState->m_bFinished)
+								Promise.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));
 						}
 					)
-					> Continuation / [=, fOnDone = fg_Move(fOnDone)](CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
+					> Promise / [=, fOnDone = fg_Move(fOnDone)](CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
 					{
 						auto &RSyncState = *pRSyncState;
 						RSyncState.m_fRunProtocol = fg_Move(_fRunRSync);
-						f_RunRSyncProtocol(pRSyncState) > Continuation / [=, fOnDone = fg_Move(fOnDone)]() mutable
+						f_RunRSyncProtocol(pRSyncState) > Promise / [=, fOnDone = fg_Move(fOnDone)]() mutable
 							{
-								fOnDone(*pRSyncState) > Continuation / [=]()
+								fOnDone(*pRSyncState) > Promise / [=]()
 									{
-										pRSyncState->f_Destroy() > Continuation / [=, pCleanup = pCleanup]()
+										pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 											{
-												Continuation.f_SetResult();
+												Promise.f_SetResult();
 											}
 										;
 									}
@@ -156,6 +156,6 @@ namespace NMib::NFile
 				;
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

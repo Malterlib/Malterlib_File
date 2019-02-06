@@ -29,14 +29,14 @@ namespace NMib::NFile
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
 	
-	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCContinuation<void>
+	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<void>
 	{
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 
-		m_fRunProtocol.f_Destroy() > Continuation / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Continuation]
+		m_fRunProtocol.f_Destroy() > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
 			{
 				if (!pThis->m_pClient)
-					return Continuation.f_SetResult();
+					return Promise.f_SetResult();
 				
 				g_Dispatch(pThis->m_FileActor) / [pThis]
 					{
@@ -56,12 +56,12 @@ namespace NMib::NFile
 						}
 						pThis->m_TempFiles.f_Clear();
 					}
-					> Continuation
+					> Promise
 				;
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
 	void CDirectorySyncReceive::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
@@ -70,7 +70,7 @@ namespace NMib::NFile
 			DMibError("Directory sync receive destroyed");
 	}
 	
-	TCContinuation<void> CDirectorySyncReceive::fp_Destroy()
+	TCFuture<void> CDirectorySyncReceive::fp_Destroy()
 	{
 		auto &Internal = *mp_pInternal;
 		*Internal.m_pDestroyed = true;
@@ -80,21 +80,21 @@ namespace NMib::NFile
 		for (auto &pRSync : Internal.m_RSyncStates)
 			pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
 		
-		TCContinuation<void> Continuation;
-		RSyncDestroys.f_GetResults() > Continuation / [=]
+		TCPromise<void> Promise;
+		RSyncDestroys.f_GetResults() > Promise / [=]
 			{
 				auto &Internal = *mp_pInternal;
 				
 				if (Internal.m_Client)
-					Internal.m_Client.f_Destroy() > Continuation;
+					Internal.m_Client.f_Destroy() > Promise;
 				else
-					Continuation.f_SetResult();
+					Promise.f_SetResult();
 			}
 		;
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
-	auto CDirectorySyncReceive::f_PerformSync() -> TCContinuation<CSyncResult>
+	auto CDirectorySyncReceive::f_PerformSync() -> TCFuture<CSyncResult>
 	{
 		auto &Internal = *mp_pInternal;
 		
@@ -103,12 +103,12 @@ namespace NMib::NFile
 		
 		Internal.m_bStartedSync = true;
 		
-		TCContinuation<CSyncResult> Continuation;
+		TCPromise<CSyncResult> Promise;
 		
-		Internal.f_SyncManifest() > Continuation / [=]
+		Internal.f_SyncManifest() > Promise / [=]
 			{
 				auto &Internal = *mp_pInternal;
-				Internal.f_HandleExcessFiles() > Continuation / [=]
+				Internal.f_HandleExcessFiles() > Promise / [=]
 					{
 						auto &Internal = *mp_pInternal;
 						auto &Config = *Internal.m_pConfig;
@@ -132,10 +132,10 @@ namespace NMib::NFile
 							}
 						}
 
-						TCContinuation<void> SyncsContinuation;
-						Internal.f_RunFileSyncs(SyncsContinuation);
+						TCPromise<void> SyncsPromise;
+						Internal.f_RunFileSyncs(SyncsPromise);
 						
-						SyncsContinuation.f_Dispatch() > Continuation / [=]
+						SyncsPromise.f_Dispatch() > Promise / [=]
 							{
 								auto &Internal = *mp_pInternal;
 								
@@ -144,7 +144,7 @@ namespace NMib::NFile
 										Internal.m_Client
 										, CDirectorySyncClient::f_Finished
 									)
-									> Continuation / [=]
+									> Promise / [=]
 									{
 										auto &Internal = *mp_pInternal;
 										
@@ -153,7 +153,7 @@ namespace NMib::NFile
 										SyncResult.m_Stats = Internal.m_Stats;
 										SyncResult.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
 										
-										Continuation.f_SetResult(fg_Move(SyncResult));
+										Promise.f_SetResult(fg_Move(SyncResult));
 									}
 								;
 							}
@@ -163,6 +163,6 @@ namespace NMib::NFile
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 }

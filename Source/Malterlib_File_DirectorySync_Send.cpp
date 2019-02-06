@@ -29,7 +29,7 @@ namespace NMib::NFile
 		
 		struct CRunningSyncState : public TCSharedPointerIntrusiveBase<ESharedPointerOption_SupportWeakPointer>
 		{
-			TCContinuation<CByteStats> f_Destroy();
+			TCFuture<CByteStats> f_Destroy();
 		
 			TCActor<CSeparateThreadActor> m_FileActor;
 			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
@@ -42,7 +42,7 @@ namespace NMib::NFile
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 		CExceptionPointer f_CheckFileName(CStr const &_FileName);
-		auto f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync) -> TCContinuation<FRunRSync>;
+		auto f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync) -> TCFuture<FRunRSync>;
 
 		CDirectorySyncSend *m_pThis = nullptr;
 		TCSharedPointer<CConfig> m_pConfig;
@@ -74,7 +74,7 @@ namespace NMib::NFile
 	
 	CDirectorySyncSend::~CDirectorySyncSend() = default;
 	
-	auto CDirectorySyncSend::f_GetResult() -> TCContinuation<CSyncResult>
+	auto CDirectorySyncSend::f_GetResult() -> TCFuture<CSyncResult>
 	{
 		auto &Internal = *mp_pInternal;
 		
@@ -101,7 +101,7 @@ namespace NMib::NFile
 		return nullptr;
 	}
 	
-	TCContinuation<void> CDirectorySyncSend::fp_Destroy()
+	TCFuture<void> CDirectorySyncSend::fp_Destroy()
 	{
 		auto &Internal = *mp_pInternal;
 		
@@ -112,33 +112,33 @@ namespace NMib::NFile
 		for (auto &pState : Internal.m_RSyncStates)
 			pState->f_Destroy() > StateDestroys.f_AddResult();
 		
-		TCContinuation<void> Continuation;
+		TCPromise<void> Promise;
 		
-		StateDestroys.f_GetResults() > Continuation / [this, Continuation]
+		StateDestroys.f_GetResults() > Promise / [this, Promise]
 			{
 				auto &Internal = *mp_pInternal;
-				Internal.m_FileActor->f_Destroy() > Continuation;
+				Internal.m_FileActor->f_Destroy() > Promise;
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	auto CDirectorySyncSend::CInternal::CRunningSyncState::f_Destroy() -> TCContinuation<CByteStats>
+	auto CDirectorySyncSend::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<CByteStats>
 	{
-		TCContinuation<void> SubscriptionDestroyContinuation;
+		TCFuture<void> SubscriptionDestroyFuture;
 		
 		if (m_Subscription)
-			SubscriptionDestroyContinuation = m_Subscription->f_Destroy();
+			SubscriptionDestroyFuture = m_Subscription->f_Destroy();
 		else
-			SubscriptionDestroyContinuation.f_SetResult();
+			SubscriptionDestroyFuture = fg_Explicit();
 	
-		TCContinuation<CByteStats> Continuation;
+		TCPromise<CByteStats> Promise;
 
-		SubscriptionDestroyContinuation.f_Dispatch() > Continuation / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Continuation]
+		SubscriptionDestroyFuture > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
 			{
 				if (!pThis->m_pRSyncServer)
-					return Continuation.f_SetResult(CByteStats{});
+					return Promise.f_SetResult(CByteStats{});
 				
 				g_Dispatch(pThis->m_FileActor) / [pThis]
 					{
@@ -147,16 +147,16 @@ namespace NMib::NFile
 						pThis->m_pFile.f_Clear();
 						return pThis->m_ByteStats;
 					}
-					> Continuation
+					> Promise
 				;
 			}
 		;
 
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 	
 	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync)
-		-> TCContinuation<FRunRSync>
+		-> TCFuture<FRunRSync>
 	{
 		CStr RSyncID = fg_RandomID();
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
@@ -171,38 +171,38 @@ namespace NMib::NFile
 		RSyncState.m_FileActor = m_FileActor;
 		RSyncState.m_Subscription = fg_Move(_Subscription);
 		
-		TCContinuation<FRunRSync> Continuation;
+		TCPromise<FRunRSync> Promise;
 		
 		g_Dispatch(RSyncState.m_FileActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
 			{
 				fOpenRSync(*pRSyncState);
 			}
-			> Continuation / [=]()
+			> Promise / [=]()
 			{
-				Continuation.f_SetResult
+				Promise.f_SetResult
 					(
 						g_ActorFunctor(pRSyncState->m_FileActor)
 						(
-							g_ActorSubscription / [=]() -> TCContinuation<void>
+							g_ActorSubscription / [=]() -> TCFuture<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
 								
-								TCContinuation<void> Continuation;
-								pRSyncState->f_Destroy() > Continuation / [this, Continuation](CByteStats &&_Stats)
+								TCPromise<void> Promise;
+								pRSyncState->f_Destroy() > Promise / [this, Promise](CByteStats &&_Stats)
 									{
 										m_Stats.m_OutgoingBytes += _Stats.m_nOutgoing;
 										m_Stats.m_IncomingBytes += _Stats.m_nIncoming;
 										++m_Stats.m_nSyncedFiles;
 										
-										Continuation.f_SetResult();
+										Promise.f_SetResult();
 									}
 								;
-								return Continuation;
+								return Promise.f_MoveFuture();
 							}
 						)
-						/ [=](CSecureByteVector &&_Packet) -> TCContinuation<CSecureByteVector>
+						/ [=](CSecureByteVector &&_Packet) -> TCFuture<CSecureByteVector>
 						{
-							return TCContinuation<CSecureByteVector>::fs_RunProtected() / [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
+							return TCFuture<CSecureByteVector>::fs_RunProtected() / [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
 								{
 									if (!pRSyncState->m_pRSyncServer)
 										DMibError("RSync server destroyed");
@@ -223,10 +223,10 @@ namespace NMib::NFile
 			}
 		;
 		
-		return Continuation;
+		return Promise.f_MoveFuture();
 	}
 
-	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCContinuation<FRunRSync>
+	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
 	{
 		auto &Internal = *mp_pInternal;
 		return Internal.f_StartRSync
@@ -281,7 +281,7 @@ namespace NMib::NFile
 		;
 	}
 	
-	auto CDirectorySyncSend::f_StartRSync(NStr::CStr const &_FileName, TCActorSubscriptionWithID<> &&_Subscription) -> TCContinuation<FRunRSync>
+	auto CDirectorySyncSend::f_StartRSync(NStr::CStr const &_FileName, TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
 	{
 		auto &Internal = *mp_pInternal;
 		
@@ -318,7 +318,7 @@ namespace NMib::NFile
 		;
 	}
 
-	TCContinuation<void> CDirectorySyncSend::f_Finished()
+	TCFuture<void> CDirectorySyncSend::f_Finished()
 	{
 		auto &Internal = *mp_pInternal;
 		Internal.m_bFinished = true;
