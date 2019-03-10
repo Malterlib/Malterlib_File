@@ -19,7 +19,7 @@ namespace NMib::NFile
 	using namespace NFunction;
 	using namespace NTime;
 	
-	struct CDirectorySyncSend::CInternal
+	struct CDirectorySyncSend::CInternal : public CActorInternal
 	{
 		struct CByteStats
 		{
@@ -41,7 +41,7 @@ namespace NMib::NFile
 		
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
-		CExceptionPointer f_CheckFileName(CStr const &_FileName);
+		NException::CExceptionPointer f_CheckFileName(CStr const &_FileName);
 		auto f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync) -> TCFuture<FRunRSync>;
 
 		CDirectorySyncSend *m_pThis = nullptr;
@@ -92,7 +92,7 @@ namespace NMib::NFile
 			DMibError("Directory sync send destroyed");
 	}
 	
-	CExceptionPointer CDirectorySyncSend::CInternal::f_CheckFileName(CStr const &_FileName)
+	NException::CExceptionPointer CDirectorySyncSend::CInternal::f_CheckFileName(CStr const &_FileName)
 	{
 		CStr Error;
 		if (!CFile::fs_IsSafeRelativePath(_FileName, Error))

@@ -3,7 +3,6 @@
 
 #include "Malterlib_File_ChangeNotificationActor.h"
 #include <Mib/Concurrency/ActorCallbackManager>
-#include <Mib/Concurrency/Actor/Timer>
 #include <Mib/Concurrency/ActorSubscription>
 
 namespace NMib::NFile
@@ -72,7 +71,7 @@ namespace NMib::NFile
 		)
 	{
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
-			return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
+			co_return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
 		
 		NConcurrency::TCPromise<NConcurrency::CActorSubscription> Promise;
 		auto &Internal = *mp_pInternal;
@@ -85,13 +84,13 @@ namespace NMib::NFile
 			auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCFuture<void>
 				{
 					if (*pDestroyed)
-						return fg_Explicit();
+						co_return {};
 
 					auto &Internal = *mp_pInternal;
 					pNotification->m_pNotifier.f_Clear();
 					Internal.fp_SendNotifications(pNotification, true);
 					Internal.m_Notifications.f_Remove(*pNotification);
-					return fg_Explicit();
+					co_return {};
 				}
 			;
 
@@ -129,16 +128,15 @@ namespace NMib::NFile
 				)
 			;
 			
-			Promise.f_SetResult(fg_Move(Callback));
-			return Promise.f_MoveFuture();
+			co_return fg_Move(Callback);
 		}
-		catch (NException::CException const &)
+		catch (NException::CException const &_Exception)
 		{
-			Promise.f_SetCurrentException();
-			return Promise.f_MoveFuture();
+			co_return _Exception.f_ExceptionPointer();
 		}
-		
-		return Promise.f_MoveFuture();
+
+		DMibNeverGetHere;
+		co_return {};
 	}
 	
 	void CFileChangeNotificationActor::CInternal::fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)

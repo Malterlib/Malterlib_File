@@ -29,39 +29,39 @@ namespace NMib::NFile
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
 	
-	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<void>
+	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFutureAllowReferences<void>
 	{
-		TCPromise<void> Promise;
+		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this);
+		co_await m_fRunProtocol.f_Destroy();
 
-		m_fRunProtocol.f_Destroy() > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
-			{
-				if (!pThis->m_pClient)
-					return Promise.f_SetResult();
-				
-				g_Dispatch(pThis->m_FileActor) / [pThis]
+		if (!pThis->m_pClient)
+			co_return {};
+
+		co_await
+			(
+			 	g_Dispatch(pThis->m_FileActor) / [pThis]
+				{
+					pThis->m_pClient.f_Clear();
+					pThis->m_pSourceDestinationStream.f_Clear();
+					pThis->m_pSourceStream.f_Clear();
+					pThis->m_pTempStream.f_Clear();
+					for (auto &File : pThis->m_TempFiles)
 					{
-						pThis->m_pClient.f_Clear();
-						pThis->m_pSourceDestinationStream.f_Clear();
-						pThis->m_pSourceStream.f_Clear();
-						pThis->m_pTempStream.f_Clear();
-						for (auto &File : pThis->m_TempFiles)
+						try
 						{
-							try
-							{
-								CFile::fs_DeleteFile(File);
-							}
-							catch (CExceptionFile const &)
-							{
-							}
+							CFile::fs_DeleteFile(File);
 						}
-						pThis->m_TempFiles.f_Clear();
+						catch (CExceptionFile const &)
+						{
+						}
 					}
-					> Promise
-				;
-			}
+					pThis->m_TempFiles.f_Clear();
+				}
+			)
 		;
 
-		return Promise.f_MoveFuture();
+
+		co_return {};
 	}
 
 	void CDirectorySyncReceive::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
@@ -81,17 +81,12 @@ namespace NMib::NFile
 			pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
 		
 		TCPromise<void> Promise;
-		RSyncDestroys.f_GetResults() > Promise / [=]
-			{
-				auto &Internal = *mp_pInternal;
-				
-				if (Internal.m_Client)
-					Internal.m_Client.f_Destroy() > Promise;
-				else
-					Promise.f_SetResult();
-			}
-		;
-		return Promise.f_MoveFuture();
+		co_await RSyncDestroys.f_GetResults();
+
+		if (Internal.m_Client)
+			co_await Internal.m_Client.f_Destroy();
+
+		co_return {};
 	}
 	
 	auto CDirectorySyncReceive::f_PerformSync() -> TCFuture<CSyncResult>
@@ -99,70 +94,51 @@ namespace NMib::NFile
 		auto &Internal = *mp_pInternal;
 		
 		if (Internal.m_bStartedSync)
-			return DMibErrorInstance("Sync already perfromed");
+			co_return DMibErrorInstance("Sync already perfromed");
 		
 		Internal.m_bStartedSync = true;
 		
-		TCPromise<CSyncResult> Promise;
-		
-		Internal.f_SyncManifest() > Promise / [=]
-			{
-				auto &Internal = *mp_pInternal;
-				Internal.f_HandleExcessFiles() > Promise / [=]
-					{
-						auto &Internal = *mp_pInternal;
-						auto &Config = *Internal.m_pConfig;
-						
-						for (auto &File : Internal.m_pManifest->m_Files)
-						{
-							auto &FileName = Internal.m_pManifest->m_Files.fs_GetKey(File);
-							if (!Config.m_IncludeWildcards.f_IsEmpty())
-							{
-								if (!fg_StrMatchesAnyWildcardInMap(FileName, Config.m_IncludeWildcards))
-									continue;
-							}
-							if (fg_StrMatchesAnyWildcardInMap(FileName, Config.m_ExcludeWildcards))
-								continue;
-							Internal.m_PendingFileSyncs[FileName];
-							CStr Directory = CFile::fs_GetPath(FileName);
-							while (!Directory.f_IsEmpty())
-							{
-								Internal.m_PendingFileSyncs[Directory];
-								Directory = CFile::fs_GetPath(Directory);
-							}
-						}
+		co_await Internal.f_SyncManifest();
+		co_await Internal.f_HandleExcessFiles();
 
-						TCPromise<void> SyncsPromise;
-						Internal.f_RunFileSyncs(SyncsPromise);
-						
-						SyncsPromise.f_Dispatch() > Promise / [=]
-							{
-								auto &Internal = *mp_pInternal;
-								
-								DMibCallActor
-									(
-										Internal.m_Client
-										, CDirectorySyncClient::f_Finished
-									)
-									> Promise / [=]
-									{
-										auto &Internal = *mp_pInternal;
-										
-										CSyncResult SyncResult;
-										SyncResult.m_Manifest = fg_Move(*Internal.m_pManifest);
-										SyncResult.m_Stats = Internal.m_Stats;
-										SyncResult.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
-										
-										Promise.f_SetResult(fg_Move(SyncResult));
-									}
-								;
-							}
-						;
-					}
-				;
+		auto &Config = *Internal.m_pConfig;
+
+		for (auto &File : Internal.m_pManifest->m_Files)
+		{
+			auto &FileName = Internal.m_pManifest->m_Files.fs_GetKey(File);
+			if (!Config.m_IncludeWildcards.f_IsEmpty())
+			{
+				if (!fg_StrMatchesAnyWildcardInMap(FileName, Config.m_IncludeWildcards))
+					continue;
 			}
+			if (fg_StrMatchesAnyWildcardInMap(FileName, Config.m_ExcludeWildcards))
+				continue;
+			Internal.m_PendingFileSyncs[FileName];
+			CStr Directory = CFile::fs_GetPath(FileName);
+			while (!Directory.f_IsEmpty())
+			{
+				Internal.m_PendingFileSyncs[Directory];
+				Directory = CFile::fs_GetPath(Directory);
+			}
+		}
+
+		TCPromise<void> SyncsPromise;
+		Internal.f_RunFileSyncs(SyncsPromise);
+
+		co_await SyncsPromise;
+
+		co_await DMibCallActor
+			(
+				Internal.m_Client
+				, CDirectorySyncClient::f_Finished
+			)
 		;
-		
-		return Promise.f_MoveFuture();
+
+		CSyncResult SyncResult;
+		SyncResult.m_Manifest = fg_Move(*Internal.m_pManifest);
+		SyncResult.m_Stats = Internal.m_Stats;
+		SyncResult.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
+
+		co_return fg_Move(SyncResult);
 	}
 }

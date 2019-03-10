@@ -8,64 +8,66 @@ namespace NMib::NFile
 {
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_HandleExcessFiles()
 	{
-		TCPromise<void> Promise;
 		if (m_pConfig->m_ExcessFilesAction == EExcessFilesAction_Ignore)
-			return fg_Explicit();
+			co_return {};
 		
-		g_Dispatch(m_FileActor) / [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
-			{
-				auto &Config = *pConfig;
-				auto &Manifest = *pManifest;
-
-				CFile::CFindFilesOptions Options{Config.m_BasePath + "/*", true};
-				Options.m_bFollowLinks = false;
-				Options.m_fCheckAbort = [&]{ CInternal::fs_CheckDestroy(pDestroyed); };
-				Options.m_AttribMask = EFileAttrib_Directory | EFileAttrib_File | EFileAttrib_Link;
-				
-				for (auto &File : CFile::fs_FindFiles(Options))
+		co_await
+			(
+				g_Dispatch(m_FileActor) / [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
 				{
-					CStr RelativePath = File.m_Path.f_Extract(Config.m_BasePath.f_GetLen() + 1);
-					if (Manifest.m_Files.f_FindEqual(RelativePath))
-						continue;
-					
-					switch (Config.m_ExcessFilesAction)
+					auto &Config = *pConfig;
+					auto &Manifest = *pManifest;
+
+					CFile::CFindFilesOptions Options{Config.m_BasePath + "/*", true};
+					Options.m_bFollowLinks = false;
+					Options.m_fCheckAbort = [&]{ CInternal::fs_CheckDestroy(pDestroyed); };
+					Options.m_AttribMask = EFileAttrib_Directory | EFileAttrib_File | EFileAttrib_Link;
+
+					for (auto &File : CFile::fs_FindFiles(Options))
 					{
-					case EExcessFilesAction_Fail:
+						CStr RelativePath = File.m_Path.f_Extract(Config.m_BasePath.f_GetLen() + 1);
+						if (Manifest.m_Files.f_FindEqual(RelativePath))
+							continue;
+
+						switch (Config.m_ExcessFilesAction)
 						{
-							DMibError(fg_Format("Found execess file in directory sync destination: {}", RelativePath));
-							break;
-						}
-					case EExcessFilesAction_Delete:
-						{
-							if (File.m_Attribs & (EFileAttrib_Link | EFileAttrib_File))
-								CFile::fs_DeleteFile(File.m_Path);
-							else
-								CFile::fs_DeleteDirectoryRecursive(File.m_Path);
-							break;
+						case EExcessFilesAction_Fail:
+							{
+								DMibError(fg_Format("Found execess file in directory sync destination: {}", RelativePath));
+								break;
+							}
+						case EExcessFilesAction_Delete:
+							{
+								if (File.m_Attribs & (EFileAttrib_Link | EFileAttrib_File))
+									CFile::fs_DeleteFile(File.m_Path);
+								else
+									CFile::fs_DeleteDirectoryRecursive(File.m_Path);
+								break;
+							}
 						}
 					}
 				}
-			}
-			> Promise
+			)
 		;
 		
-		return Promise.f_MoveFuture();
+		co_return {};
 	}
 	
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncFile(CStr const &_FileName)
 	{
 		return f_RSync
 			(
-				[_FileName, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> bool
+				[_FileName, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState *_pRSyncState) -> bool
 				{
 					auto &Config = *pConfig;
+					auto &RSyncState = *_pRSyncState;
 
 					auto *pManifestFile = pManifest->m_Files.f_FindEqual(_FileName);
 					if (!pManifestFile)
 						return true;
 
 					CStr Destination = Config.m_FileOptions.f_TransformFileName(Config.m_BasePath, _FileName, EDirectorySyncStreamType_Destination);
-					_RSyncState.m_DestinationFilename = Destination;
+					RSyncState.m_DestinationFilename = Destination;
 
 					auto &ManifestFile = *pManifestFile;
 					
@@ -123,7 +125,7 @@ namespace NMib::NFile
 
 					if (Source != Destination)
 					{
-						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+						RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
 							(
 								Destination
 								, EDirectorySyncStreamType_Destination
@@ -133,15 +135,15 @@ namespace NMib::NFile
 						;
 
 						if (Source && CFile::fs_FileExists(Source))
-							_RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+							RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
 
-						_RSyncState.m_pClient
-							= fg_Construct(*_RSyncState.m_pSourceStream, *_RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
+						RSyncState.m_pClient
+							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
 						;
 					}
 					else
 					{
-						_RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
+						RSyncState.m_pSourceDestinationStream = Config.m_FileOptions.f_OpenFile
 							(
 								Destination
 								, EDirectorySyncStreamType_SourceDestination
@@ -151,10 +153,10 @@ namespace NMib::NFile
 						;
 
 						CStr TempFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.rsynctemp", fg_RandomID()));
-						_RSyncState.m_TempFiles.f_Insert(TempFileName);
+						RSyncState.m_TempFiles.f_Insert(TempFileName);
 						CFile::fs_CreateDirectory(Config.m_TempDirectory);
 
-						_RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
+						RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
 							(
 							 	TempFileName
 							 	, EDirectorySyncStreamType_TempSourceDestination
@@ -162,14 +164,14 @@ namespace NMib::NFile
 							 	, Attributes
 							)
 						;
-						_RSyncState.m_pClient = fg_Construct
+						RSyncState.m_pClient = fg_Construct
 							(
-							 	*_RSyncState.m_pSourceDestinationStream
-							 	, *_RSyncState.m_pSourceDestinationStream
+							 	*RSyncState.m_pSourceDestinationStream
+							 	, *RSyncState.m_pSourceDestinationStream
 							 	, 256
 							 	, 4*1024*1024
 							 	, 8*1024*1024
-							 	, &*_RSyncState.m_pTempStream
+							 	, &*RSyncState.m_pTempStream
 							 	, ERSyncClientFlag_TruncateOutput
 							)
 						;
@@ -177,56 +179,63 @@ namespace NMib::NFile
 					
 					return false;
 				}
-				, [=, pConfig = m_pConfig, pManifest = m_pManifest](CRunningSyncState &_RSyncState) -> TCFuture<void>
+				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFutureAllowReferences<void>
 				{
+					auto pConfig = pConfigUnsafe;
+					auto pManifest = pManifestUnsafe;
 					auto &Config = *pConfig;
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
-						return fg_Explicit();
+						co_return {};
 					
-					return g_Dispatch(m_FileActor) / [=, Destination = _RSyncState.m_DestinationFilename]
-						{
-							auto &Config = *pConfig;
-
-							auto *pManifestFile = pManifest->m_Files.f_FindEqual(_FileName);
-							
-							if (!pManifestFile)
-								return;
-
-							auto &ManifestFile = *pManifestFile;
-							
-							if (Config.m_SyncFlags & ESyncFlag_WriteTime)
+					co_await
+						(
+							g_Dispatch(m_FileActor) / [=, Destination = _pRSyncState->m_DestinationFilename]
 							{
-								if (ManifestFile.m_Attributes & EFileAttrib_Link)
-									CFile::fs_SetWriteTimeOnLink(Destination, ManifestFile.m_WriteTime);
-								else
-									CFile::fs_SetWriteTime(Destination, ManifestFile.m_WriteTime);
-							}
+								auto &Config = *pConfig;
 
-							if (Config.m_SyncFlags & ESyncFlag_Attributes)
-							{
-								if (ManifestFile.m_Attributes & EFileAttrib_Link)
-									CFile::fs_SetAttributesOnLink(Destination, ManifestFile.m_Attributes | NMib::NFile::EFileAttrib_UnixAttributesValid);
-								else
-									CFile::fs_SetAttributes(Destination, ManifestFile.m_Attributes | NMib::NFile::EFileAttrib_UnixAttributesValid);
-							}
+								auto *pManifestFile = pManifest->m_Files.f_FindEqual(_FileName);
 
-							if (Config.m_SyncFlags & ESyncFlag_Group)
-							{
-								if (ManifestFile.m_Attributes & EFileAttrib_Link)
-									CFile::fs_SetGroupOnLink(Destination, ManifestFile.m_Group);
-								else
-									CFile::fs_SetGroup(Destination, ManifestFile.m_Group);
-							}
+								if (!pManifestFile)
+									return;
 
-							if (Config.m_SyncFlags & ESyncFlag_Owner)
-							{
-								if (ManifestFile.m_Attributes & EFileAttrib_Link)
-									CFile::fs_SetOwnerOnLink(Destination, ManifestFile.m_Owner);
-								else
-									CFile::fs_SetOwner(Destination, ManifestFile.m_Owner);
+								auto &ManifestFile = *pManifestFile;
+
+								if (Config.m_SyncFlags & ESyncFlag_WriteTime)
+								{
+									if (ManifestFile.m_Attributes & EFileAttrib_Link)
+										CFile::fs_SetWriteTimeOnLink(Destination, ManifestFile.m_WriteTime);
+									else
+										CFile::fs_SetWriteTime(Destination, ManifestFile.m_WriteTime);
+								}
+
+								if (Config.m_SyncFlags & ESyncFlag_Attributes)
+								{
+									if (ManifestFile.m_Attributes & EFileAttrib_Link)
+										CFile::fs_SetAttributesOnLink(Destination, ManifestFile.m_Attributes | NMib::NFile::EFileAttrib_UnixAttributesValid);
+									else
+										CFile::fs_SetAttributes(Destination, ManifestFile.m_Attributes | NMib::NFile::EFileAttrib_UnixAttributesValid);
+								}
+
+								if (Config.m_SyncFlags & ESyncFlag_Group)
+								{
+									if (ManifestFile.m_Attributes & EFileAttrib_Link)
+										CFile::fs_SetGroupOnLink(Destination, ManifestFile.m_Group);
+									else
+										CFile::fs_SetGroup(Destination, ManifestFile.m_Group);
+								}
+
+								if (Config.m_SyncFlags & ESyncFlag_Owner)
+								{
+									if (ManifestFile.m_Attributes & EFileAttrib_Link)
+										CFile::fs_SetOwnerOnLink(Destination, ManifestFile.m_Owner);
+									else
+										CFile::fs_SetOwner(Destination, ManifestFile.m_Owner);
+								}
 							}
-						}
+						)
 					;
+
+					co_return {};
 				}
 				, [this, _FileName](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{

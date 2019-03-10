@@ -68,32 +68,31 @@ namespace NMib::NFile
 		}
 	}
 	
-	TCFuture<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState)
+	TCFuture<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> _pState)
 	{
-		TCPromise<void> Promise;
-		g_Dispatch(m_FileActor) / [_pState]
-			{
-				TCPromise<CByteStats> RunPromise;
-				fsp_RunRSyncProtocol(_pState, {}, RunPromise);
-				return RunPromise.f_MoveFuture();
-			}
-			> Promise / [this, Promise](CByteStats &&_Stats)
-			{
-				++m_Stats.m_nSyncedFiles;
-				m_Stats.m_OutgoingBytes += _Stats.m_nOutgoing;
-				m_Stats.m_IncomingBytes += _Stats.m_nIncoming;
-				Promise.f_SetResult();
-			}
+		CByteStats Stats = co_await
+			(
+				g_Dispatch(m_FileActor) / [_pState]
+				{
+					TCPromise<CByteStats> RunPromise;
+					fsp_RunRSyncProtocol(_pState, {}, RunPromise);
+					return RunPromise.f_MoveFuture();
+				}
+			)
 		;
-		
-		return Promise.f_MoveFuture();
+
+		++m_Stats.m_nSyncedFiles;
+		m_Stats.m_OutgoingBytes += Stats.m_nOutgoing;
+		m_Stats.m_IncomingBytes += Stats.m_nIncoming;
+
+		co_return {};
 	}
 	
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_RSync
 		(
-			TCFunctionMutable<bool (CRunningSyncState &_State)> &&_fInitRSync
-			, TCFunctionMutable<TCFuture<void> (CRunningSyncState &_State)> &&_fOnDone
-			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> &&_fStartRSync
+			TCFunctionMutable<bool (CRunningSyncState *_pState)> _fInitRSync
+			, TCFunctionMutable<TCFuture<void> (CRunningSyncState *_pState)> _fOnDone
+			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 		)
 	{
 		CStr RSyncID = fg_RandomID();
@@ -110,13 +109,13 @@ namespace NMib::NFile
 		TCPromise<void> Promise;
 		g_Dispatch(m_FileActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
-				return fInitRSync(*pRSyncState);
+				return fInitRSync(&*pRSyncState);
 			}
 			> Promise / [=, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
 			{
 				if (_bAlreadySynced)
 				{
-					fOnDone(*pRSyncState) > Promise / [=]()
+					fOnDone(&*pRSyncState) > Promise / [=]()
 						{
 							pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 								{
@@ -141,7 +140,7 @@ namespace NMib::NFile
 						RSyncState.m_fRunProtocol = fg_Move(_fRunRSync);
 						f_RunRSyncProtocol(pRSyncState) > Promise / [=, fOnDone = fg_Move(fOnDone)]() mutable
 							{
-								fOnDone(*pRSyncState) > Promise / [=]()
+								fOnDone(&*pRSyncState) > Promise / [=]()
 									{
 										pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 											{
