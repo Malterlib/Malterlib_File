@@ -179,8 +179,10 @@ namespace NMib::NFile
 					
 					return false;
 				}
-				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFutureAllowReferences<void>
+				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFuture<void>
 				{
+					co_await NConcurrency::ECoroutineFlag_AllowReferences;
+
 					auto pConfig = pConfigUnsafe;
 					auto pManifest = pManifestUnsafe;
 					auto &Config = *pConfig;

@@ -30,7 +30,7 @@ namespace NMib::NFile
 		{
 			CRunningSyncState();
 			~CRunningSyncState();
-			TCFutureAllowReferences<void> f_Destroy();
+			TCFuture<void> f_Destroy();
 			
 			TCActor<CSeparateThreadActor> m_FileActor;
 

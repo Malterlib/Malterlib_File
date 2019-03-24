@@ -29,8 +29,10 @@ namespace NMib::NFile
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
 	
-	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFutureAllowReferences<void>
+	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<void>
 	{
+		co_await NConcurrency::ECoroutineFlag_AllowReferences;
+
 		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this);
 		co_await m_fRunProtocol.f_Destroy();
 

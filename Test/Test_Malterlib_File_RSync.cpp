@@ -260,7 +260,7 @@ namespace
 			NStr::CStr EndFileName = NFile::CFile::fs_GetProgramDirectory() + "/" + _EndFile;
 			if (NFile::CFile::fs_FileExists(StartFileName) && NFile::CFile::fs_FileExists(EndFileName))
 			{
-				fs_DoRSync(NFile::CFile::fs_ReadFile(StartFileName), NFile::CFile::fs_ReadFile(EndFileName), 128, 1024*1024, false, false);
+				fs_DoRSync(NFile::CFile::fs_ReadFile(StartFileName).f_ToSecure(), NFile::CFile::fs_ReadFile(EndFileName).f_ToSecure(), 128, 1024*1024, false, false);
 			}
 		}
 

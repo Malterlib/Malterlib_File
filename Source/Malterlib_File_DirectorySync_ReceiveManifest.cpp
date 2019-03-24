@@ -143,8 +143,10 @@ namespace NMib::NFile
 
 					return false;
 				}
-				, [this](CRunningSyncState *_pRSyncState) -> TCFutureAllowReferences<void>
+				, [this](CRunningSyncState *_pRSyncState) -> TCFuture<void>
 				{
+					co_await NConcurrency::ECoroutineFlag_AllowReferences;
+
 					TCPromise<void> Promise;
 
 					CDirectoryManifest Manifest = co_await
