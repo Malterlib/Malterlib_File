@@ -539,7 +539,6 @@ namespace NMib::NFile
 		static bool fs_CanCreateSymbolicLink(EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 
 
-		static void fs_WriteFile(NContainer::CByteVector const &_FileFrom, const NStr::CStr &_FileTo);
 		static void fs_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bint _bRecursive = true, bint _bRaw = false, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
 		static bint fs_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName);
 		static NContainer::CByteVector fs_ReadFileTry(const NStr::CStr &_ToFileName);
@@ -728,7 +727,13 @@ namespace NMib::NFile
 			)
 		;
 		static void fs_WriteFile(const NStr::CStr &_Path, NContainer::CByteVector const &_Data);
+		static void fs_WriteFileSecure(const NStr::CStr &_Path, NContainer::CSecureByteVector const &_Data);
 		static NContainer::CByteVector fs_ReadFile(const NStr::CStr &_Path);
+		static NContainer::CSecureByteVector fs_ReadFileSecure(const NStr::CStr &_Path);
+
+		static void fs_WriteFile(NContainer::CByteVector const &_FileFrom, const NStr::CStr &_FileTo);
+		static void fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, const NStr::CStr &_FileTo);
+
 		static const ch8 *fs_GetInvalidFileNameChars(bint _bPath);
 		static const ch8 **fs_GetInvalidFileNameNames();
 		static void fs_SetAttributes(NStr::CStr const &_FileName, EFileAttrib _Attribs);

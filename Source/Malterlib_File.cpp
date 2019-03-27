@@ -942,6 +942,13 @@ namespace NMib::NFile
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
 
+	void CFile::fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, const NStr::CStr &_FileTo)
+	{
+		CFile OutFile;
+		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
+		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
+	}
+
 	bint CFile::fs_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
@@ -2123,6 +2130,23 @@ namespace NMib::NFile
 	NContainer::CByteVector CFile::fs_ReadFile(const NStr::CStr &_Path)
 	{
 		NContainer::CByteVector FileData;
+		CFile File;
+		File.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
+		FileData.f_SetLen(File.f_GetLength());
+		File.f_Read(FileData.f_GetArray(), FileData.f_GetLen());
+		return fg_Move(FileData);
+	}
+
+	void CFile::fs_WriteFileSecure(const NStr::CStr &_Path, NContainer::CSecureByteVector const &_Data)
+	{
+		CFile File;
+		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
+		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
+	}
+
+	NContainer::CSecureByteVector CFile::fs_ReadFileSecure(const NStr::CStr &_Path)
+	{
+		NContainer::CSecureByteVector FileData;
 		CFile File;
 		File.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
 		FileData.f_SetLen(File.f_GetLength());
