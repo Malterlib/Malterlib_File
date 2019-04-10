@@ -20,6 +20,8 @@ namespace NMib::NFile
 		if (m_pConfig->m_TempDirectory.f_IsEmpty())
 			DMibError("You need to specify a valid temp directory");
 	}
+
+	CDirectorySyncReceive::CInternal::~CInternal() = default;
 	
 	CDirectorySyncReceive::~CDirectorySyncReceive() = default;
 	CDirectorySyncReceive::CInternal::CRunningSyncState::CRunningSyncState()

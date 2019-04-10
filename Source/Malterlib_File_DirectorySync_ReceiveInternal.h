@@ -51,6 +51,7 @@ namespace NMib::NFile
 		};
 		
 		CInternal(CDirectorySyncReceive *_pThis, CConfig &&_Config, TCDistributedActorInterface<CDirectorySyncClient> &&_Client);
+		~CInternal();
 
 		TCFuture<void> f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> _pState);
 		

@@ -143,15 +143,16 @@ namespace NMib::NFile
 
 					return false;
 				}
-				, [this](CRunningSyncState *_pRSyncState) -> TCFuture<void>
+				, [pThisUnsafe = this](CRunningSyncState *_pRSyncState) -> TCFuture<void>
 				{
 					co_await NConcurrency::ECoroutineFlag_AllowReferences;
+					auto pThis = pThisUnsafe;
 
 					TCPromise<void> Promise;
 
 					CDirectoryManifest Manifest = co_await
 						(
-							g_Dispatch(m_FileActor) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
+							g_Dispatch(pThis->m_FileActor) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
 							{
 								CDirectoryManifest Manifest;
 								pSourceDestinationStream->f_SetPosition(0);
@@ -161,7 +162,7 @@ namespace NMib::NFile
 							}
 						)
 					;
-					m_pManifest = fg_Construct(fg_Move(Manifest));
+					pThis->m_pManifest = fg_Construct(fg_Move(Manifest));
 
 					co_return {};
 				}
