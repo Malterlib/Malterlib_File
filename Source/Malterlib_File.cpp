@@ -2694,6 +2694,7 @@ namespace NMib::NFile
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
 			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+		 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 		)
 	{
 		auto SourceAttribs = CFile::fs_GetAttributes(_Source);
@@ -2717,10 +2718,19 @@ namespace NMib::NFile
 			}
 			CFile::fs_CreateDirectory(_Destination);
 
-			NContainer::TCVector<CFile::CFoundFile> SourceFiles = CFile::fs_FindFilesEx(_Source + "/*", EFileAttrib_File, true, false);
-			NContainer::TCVector<CFile::CFoundFile> SourceDirectories = CFile::fs_FindFilesEx(_Source + "/*", EFileAttrib_Directory, true, false);
-			NContainer::TCVector<CFile::CFoundFile> ExistingFiles = CFile::fs_FindFilesEx(_Destination + "/*", EFileAttrib_File, true, false);
-			NContainer::TCVector<CFile::CFoundFile> ExistingDirectories = CFile::fs_FindFilesEx(_Destination + "/*", EFileAttrib_Directory, true, false);
+			auto fFindOptions = [&](NStr::CStr const &_Path, EFileAttrib _AttribMask)
+				{
+					CFindFilesOptions FindOptions(_Path, true);
+					FindOptions.m_AttribMask = _AttribMask;
+					FindOptions.m_ExcludePatterns = _ExcludePatterns;
+					return FindOptions;
+				}
+			;
+
+			NContainer::TCVector<CFile::CFoundFile> SourceFiles = CFile::fs_FindFiles(fFindOptions(_Source + "/*", EFileAttrib_File));
+			NContainer::TCVector<CFile::CFoundFile> SourceDirectories = CFile::fs_FindFiles(fFindOptions(_Source + "/*", EFileAttrib_Directory));
+			NContainer::TCVector<CFile::CFoundFile> ExistingFiles = CFile::fs_FindFiles(fFindOptions(_Destination + "/*", EFileAttrib_File));
+			NContainer::TCVector<CFile::CFoundFile> ExistingDirectories = CFile::fs_FindFiles(fFindOptions(_Destination + "/*", EFileAttrib_Directory));
 
 			NContainer::TCMap<NStr::CStr, CFile::CFoundFile> SourceFilesSet;
 			for (auto iFile = SourceFiles.f_GetIterator(); iFile; ++iFile)
@@ -2895,6 +2905,7 @@ namespace NMib::NFile
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
 			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+		 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 			, fp32 _Timeout
 		)
 	{
@@ -2904,7 +2915,7 @@ namespace NMib::NFile
 		{
 			try
 			{
-				return fsp_DiffCopyFileOrDirectory(_Source, _Destination, _OnChange);
+				return fsp_DiffCopyFileOrDirectory(_Source, _Destination, _OnChange, _ExcludePatterns);
 			}
 			catch (CExceptionFile const &)
 			{
