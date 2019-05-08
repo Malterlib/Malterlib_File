@@ -131,12 +131,7 @@ namespace NMib::NFile
 
 		co_await SyncsPromise;
 
-		co_await DMibCallActor
-			(
-				Internal.m_Client
-				, CDirectorySyncClient::f_Finished
-			)
-		;
+		co_await Internal.m_Client.f_CallActor(&CDirectorySyncClient::f_Finished)();
 
 		CSyncResult SyncResult;
 		SyncResult.m_Manifest = fg_Move(*Internal.m_pManifest);

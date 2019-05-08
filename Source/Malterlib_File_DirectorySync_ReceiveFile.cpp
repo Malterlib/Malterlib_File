@@ -241,14 +241,7 @@ namespace NMib::NFile
 				}
 				, [this, _FileName](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
-					return DMibCallActor
-						(
-							m_Client
-							, CDirectorySyncClient::f_StartRSync
-							, _FileName
-							, fg_Move(_Subscription)
-						)
-					;
+					return m_Client.f_CallActor(&CDirectorySyncClient::f_StartRSync)(_FileName, fg_Move(_Subscription));
 				}
 			)
 		;
