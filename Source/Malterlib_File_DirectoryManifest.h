@@ -15,7 +15,8 @@ namespace NMib::NFile
 	{
 		EDirectoryManifestSyncFlag_None = 0							///< Normal syncing. In this case the rsync is used for syncing changes
 		, EDirectoryManifestSyncFlag_Append = DMibBit(0)			///< Append syncing. Any changes are assumed to be append only
-		, EDirectoryManifestSyncFlag_TransactionLog = DMibBit(1)	///< Should be used together with ESyncFlag_Append. This tells the backup manager to sync writes to disk as quickly as possible.
+		, EDirectoryManifestSyncFlag_TransactionLog = DMibBit(1)	///< Should be used together with ESyncFlag_Append. This tells the backup manager to sync
+																	///		writes to disk as quickly as possible.
 	};
 	
 	struct CDirectoryManifestFile

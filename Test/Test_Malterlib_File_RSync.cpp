@@ -10,6 +10,7 @@ using namespace NMib::NMemory;
 using namespace NMib::NStream;
 using namespace NMib::NContainer;
 using namespace NMib::NNetwork;
+using namespace NMib::NCryptography;
 
 namespace
 {
@@ -90,17 +91,17 @@ namespace
 
 				if (_bEncrypt)
 				{
-					pKey = fg_Construct(CEncryptKeyIV::fs_GetRandomKey(ESSLCrypto_AES_256_CBC));
-					pIV = fg_Construct(CEncryptKeyIV::fs_GetRandomIV(ESSLCrypto_AES_256_CBC));
-					pHMACKey = fg_Construct(CEncryptKeyIV::fs_GetRandomHMACKey(ESSLDigest_SHA256));
+					pKey = fg_Construct(CEncryptKeyIV::fs_GetRandomKey(ECryptoType_AES_256_CBC));
+					pIV = fg_Construct(CEncryptKeyIV::fs_GetRandomIV(ECryptoType_AES_256_CBC));
+					pHMACKey = fg_Construct(CEncryptKeyIV::fs_GetRandomHMACKey(EDigestType_SHA256));
 
-					pClientNewStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV, ESSLCrypto_AES_256_CBC}, ESSLDigest_SHA256, *pHMACKey);
+					pClientNewStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV, ECryptoType_AES_256_CBC}, EDigestType_SHA256, *pHMACKey);
 					pClientNewStreamEncrypted->f_SetBufferSize(16);
 					pClientNewStreamEncrypted->f_Open(pClientNewStream, EFileOpen_Write);
 					pClientNewStream = &*pClientNewStreamEncrypted;
 					if (pTemporaryStream)
 					{
-						pTemporaryStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV}, ESSLDigest_SHA256, *pHMACKey);
+						pTemporaryStreamEncrypted = fg_Construct<CEncrypted>(CEncryptKeyIV{*pKey, *pIV}, EDigestType_SHA256, *pHMACKey);
 						pTemporaryStreamEncrypted->f_SetBufferSize(16);
 						pTemporaryStreamEncrypted->f_Open(pTemporaryStream, EFileOpen_Read | EFileOpen_Write);
 						pTemporaryStream = &*pTemporaryStreamEncrypted;
@@ -149,7 +150,7 @@ namespace
 					CSecureByteVector EncryptedData;
 					EncryptedData = ClientNewStream.f_MoveVector();
 					CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CSecureByteVector> DataStream(EncryptedData);
-					NCryptography::TCBinaryStream_Encrypted<CBinaryStream *> DecryptingStream(CEncryptKeyIV{*pKey, *pIV}, ESSLDigest_SHA256, *pHMACKey);
+					NCryptography::TCBinaryStream_Encrypted<CBinaryStream *> DecryptingStream(CEncryptKeyIV{*pKey, *pIV}, EDigestType_SHA256, *pHMACKey);
 					DecryptingStream.f_Open(&DataStream, EFileOpen_Read);
 					auto Length = DecryptingStream.f_GetLength();
 					DecryptingStream.f_ConsumeBytes(Synced.f_GetArray(Length), Length);
