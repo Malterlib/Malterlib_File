@@ -120,7 +120,7 @@ namespace NMib::NFile
 				m_MD5Checksum = Checksum;
 			}
 
-			bint f_Validate()
+			bool f_Validate()
 			{
 				NCryptography::CHash_MD5 Checksum;
 				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
@@ -137,7 +137,7 @@ namespace NMib::NFile
 		CRootData mp_RootData;
 
 		uint64 mp_ClusterIDsPerCluster;
-		bint mp_bOutOfSpace;
+		bool mp_bOutOfSpace;
 
 		void fp_SaveRootData();
 
@@ -204,7 +204,7 @@ namespace NMib::NFile
 				m_MD5Checksum = Checksum;
 			}
 
-			bint f_Validate(uint64 _ClusterID, uint32 _Version)
+			bool f_Validate(uint64 _ClusterID, uint32 _Version)
 			{
 				NCryptography::CHash_MD5 Checksum;
 				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
@@ -284,7 +284,7 @@ namespace NMib::NFile
 				m_MD5Checksum = Checksum;
 			}
 
-			bint f_Validate(uint64 _ClusterID, uint32 _Version)
+			bool f_Validate(uint64 _ClusterID, uint32 _Version)
 			{
 				NCryptography::CHash_MD5 Checksum;
 				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
@@ -407,7 +407,7 @@ namespace NMib::NFile
 				m_Files.f_Insert(File);
 			}
 
-			bint f_Validate(uint64 _ClusterID, uint32 _Version)
+			bool f_Validate(uint64 _ClusterID, uint32 _Version)
 			{
 				NCryptography::CHash_MD5 Checksum;
 				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
@@ -564,7 +564,7 @@ namespace NMib::NFile
 				m_MD5Checksum = Checksum;
 			}
 
-			bint f_Validate(uint64 _ClusterID, uint32 _Version)
+			bool f_Validate(uint64 _ClusterID, uint32 _Version)
 			{
 				NCryptography::CHash_MD5 Checksum;
 				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
@@ -597,7 +597,7 @@ namespace NMib::NFile
 
 			mint m_RefCount;
 
-			bint m_bDirty;
+			bool m_bDirty;
 
 			CClusterCacheEntry()
 			{
@@ -627,7 +627,7 @@ namespace NMib::NFile
 				_Stream.f_OpenReadWrite(m_ClusterMemory.f_GetArray(), Len, Len);
 			}
 
-			void f_CloseStream(bint _bWritten)
+			void f_CloseStream(bool _bWritten)
 			{
 				if (_bWritten)
 					f_MakeDirty();
@@ -767,7 +767,7 @@ namespace NMib::NFile
 			CDirectory m_Directory;
 			CClusterID m_DirectoryFileClusterID;
 			DMibListLinkD_Link(CDirectoryCacheEntry, m_AccessLink);
-			bint m_bDirty;
+			bool m_bDirty;
 			mint m_RefCount;
 
 			CDirectoryCacheEntry()
@@ -783,7 +783,7 @@ namespace NMib::NFile
 				{
 					return _Node.m_FullPath;
 				}
-				inline_small bint operator () (NStr::CStr const &_Left, NStr::CStr const &_Right) const
+				inline_small bool operator () (NStr::CStr const &_Left, NStr::CStr const &_Right) const
 				{
 					return fg_StrCmp(_Left, _Right) < 0;
 				}
@@ -1066,10 +1066,10 @@ namespace NMib::NFile
 			CFileRecord m_FileRecord; // The file record. The records lives here while the file is open
 			CClusterChain m_ClusterChain; // The chain of data clusters
 			CClusterID m_ClusterChainCluster;
-			bint m_bValidClusterChain;
-			bint m_bClusterChainDirty;
-			bint m_bFileRecordDirty;
-			bint m_bDestroyException;
+			bool m_bValidClusterChain;
+			bool m_bClusterChainDirty;
+			bool m_bFileRecordDirty;
+			bool m_bDestroyException;
 
 			class CCompare
 			{
@@ -1375,7 +1375,7 @@ namespace NMib::NFile
 				return m_ClusterChain.m_ClusterIDs[IndexInChunk];
 			}
 
-			void f_Create(CVirtualFS *_pVirtualFS, CClusterID _FileDescriptorID, bint _bLoad)
+			void f_Create(CVirtualFS *_pVirtualFS, CClusterID _FileDescriptorID, bool _bLoad)
 			{
 				m_FileDescriptorID = _FileDescriptorID;
 				m_pVirtualFS = _pVirtualFS;
@@ -1467,12 +1467,12 @@ namespace NMib::NFile
 				mp_Position += _nBytes;
 			}
 
-			bint f_IsValid() const
+			bool f_IsValid() const
 			{
 				return mp_pFile != nullptr;
 			}
 
-			bint f_IsAtEndOfStream() const
+			bool f_IsAtEndOfStream() const
 			{
 				return mp_Position == mp_pFile->m_FileRecord.m_FileSize;
 			}
@@ -1497,12 +1497,12 @@ namespace NMib::NFile
 				mp_Position += _Pos;
 			}
 
-			bint f_IsValidReadPosition(NStream::CFilePos _Pos) const
+			bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
 			{
 				return _Pos >= 0 && _Pos < NStream::CFilePos(mp_pFile->m_FileRecord.m_FileSize);
 			}
 
-			void f_Flush(bint _bLocalCacheOnly)
+			void f_Flush(bool _bLocalCacheOnly)
 			{
 				return mp_pFile->f_Flush();
 			}
@@ -1531,13 +1531,13 @@ namespace NMib::NFile
 
 		void fp_Close();
 
-		void fp_CheckPath(const NStr::CStr &_Path, bint _bCanBeEmpty = false);
+		void fp_CheckPath(const NStr::CStr &_Path, bool _bCanBeEmpty = false);
 		CFileInternal *fp_OpenFile(CClusterID _ClusterID);
 		CFileInternal *fp_OpenNewFile();
 		void fp_CloseFile(CFileInternal *_pFile);
 
 
-		CFileInternal *fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove = false, bool _bAllowRoot = false);
+		CFileInternal *fp_OpenFileFromPath(NStr::CStr const &_Path, bool _bCreate, bool _bRemove = false, bool _bAllowRoot = false);
 		void fpr_DeleteDirectoryRecursive(NStr::CStr const &_File);
 
 	public:
@@ -1555,7 +1555,7 @@ namespace NMib::NFile
 			fp_Close();
 		}
 
-		bint f_IsValid()
+		bool f_IsValid()
 		{
 			return mp_pStorageStream != nullptr;
 		}
@@ -1575,9 +1575,9 @@ namespace NMib::NFile
 		void f_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
 		void f_DeleteDirectoryRecursive(NStr::CStr const &_File);
 		void f_CreateDirectory(NStr::CStr const &_Path);
-		bint f_FileExists(NStr::CStr const &_File);
-		bint f_FileExists(NStr::CStr const &_File, EFileAttrib _Attributes);
-		bint f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data);
+		bool f_FileExists(NStr::CStr const &_File);
+		bool f_FileExists(NStr::CStr const &_File, EFileAttrib _Attributes);
+		bool f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data);
 
 		class CCheckReporter
 		{
@@ -1627,7 +1627,7 @@ namespace NMib::NFile
 				CVirtualFS::CClusterID m_ClusterID;
 			};
 
-			CCheckFSContext(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bint _bFix, CVirtualFS *_pFixDestinationFS)
+			CCheckFSContext(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS)
 			{
 				mp_pStorageStream = _pStorageStream;
 				mp_pReporter = _pReporter;
@@ -1639,12 +1639,12 @@ namespace NMib::NFile
 			ECheckFSError f_UpdateFreeClusters();
 			void f_FreeCluster(CClusterID _Cluster);
 			void f_Seek(CClusterID _Cluster);
-			uint64 f_AddClusterID(CClusterID _Cluster, CClusterID _File, uint64 _Flags, bint _bMap);
+			uint64 f_AddClusterID(CClusterID _Cluster, CClusterID _File, uint64 _Flags, bool _bMap);
 			ECheckFSError f_AddFreeClusters(CClusterID _ClusterID);
-			bint f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, mint _Length);
-			bint f_ReadFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
-			static bint fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
-			static bint fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord);
+			bool f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, mint _Length);
+			bool f_ReadFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
+			static bool fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
+			static bool fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord);
 
 			class CCircularChecker
 			{
@@ -1659,7 +1659,7 @@ namespace NMib::NFile
 
 				DMibListLinkDS_List(CMember, m_Link) m_List;
 
-				bint f_AlreadyInList(CClusterID _ClusterID)
+				bool f_AlreadyInList(CClusterID _ClusterID)
 				{
 					auto Iter = m_List.f_GetIterator();
 
@@ -1676,8 +1676,8 @@ namespace NMib::NFile
 			};
 
 			ECheckFSError f_CheckOrphanClusters();
-			ECheckFSError f_CheckFSTree(CClusterID _ClusterID, bint _bMap);
-			ECheckFSError fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bint &_bRemove, bint _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName);
+			ECheckFSError f_CheckFSTree(CClusterID _ClusterID, bool _bMap);
+			ECheckFSError fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName);
 		private:
 
 			CVirtualFS::CRootData mp_RootData;
@@ -1686,14 +1686,14 @@ namespace NMib::NFile
 			CCheckReporter *mp_pReporter;
 			CVirtualFS *mp_pFixDestinationFS;
 			CDirectoryID mp_MaxDirectoryID;
-			bint mp_bFix;
+			bool mp_bFix;
 			uint64 mp_ClusterIDsPerCluster;
 
 			void fp_SaveRootData();
 		};
 
 
-		static ECheckFSError fs_CheckFS(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bint _bFix, CVirtualFS *_pFixDestinationFS);
+		static ECheckFSError fs_CheckFS(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS);
 
 		uint64 f_GetClusterSize();
 		uint64 f_GetClusterIDsPerCluster();
@@ -1722,7 +1722,7 @@ namespace NMib::NFile
 		uint64 f_GetFileSize(NStr::CStr const &_Path);
 
 		void f_EnumFiles(NStr::CStr const &_Path, NContainer::TCVector<NStr::CStr> &_Files);
-		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false);
+		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false);
 		NCryptography::CHashDigest_MD5 f_GetFileChecksum(NStr::CStr const &_Path);
 
 		class CFile
@@ -1738,20 +1738,20 @@ namespace NMib::NFile
 			CFile(CVirtualFS &_FileSystem, NStr::CStr const &_FileName, uint32 _OpenFlags);
 			~CFile();
 
-			bint f_IsValid() const;
+			bool f_IsValid() const;
 			void f_Close();
 			void f_Open(CVirtualFS &_FileSystem, NStr::CStr const &_FileName, uint32 _OpenFlags);
 			void f_Read(void *_pDest, mint _nBytes);
 			void f_Write(const void *_pSrc, mint _nBytes);
-			void f_Flush(bint _bLocalCacheOnly);
+			void f_Flush(bool _bLocalCacheOnly);
 			void f_SetCacheSize(mint _CacheSize);
-			bint f_IsAtEndOfFile() const;
+			bool f_IsAtEndOfFile() const;
 			void f_SetLength(const CMibFilePos &_Length);
 			CMibFilePos f_GetLength() const;
 			void f_SetPosition(NStream::CFilePos _Pos);
 			void f_SetPositionFromEnd(NStream::CFilePos _Pos);
 			void f_AddPosition(NStream::CFilePos _Pos);
-			bint f_IsValidReadPosition(NStream::CFilePos _Pos) const;
+			bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
 			NStream::CFilePos f_GetPosition() const;
 		};
 
@@ -1812,7 +1812,7 @@ namespace NMib::NFile
 			mp_pFile->f_Flush(false);
 		}
 
-		void f_Flush(bint _bLocalCacheOnly)
+		void f_Flush(bool _bLocalCacheOnly)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_pFile->f_Flush(_bLocalCacheOnly);
@@ -1835,13 +1835,13 @@ namespace NMib::NFile
 			mp_pFile->f_Read(_pMem, _nBytes);
 		}
 
-		bint f_IsValid() const
+		bool f_IsValid() const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_pFile->f_IsValid();
 		}
 
-		bint f_IsAtEndOfStream() const
+		bool f_IsAtEndOfStream() const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_pFile->f_IsAtEndOfFile();
@@ -1871,7 +1871,7 @@ namespace NMib::NFile
 			mp_pFile->f_AddPosition(_Pos);
 		}
 
-		bint f_IsValidReadPosition(NStream::CFilePos _Pos) const
+		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_pFile->f_IsValidReadPosition(_Pos);
@@ -1927,7 +1927,7 @@ namespace NMib::NFile
 			mp_File.f_Flush(false);
 		}
 
-		void f_Flush(bint _bLocalCacheOnly)
+		void f_Flush(bool _bLocalCacheOnly)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_File.f_Flush(_bLocalCacheOnly);
@@ -1950,13 +1950,13 @@ namespace NMib::NFile
 			mp_File.f_Read(_pMem, _nBytes);
 		}
 
-		bint f_IsValid() const
+		bool f_IsValid() const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_File.f_IsValid();
 		}
 
-		bint f_IsAtEndOfStream() const
+		bool f_IsAtEndOfStream() const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_File.f_IsAtEndOfFile();
@@ -1986,7 +1986,7 @@ namespace NMib::NFile
 			mp_File.f_AddPosition(_Pos);
 		}
 
-		bint f_IsValidReadPosition(NStream::CFilePos _Pos) const
+		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
 		{
 			DMibMemLightweightTrackDisableScope;
 			return mp_File.f_IsValidReadPosition(_Pos);

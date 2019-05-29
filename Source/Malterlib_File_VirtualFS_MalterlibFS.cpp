@@ -77,11 +77,11 @@ namespace NMib::NFile
 	{
 		mp_VirtualFS.f_CreateDirectory(_Path);
 	}
-	NContainer::TCVector<NStr::CStr> CFileSystemInterface_VirtualFS::f_FindFiles(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bint _bRecursive, bool _bFollowLinks) const
+	NContainer::TCVector<NStr::CStr> CFileSystemInterface_VirtualFS::f_FindFiles(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks) const
 	{
 		return mp_VirtualFS.f_FindFiles(_FindPath, _AttribMask, _bRecursive);
 	}
-	bint CFileSystemInterface_VirtualFS::f_FileExists(const NStr::CStr &_File, NFile::EFileAttrib _AttribMask) const
+	bool CFileSystemInterface_VirtualFS::f_FileExists(const NStr::CStr &_File, NFile::EFileAttrib _AttribMask) const
 	{
 		return mp_VirtualFS.f_FileExists(_File, _AttribMask);
 	}

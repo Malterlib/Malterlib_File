@@ -49,7 +49,7 @@ namespace NMib::NFile
 					m_pTree->m_Directories.f_Remove(this);
 			}
 
-			bint m_bIsDir;
+			bool m_bIsDir;
 			NStr::CMStrPreserve m_FileName;
 			CVirtualFS::CDirectoryID m_DirectoryID;
 			CVirtualFS::CDirectoryID m_ParentID;
@@ -126,7 +126,7 @@ namespace NMib::NFile
 			class CCompareDirectoryID
 			{
 			public:
-				inline_small bint operator () (CFile const &_Left, CFile const &_Right) const
+				inline_small bool operator () (CFile const &_Left, CFile const &_Right) const
 				{
 					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
 						return true;
@@ -134,7 +134,7 @@ namespace NMib::NFile
 						return false;
 					return _Left.m_FileClusterID < _Right.m_FileClusterID;
 				}
-				inline_small bint operator () (CFile const &_Left, const CDirectoryKey &_Right) const
+				inline_small bool operator () (CFile const &_Left, const CDirectoryKey &_Right) const
 				{
 					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
 						return true;
@@ -142,7 +142,7 @@ namespace NMib::NFile
 						return false;
 					return _Left.m_FileClusterID < _Right.m_ClusterID;
 				}
-				inline_small bint operator () (const CDirectoryKey &_Left, CFile const &_Right) const
+				inline_small bool operator () (const CDirectoryKey &_Left, CFile const &_Right) const
 				{
 					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
 						return true;
@@ -463,7 +463,7 @@ namespace NMib::NFile
 		// Merge equal directory entries
 
 		{
-			bint bDoneSomething = true;
+			bool bDoneSomething = true;
 			while (bDoneSomething)
 			{
 				bDoneSomething = false;
@@ -692,7 +692,7 @@ namespace NMib::NFile
 		mp_pReporter->f_StepUp();
 	}
 
-	CVirtualFS::ECheckFSError CVirtualFS::fs_CheckFS(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bint _bFix, CVirtualFS *_pFixDestinationFS)
+	CVirtualFS::ECheckFSError CVirtualFS::fs_CheckFS(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS)
 	{
 		try
 		{
@@ -754,7 +754,7 @@ namespace NMib::NFile
 
 						++iLoop;
 
-						bint bWasBetter = false;
+						bool bWasBetter = false;
 						for (mint j = 0; j < nVersions; ++j)
 						{
 							if (nFiles[j] >= nMaxFiles)
@@ -1081,7 +1081,7 @@ namespace NMib::NFile
 		mp_pStorageStream->f_SetPosition(_Cluster * mp_RootData.m_ClusterSize);
 	}
 
-	uint64 CVirtualFS::CCheckFSContext::f_AddClusterID(CClusterID _Cluster, CClusterID _File, uint64 _Flags, bint _bMap)
+	uint64 CVirtualFS::CCheckFSContext::f_AddClusterID(CClusterID _Cluster, CClusterID _File, uint64 _Flags, bool _bMap)
 	{
 		if (_Cluster > mp_ClusterMap.f_GetLen())
 		{
@@ -1170,7 +1170,7 @@ namespace NMib::NFile
 			return ECheckFSError_None;
 	}
 
-	bint CVirtualFS::CCheckFSContext::f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, mint _Length)
+	bool CVirtualFS::CCheckFSContext::f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, mint _Length)
 	{
 		DMibSafeCheck(_Data.f_GetLen() <= _FileRecord.m_FileSize, "Write can only shrink file");
 
@@ -1240,7 +1240,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bint CVirtualFS::CCheckFSContext::fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data)
+	bool CVirtualFS::CCheckFSContext::fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data)
 	{
 		_Data.f_SetLen(_FileRecord.m_FileSize);
 
@@ -1279,7 +1279,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bint CVirtualFS::CCheckFSContext::fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord)
+	bool CVirtualFS::CCheckFSContext::fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord)
 	{
 		CClusterChain Chain;
 		Chain.m_ClusterIDs.f_SetLen(_ClusterIDsPerCluster);
@@ -1307,7 +1307,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bint CVirtualFS::CCheckFSContext::f_ReadFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data)
+	bool CVirtualFS::CCheckFSContext::f_ReadFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data)
 	{
 		_Data.f_SetLen(_FileRecord.m_FileSize);
 
@@ -1443,17 +1443,17 @@ namespace NMib::NFile
 		return Ret;
 	}
 
-	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::f_CheckFSTree(CClusterID _ClusterID, bint _bMap)
+	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::f_CheckFSTree(CClusterID _ClusterID, bool _bMap)
 	{
 		CCircularChecker CircularChecker;
-		bint bRemove = false;
+		bool bRemove = false;
 		ECheckFSError Ret = fr_CheckFSTree(_ClusterID, CircularChecker, bRemove, _bMap, 0, "Root");
 		if (bRemove)
 			Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 		return Ret;
 	}
 
-	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bint &_bRemove, bint _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName)
+	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName)
 	{
 		DMibSafeCheck(!_CircularChecker.f_AlreadyInList(_ClusterID), "We should make sure this does not happen in the directory iterator");
 
@@ -1523,7 +1523,7 @@ namespace NMib::NFile
 			}
 		}
 
-		bint bChangedFileRecord = false;
+		bool bChangedFileRecord = false;
 
 		if (FileRecord.m_ParentDirectory != _ParentDir)
 		{
@@ -1708,7 +1708,7 @@ namespace NMib::NFile
 
 			CVirtualFS::CDirectory Directory;
 			Directory.f_Read(Stream);
-			bint bChanged = false;
+			bool bChanged = false;
 
 			if (!Directory.f_Validate(_ClusterID, mp_RootData.m_Version))
 			{
@@ -1744,7 +1744,7 @@ namespace NMib::NFile
 					}
 					else
 					{
-						bint bRemove = false;
+						bool bRemove = false;
 						Ret = fg_Max(Ret, fr_CheckFSTree(ClusterID, _CircularChecker, bRemove, _bMap, Directory.m_DirectoryID, _FileName + "/" + FileName));
 
 						if (bRemove && mp_bFix)
@@ -2200,7 +2200,7 @@ namespace NMib::NFile
 		mp_DirectoryCache.f_ReturnDirectory(pEntry);
 	}
 
-	static bint fsg_MatchPattern(const ch8 *_pStr, const ch8 *_pPattern)
+	static bool fsg_MatchPattern(const ch8 *_pStr, const ch8 *_pPattern)
 	{
 		NStr::CStr Temp0 = NStr::CStr(_pStr).f_UpperCase();
 		NStr::CStr Temp1 = NStr::CStr(_pPattern).f_UpperCase();
@@ -2238,7 +2238,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	static void fsg_FindFilesRecursive(CVirtualFS *_pFS, const NStr::CStr &_Path, const NStr::CStr &_Pattern, uint32 _AttribMask, bint _bRecursive, NContainer::TCVector<NStr::CStr> &_Files)
+	static void fsg_FindFilesRecursive(CVirtualFS *_pFS, const NStr::CStr &_Path, const NStr::CStr &_Pattern, uint32 _AttribMask, bool _bRecursive, NContainer::TCVector<NStr::CStr> &_Files)
 	{
 		NContainer::TCVector<NStr::CStr> Files;
 		if (!_Path.f_IsEmpty() && !_pFS->f_FileExists(_Path, EFileAttrib_Directory))
@@ -2267,7 +2267,7 @@ namespace NMib::NFile
 			}
 		}
 	}
-	NContainer::TCVector<NStr::CStr> CVirtualFS::f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask, bint _bRecursive)
+	NContainer::TCVector<NStr::CStr> CVirtualFS::f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask, bool _bRecursive)
 	{
 		NStr::CStr Pattern = NFile::CFile::fs_GetFile(_Path);
 		NStr::CStr Path = NFile::CFile::fs_GetPath(_Path);
@@ -2491,7 +2491,7 @@ namespace NMib::NFile
 
 	}
 
-	void CVirtualFS::fp_CheckPath(const NStr::CStr &_Path, bint _bCanBeEmpty)
+	void CVirtualFS::fp_CheckPath(const NStr::CStr &_Path, bool _bCanBeEmpty)
 	{
 		if (_Path.f_Find("//") >= 0)
 			DMibErrorFile("Invalid path: An empty component found ('//').");
@@ -2523,7 +2523,7 @@ namespace NMib::NFile
 		mp_DirectoryCache.f_ReturnDirectory(pCacheEntry);
 	}
 
-	CVirtualFS::CFileInternal *CVirtualFS::fp_OpenFileFromPath(NStr::CStr const &_Path, bint _bCreate, bint _bRemove, bool _bAllowRoot)
+	CVirtualFS::CFileInternal *CVirtualFS::fp_OpenFileFromPath(NStr::CStr const &_Path, bool _bCreate, bool _bRemove, bool _bAllowRoot)
 	{
 		fp_CheckPath(_Path, _bAllowRoot);
 
@@ -2723,7 +2723,7 @@ namespace NMib::NFile
 	}
 
 
-	bint CVirtualFS::f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data)
+	bool CVirtualFS::f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data)
 	{
 		try
 		{
@@ -2739,7 +2739,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	bint CVirtualFS::f_FileExists(NStr::CStr const &_Path)
+	bool CVirtualFS::f_FileExists(NStr::CStr const &_Path)
 	{
 		if (_Path.f_IsEmpty())
 			return false;
@@ -2774,7 +2774,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	bint CVirtualFS::f_FileExists(NStr::CStr const &_Path, NFile::EFileAttrib _AttribMask)
+	bool CVirtualFS::f_FileExists(NStr::CStr const &_Path, NFile::EFileAttrib _AttribMask)
 	{
 		if (_Path.f_IsEmpty())
 			return false;
@@ -2934,7 +2934,7 @@ namespace NMib::NFile
 		}
 	}
 
-	bint CVirtualFS::CFile::f_IsValid() const
+	bool CVirtualFS::CFile::f_IsValid() const
 	{
 		return mp_pInternalFile != nullptr;
 	}
@@ -2971,7 +2971,7 @@ namespace NMib::NFile
 		mp_Position += _nBytes;
 	}
 
-	void CVirtualFS::CFile::f_Flush(bint _bLocalCacheOnly)
+	void CVirtualFS::CFile::f_Flush(bool _bLocalCacheOnly)
 	{
 		fp_CheckValid();
 		mp_pInternalFile->f_Destroy();
@@ -2982,7 +2982,7 @@ namespace NMib::NFile
 
 	}
 
-	bint CVirtualFS::CFile::f_IsAtEndOfFile() const
+	bool CVirtualFS::CFile::f_IsAtEndOfFile() const
 	{
 		fp_CheckValid();
 		return mp_Position == mp_pInternalFile->m_FileRecord.m_FileSize;
@@ -3021,7 +3021,7 @@ namespace NMib::NFile
 		mp_Position += _Pos;
 	}
 
-	bint CVirtualFS::CFile::f_IsValidReadPosition(NStream::CFilePos _Pos) const
+	bool CVirtualFS::CFile::f_IsValidReadPosition(NStream::CFilePos _Pos) const
 	{
 		return _Pos >= 0 && _Pos < NStream::CFilePos(mp_pInternalFile->m_FileRecord.m_FileSize);
 	}

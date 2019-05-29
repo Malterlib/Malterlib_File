@@ -4,7 +4,7 @@
 namespace NMib::NFile
 {
 	template <typename tf_CStr>
-	bint fs_IsPathAbsolute_Local(tf_CStr const& _Path)
+	bool fs_IsPathAbsolute_Local(tf_CStr const& _Path)
 	{
 		if (_Path.f_IsEmpty())
 			return false;
@@ -118,7 +118,7 @@ namespace NMib::NFile
 
 	// Assumes delimator is only /
 	template <typename tf_CStr>
-	bint fs_ComparePathRoots(tf_CStr const& _RootA, tf_CStr const& _RootB)
+	bool fs_ComparePathRoots(tf_CStr const& _RootA, tf_CStr const& _RootB)
 	{
 #ifdef DPlatformFamily_Windows
 		if (_RootA.f_CmpNoCase(_RootB) == 0)
@@ -196,7 +196,7 @@ namespace NMib::NFile
 
 
 	template <typename tf_CStr>
-	bint CFile::fs_IsPathAbsolute(tf_CStr _Path)
+	bool CFile::fs_IsPathAbsolute(tf_CStr _Path)
 	{
 		fg_StrReplaceChar(_Path, '\\', '/');
 
@@ -389,7 +389,7 @@ namespace NMib::NFile
 	}
 
 	template <typename tf_CStr>
-	tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, bint _bAddCurrentDir)
+	tf_CStr CFile::fs_GetExpandedPath(const tf_CStr &_Path, bool _bAddCurrentDir)
 	{
 		if (_Path.f_IsEmpty())
 			return _Path;
@@ -635,7 +635,7 @@ namespace NMib::NFile
 		aint iDir = fg_StrFindCharReverse(Ret, '/');
 		aint iDot = fg_StrFindCharReverse(Ret, '.');
 
-		bint bHasDot = iDot >= 0 && (iDot > iDir || iDir < 0);
+		bool bHasDot = iDot >= 0 && (iDot > iDir || iDir < 0);
 
 		if (bHasDot)
 		{

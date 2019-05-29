@@ -17,8 +17,8 @@ namespace NMib::NFile
 		virtual void f_DeleteDirectory(NStr::CStr const& _File) const = 0;
 		virtual void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const = 0;
 		virtual void f_CreateDirectory(NStr::CStr const& _Path) const = 0;
-		virtual NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const = 0;
-		virtual bint f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const = 0;
+		virtual NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true) const = 0;
+		virtual bool f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const = 0;
 
 		virtual EFileAttrib f_GetAttributes(NStr::CStr const& _File) const = 0;
 		virtual void f_SetAttributes(NStr::CStr const& _File, EFileAttrib _Attribs) const = 0;
@@ -37,22 +37,22 @@ namespace NMib::NFile
 		virtual NMib::NStr::CStr f_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom) const;
 		virtual bool f_CanCreateSymbolicLink(NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags) const;
 
-		virtual bint f_MakeFileWritable(NStr::CStr const& _LocalPath, bint _bWritable = true) const;
-		virtual bint f_IsFileWritable(NStr::CStr const& _LocalPath) const;
-		virtual NContainer::TCVector<NStr::CStr> f_FindFilesNoRoot(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const;
+		virtual bool f_MakeFileWritable(NStr::CStr const& _LocalPath, bool _bWritable = true) const;
+		virtual bool f_IsFileWritable(NStr::CStr const& _LocalPath) const;
+		virtual NContainer::TCVector<NStr::CStr> f_FindFilesNoRoot(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true) const;
 		virtual bool f_IsValid() const;
 
-		virtual void f_DeleteDirectoryRecursive(NStr::CStr const& _File, bint _bRemoveWriteProtection = false) const;
+		virtual void f_DeleteDirectoryRecursive(NStr::CStr const& _File, bool _bRemoveWriteProtection = false) const;
 		virtual void f_CopyFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo, CFileProgress & _Progress) const;
 		virtual void f_CopyFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const;
 		virtual void f_CopyFileRaw(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const;
 		virtual void f_CopyFileRaw(NStr::CStr const& _FileFrom, ICFileSystemInterface & _ToFS, NStr::CStr const& _FileTo) const;
 		virtual void f_WriteFile(NContainer::CByteVector const& _FileFrom, NStr::CStr const& _FileTo) const;
 		virtual NContainer::CByteVector f_ReadFile(NStr::CStr const& _FileFrom) const;
-		virtual void f_CopyFiles(NStr::CStr const& _FindPath, NStr::CStr const& _ToPath, bint _bRecursive = true, bint _bRaw = false, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
-		virtual bint f_FileIsSame(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName) const;
-		virtual bint f_CopyFileDiff(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName, NTime::CTime const& _FileTime, EFileAttrib _AddAttribs = EFileAttrib_None) const;
-		virtual bint f_CopyFileDiff(NStr::CStr const& _FromFileName, NStr::CStr const& _ToFileName, bint _bCopyDate) const;
+		virtual void f_CopyFiles(NStr::CStr const& _FindPath, NStr::CStr const& _ToPath, bool _bRecursive = true, bool _bRaw = false, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
+		virtual bool f_FileIsSame(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName) const;
+		virtual bool f_CopyFileDiff(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName, NTime::CTime const& _FileTime, EFileAttrib _AddAttribs = EFileAttrib_None) const;
+		virtual bool f_CopyFileDiff(NStr::CStr const& _FromFileName, NStr::CStr const& _ToFileName, bool _bCopyDate) const;
 		virtual void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo, CFileProgress & _Progress) const;
 		virtual NMib::NStream::CFilePos f_GetFreeSpace(NMib::NStr::CStr const& _Path) const;
 		virtual NMib::NStream::CFilePos f_GetUsedSpace(NMib::NStr::CStr const& _Path) const;
@@ -60,8 +60,8 @@ namespace NMib::NFile
 		virtual NCryptography::CHashDigest_MD5 f_GetFileChecksum(NStr::CStr const& _Path) const;
 		virtual void f_WriteStringToFile(NStr::CStr const& _Path, NStr::CStr const& _ToWrite, bool _bAddBOM = true) const;
 		virtual NStr::CStr f_ReadStringFromFile(NStr::CStr const& _Path, bool _bAssumeUTF8 = false) const;
-		void f_CopyFiles(NStr::CStr const& _FindPath, ICFileSystemInterface & _ToFS, NStr::CStr const& _ToPath, bint _bRecursive = true, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
-		void f_CopyFilesWithAttribs(NStr::CStr const& _FindPath, ICFileSystemInterface & _ToFS, NStr::CStr const& _ToPath, bint _bRecursive = true, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
+		void f_CopyFiles(NStr::CStr const& _FindPath, ICFileSystemInterface & _ToFS, NStr::CStr const& _ToPath, bool _bRecursive = true, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
+		void f_CopyFilesWithAttribs(NStr::CStr const& _FindPath, ICFileSystemInterface & _ToFS, NStr::CStr const& _ToPath, bool _bRecursive = true, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const;
 
 		class CCopyFilesProgress
 		{
@@ -107,7 +107,7 @@ namespace NMib::NFile
 		void f_DeleteDirectory(NStr::CStr const& _File) const override;
 		void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const override;
 		void f_CreateDirectory(NStr::CStr const& _Path) const override;
-		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const override;
+		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true) const override;
 
 		void f_SetCreationTime(NStr::CStr const& _File, const NTime::CTime &_Time) override;
 		void f_SetAccessTime(NStr::CStr const& _File, const NTime::CTime &_Time) override;
@@ -121,20 +121,20 @@ namespace NMib::NFile
 		NMib::NStr::CStr f_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom) const override;
 		bool f_CanCreateSymbolicLink(NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags) const override;
 
-		bint f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
-		bint f_MakeFileWritable(NStr::CStr const& _LocalPath, bint _bWritable) const override;
-		bint f_IsFileWritable(NStr::CStr const& _LocalPath) const override;
-		void f_DeleteDirectoryRecursive(NStr::CStr const& _File, bint _bRemoveWriteProtection = false) const override;
+		bool f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
+		bool f_MakeFileWritable(NStr::CStr const& _LocalPath, bool _bWritable) const override;
+		bool f_IsFileWritable(NStr::CStr const& _LocalPath) const override;
+		void f_DeleteDirectoryRecursive(NStr::CStr const& _File, bool _bRemoveWriteProtection = false) const override;
 		void f_CopyFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo, CFileProgress & _Progress) const override;
 		void f_CopyFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const override;
 		void f_CopyFileRaw(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const override;
 		void f_CopyFileRaw(NStr::CStr const& _FileFrom, ICFileSystemInterface & _ToFS, NStr::CStr const& _FileTo) const override;
 		void f_WriteFile(NContainer::CByteVector const& _FileFrom, NStr::CStr const& _FileTo) const override;
 		NContainer::CByteVector f_ReadFile(NStr::CStr const& _FileFrom) const override;
-		void f_CopyFiles(NStr::CStr const& _FindPath, NStr::CStr const& _ToPath, bint _bRecursive = true, bint _bRaw = false, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
-		bint f_CopyFileDiff(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName, NTime::CTime const& _FileTime, EFileAttrib _AddAttribs = EFileAttrib_None) const override;
-		bint f_FileIsSame(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName) const override;
-		bint f_CopyFileDiff(NStr::CStr const& _FromFileName, NStr::CStr const& _ToFileName, bint _bCopyDate) const override;
+		void f_CopyFiles(NStr::CStr const& _FindPath, NStr::CStr const& _ToPath, bool _bRecursive = true, bool _bRaw = false, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
+		bool f_CopyFileDiff(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName, NTime::CTime const& _FileTime, EFileAttrib _AddAttribs = EFileAttrib_None) const override;
+		bool f_FileIsSame(NContainer::CByteVector const& _SourceData, NStr::CStr const& _ToFileName) const override;
+		bool f_CopyFileDiff(NStr::CStr const& _FromFileName, NStr::CStr const& _ToFileName, bool _bCopyDate) const override;
 		void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo, CFileProgress & _Progress) const override;
 		NMib::NStream::CFilePos f_GetFreeSpace(NMib::NStr::CStr const& _Path) const override;
 		NMib::NStream::CFilePos f_GetUsedSpace(NMib::NStr::CStr const& _Path) const override;

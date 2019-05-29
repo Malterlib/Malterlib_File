@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
@@ -38,7 +38,7 @@ enum ECopyFlags
 	ECopyFlags_Exists_SameCase = 8,
 	ECopyFlags_Exists_DifferentCase = 16
 };
- 
+
 // flags for tRequestProc
 enum ERequest
 {
@@ -115,7 +115,7 @@ enum EIconType
 
 typedef int (__stdcall *FProgressProc)(int PluginNr,ch16* SourceName,          ch16* TargetName,int PercentDone);
 typedef void (__stdcall *FLogProc)(int PluginNr,int MsgType,ch16* LogString);
-typedef bint (__stdcall *FRequestProc)(int PluginNr,int RequestType,ch16* CustomTitle, ch16* CustomText,ch16* ReturnedText,int maxlen);
+typedef bool (__stdcall *FRequestProc)(int PluginNr,int RequestType,ch16* CustomTitle, ch16* CustomText,ch16* ReturnedText,int maxlen);
 
 class CFindData
 {
@@ -147,7 +147,7 @@ public:
 	CStr m_FileName;
 	CVirtualFS *m_pVirtualFS;
 	NFile::TCBinaryStreamFile<> *m_pFile;
-	
+
 	class CCompare
 	{
 	public:
@@ -155,7 +155,7 @@ public:
 		{
 			return _Node.m_Name;
 		}
-		inline_small bint operator () (CStr const &_Left, CStr const &_Right) const
+		inline_small bool operator () (CStr const &_Left, CStr const &_Right) const
 		{
 			return fg_StrCmp(_Left, _Right) < 0;
 		}
@@ -331,7 +331,7 @@ public:
 
 	CVfsWfx()
 	{
-		
+
 	}
 
 	~CVfsWfx()
@@ -347,11 +347,11 @@ public:
 	void f_LoadSettings();
 
 	CFindInstance *f_FindFirstFile(const ch16 *_pPath);
-	bint f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData);
+	bool f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData);
 	void f_FindClose(CFindInstance * _pInstance);
 	int f_CreateDirectory(const ch16 *_pDirectory);
 	int f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb);
-	int f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bint _bMove, bint _bOverWrite);
+	int f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bool _bMove, bool _bOverWrite);
 	int f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _CopyFlags, RemoteInfoStruct* _RemoteInfo);
 	int f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _CopyFlags);
 	int f_DeleteFile(const ch16 *_pRemoteName);

@@ -17,7 +17,7 @@ namespace NAOCC
 
 namespace NMib::NFile
 {
-	bint fg_OpenExeFS(CExeFS &_FS)
+	bool fg_OpenExeFS(CExeFS &_FS)
 	{
 		// Try new style first.
 		if (NAOCC::g_ExeFS_nBytes && NAOCC::g_ExeFS_pBytes)
@@ -106,7 +106,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	bint fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo)
+	bool fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo)
 	{
 		CExeFS ExeFs;
 

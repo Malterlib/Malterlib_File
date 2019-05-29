@@ -23,8 +23,8 @@ namespace NMib::NFile
 		void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo) const override;
 		void f_RenameFile(NStr::CStr const& _FileFrom, NStr::CStr const& _FileTo, CFileProgress & _Progress) const override;
 		void f_CreateDirectory(NStr::CStr const& _Path) const override;
-		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bint _bRecursive = false, bool _bFollowLinks = true) const override;
-		bint f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
+		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const& _FindPath, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true) const override;
+		bool f_FileExists(NStr::CStr const& _File, NFile::EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File) const override;
 		NContainer::CByteVector f_ReadFile(NStr::CStr const& _FileFrom) const override;
 		NMib::NStream::CFilePos f_GetFreeSpace(NMib::NStr::CStr const& _Path) const override;
 		NMib::NStream::CFilePos f_GetUsedSpace(NMib::NStr::CStr const& _Path) const override;

@@ -85,17 +85,17 @@ namespace NMib::NFile
 	}
 
 	// Optional interface
-	bint ICFileSystemInterface::f_MakeFileWritable(const NStr::CStr &_LocalPath, bint _bWritable) const
+	bool ICFileSystemInterface::f_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable) const
 	{
 		return true;
 	};
-	bint ICFileSystemInterface::f_IsFileWritable(const NStr::CStr &_LocalPath) const
+	bool ICFileSystemInterface::f_IsFileWritable(const NStr::CStr &_LocalPath) const
 	{
 		return true;
 	};
 
 
-	NContainer::TCVector<NStr::CStr> ICFileSystemInterface::f_FindFilesNoRoot(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bint _bRecursive, bool _bFollowLinks) const
+	NContainer::TCVector<NStr::CStr> ICFileSystemInterface::f_FindFilesNoRoot(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks) const
 	{
 		NStr::CStr RootPath = CFile::fs_GetPath(_FindPath);
 
@@ -110,7 +110,7 @@ namespace NMib::NFile
 		return RetFiles;
 	}
 
-	void ICFileSystemInterface::f_DeleteDirectoryRecursive(const NStr::CStr &_File, bint _bRemoveWriteProtection) const
+	void ICFileSystemInterface::f_DeleteDirectoryRecursive(const NStr::CStr &_File, bool _bRemoveWriteProtection) const
 	{
 		NStr::CStr Errors;
 		fpr_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
@@ -172,7 +172,7 @@ namespace NMib::NFile
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pOutFile = f_OpenStream(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		pOutFile->f_FeedBytes(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
-	void ICFileSystemInterface::f_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bint _bRecursive, bint _bRaw, NFile::EFileAttrib _AttribMask) const
+	void ICFileSystemInterface::f_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bool _bRecursive, bool _bRaw, NFile::EFileAttrib _AttribMask) const
 	{
 		NContainer::TCVector<NStr::CStr> Paths;
 		if (_AttribMask & EFileAttrib_Directory)
@@ -213,9 +213,9 @@ namespace NMib::NFile
 		}
 	}
 
-	bint ICFileSystemInterface::f_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName) const
+	bool ICFileSystemInterface::f_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName) const
 	{
-		bint bChanged = false;
+		bool bChanged = false;
 
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pToFile;
 
@@ -255,11 +255,11 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bint ICFileSystemInterface::f_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs) const
+	bool ICFileSystemInterface::f_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs) const
 	{
 		if (f_FileIsSame(_SourceData, _ToFileName))
 			return false;
-		bint bChanged = false;
+		bool bChanged = false;
 
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pToFile;
 
@@ -303,7 +303,7 @@ namespace NMib::NFile
 		}
 		return false;
 	}
-	bint ICFileSystemInterface::f_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bint _bCopyDate) const
+	bool ICFileSystemInterface::f_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate) const
 	{
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pInFile = f_OpenStream(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll);
 
@@ -365,7 +365,7 @@ namespace NMib::NFile
 		return FileData;
 	}
 
-	void ICFileSystemInterface::f_CopyFiles(const NStr::CStr &_FindPath, ICFileSystemInterface &_ToFS, const NStr::CStr &_ToPath, bint _bRecursive, NFile::EFileAttrib _AttribMask) const
+	void ICFileSystemInterface::f_CopyFiles(const NStr::CStr &_FindPath, ICFileSystemInterface &_ToFS, const NStr::CStr &_ToPath, bool _bRecursive, NFile::EFileAttrib _AttribMask) const
 	{
 		NContainer::TCVector<NStr::CStr> Paths;
 		if (_AttribMask & EFileAttrib_Directory)
@@ -401,7 +401,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void ICFileSystemInterface::f_CopyFilesWithAttribs(const NStr::CStr &_FindPath, ICFileSystemInterface &_ToFS, const NStr::CStr &_ToPath, bint _bRecursive, NFile::EFileAttrib _AttribMask) const
+	void ICFileSystemInterface::f_CopyFilesWithAttribs(const NStr::CStr &_FindPath, ICFileSystemInterface &_ToFS, const NStr::CStr &_ToPath, bool _bRecursive, NFile::EFileAttrib _AttribMask) const
 	{
 		NContainer::TCVector<NStr::CStr> Paths;
 		if (_AttribMask & EFileAttrib_Directory)
@@ -684,23 +684,23 @@ namespace NMib::NFile
 	{
 		return NFile::CFile::fs_CreateDirectory(_Path);
 	}
-	NContainer::TCVector<NStr::CStr> CFileSystemInterface_Disk::f_FindFiles(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bint _bRecursive, bool _bFollowLinks) const
+	NContainer::TCVector<NStr::CStr> CFileSystemInterface_Disk::f_FindFiles(const NStr::CStr &_FindPath, NFile::EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks) const
 	{
 		return NFile::CFile::fs_FindFiles(_FindPath, _AttribMask, _bRecursive, _bFollowLinks);
 	}
-	bint CFileSystemInterface_Disk::f_FileExists(const NStr::CStr &_File, NFile::EFileAttrib _AttribMask) const
+	bool CFileSystemInterface_Disk::f_FileExists(const NStr::CStr &_File, NFile::EFileAttrib _AttribMask) const
 	{
 		return NFile::CFile::fs_FileExists(_File, _AttribMask);
 	}
-	bint CFileSystemInterface_Disk::f_MakeFileWritable(const NStr::CStr &_LocalPath, bint _bWritable) const
+	bool CFileSystemInterface_Disk::f_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable) const
 	{
 		return NFile::CFile::fs_MakeFileWritable(_LocalPath);
 	}
-	bint CFileSystemInterface_Disk::f_IsFileWritable(const NStr::CStr &_LocalPath) const
+	bool CFileSystemInterface_Disk::f_IsFileWritable(const NStr::CStr &_LocalPath) const
 	{
 		return NFile::CFile::fs_IsFileWritable(_LocalPath);
 	}
-	void CFileSystemInterface_Disk::f_DeleteDirectoryRecursive(const NStr::CStr &_File, bint _bRemoveWriteProtection) const
+	void CFileSystemInterface_Disk::f_DeleteDirectoryRecursive(const NStr::CStr &_File, bool _bRemoveWriteProtection) const
 	{
 		return NFile::CFile::fs_DeleteDirectoryRecursive(_File, _bRemoveWriteProtection);
 	}
@@ -729,19 +729,19 @@ namespace NMib::NFile
 	{
 		return NFile::CFile::fs_WriteFile(_FileFrom, _FileTo);
 	}
-	void CFileSystemInterface_Disk::f_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bint _bRecursive, bint _bRaw, NFile::EFileAttrib _AttribMask) const
+	void CFileSystemInterface_Disk::f_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bool _bRecursive, bool _bRaw, NFile::EFileAttrib _AttribMask) const
 	{
 		return NFile::CFile::fs_CopyFiles(_FindPath, _ToPath, _bRecursive, _bRaw, _AttribMask);
 	}
-	bint CFileSystemInterface_Disk::f_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs) const
+	bool CFileSystemInterface_Disk::f_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs) const
 	{
 		return NFile::CFile::fs_CopyFileDiff(_SourceData, _ToFileName, _FileTime, _AddAttribs);
 	}
-	bint CFileSystemInterface_Disk::f_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName) const
+	bool CFileSystemInterface_Disk::f_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName) const
 	{
 		return NFile::CFile::fs_FileIsSame(_SourceData, _ToFileName);
 	}
-	bint CFileSystemInterface_Disk::f_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bint _bCopyDate) const
+	bool CFileSystemInterface_Disk::f_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate) const
 	{
 		return NFile::CFile::fs_CopyFileDiff(_FromFileName, _ToFileName, _bCopyDate);
 	}

@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Test/Exception>
@@ -12,7 +12,7 @@ using namespace NMib;
 #include <Mib/Core/PlatformSpecific/WindowsFilePath>
 #endif
 
-namespace 
+namespace
 {
 	class CFile_Tests : public NMib::NTest::CTest
 	{
@@ -39,11 +39,11 @@ namespace
 		{
 			return CFile::fs_GetFullPath(CStr(_pPath), CStr(_pBase));
 		}
-		static CStr fs_GetExpandedPath(ch8 const *_pPath, bint _bAddCurrentDir = true)
+		static CStr fs_GetExpandedPath(ch8 const *_pPath, bool _bAddCurrentDir = true)
 		{
 			return CFile::fs_GetExpandedPath(CStr(_pPath), _bAddCurrentDir);
 		}
-		static bint fs_IsPathAbsolute(ch8 const *_pPath)
+		static bool fs_IsPathAbsolute(ch8 const *_pPath)
 		{
 			return CFile::fs_IsPathAbsolute(CStr(_pPath));
 		}
@@ -142,7 +142,7 @@ namespace
 				DMibTest(DMibExpr(fs_GetDrive("D:")) == DMibExpr("D:"));
 				DMibTest(DMibExpr(fs_GetDrive("D")) == DMibExpr(""));
 				DMibTest(DMibExpr(fs_GetDrive("")) == DMibExpr(""));
-				
+
 				DMibTest(DMibExpr(fs_GetExpandedPath("/Test")) == DMibExpr(CurrentDrive + "/Test"));
 				DMibTest(DMibExpr(fs_GetExpandedPath("/Test/Test1")) == DMibExpr(CurrentDrive + "/Test/Test1"));
 				DMibTest(DMibExpr(fs_GetExpandedPath("../Test")) == DMibExpr(CFile::fs_GetExpandedPath(CurrentDir + "/../Test")));
@@ -173,7 +173,7 @@ namespace
 				DMibTest(DMibExpr(CFile::fs_CondensePath("//?/C:/Fred/Wilma")) == DMibExpr("//?/C:/Fred/Wilma"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("//?/UNC/MyComp/Fred\\Wilma")) == DMibExpr("//?/UNC/MyComp/Fred/Wilma"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("//MyComp/Fred\\Wilma")) == DMibExpr("//MyComp/Fred/Wilma"));
-				
+
 #endif
 
 				DMibTest(DMibExpr(fs_MakePathRelative("/Fred/Wilma/BamBam.txt", "/Fred/Barney")) == DMibExpr("../Wilma/BamBam.txt"));
@@ -302,7 +302,7 @@ namespace
 								if ( (TestFileName.f_GetLen() + SubDir.f_GetLen()) > (1024 - 32) )
 									break;
 							#endif
-								
+
 							TestFileName += SubDir;
 						}
 						TestFileName += "/Testfile.txt";
@@ -330,7 +330,7 @@ namespace
 						{
 							CFile::fs_CreateDirectory(TestFileDir + "/TestDir");
 						}
-						
+
 						CFileChangeNotification FileChangeNotification;
 #ifdef DPlatformFamily_OSX
 						if (!bLongNames)
@@ -345,7 +345,7 @@ namespace
 
 						CFileChangeNotification FileChangeNotificationNonRecursive;
 						FileChangeNotificationNonRecursive.f_Open(NotificationDir, EFileChange_Write | EFileChange_FileName, nullptr);
-						
+
 
 						{
 							CFile File;
@@ -377,7 +377,7 @@ namespace
 						}
 
 						int32 MaxTries = 10000;
-						bint bFoundNotification = false;
+						bool bFoundNotification = false;
 						bool bFiredNonRecursive = false;
 						bool bFoundAnyNotification = false;
 						while (--MaxTries)
@@ -399,7 +399,7 @@ namespace
 
 							if (bFoundNotification && (bLongNames || bFiredNonRecursive))
 								break;
-							
+
 							NMib::NSys::fg_Thread_Sleep(0.001f);
 						}
 						DMibExpectTrue(bFoundAnyNotification);
@@ -410,7 +410,7 @@ namespace
 							DMibExpectFalse(bFiredNonRecursive);
 						FileChangeNotification.f_Close();
 						FileChangeNotificationNonRecursive.f_Close();
-						
+
 						CFile::fs_DeleteDirectory(TestFileDir + "/TestDir");
 
 						DMibExpect(MaxTries, >, 0);
@@ -419,13 +419,13 @@ namespace
 
 						DMibExpect(Files.f_Contains(TestFileName), >=, 0);
 					}
-					
+
 					bool bPollOSX = false;
 #ifdef DPlatformFamily_OSX
 					bPollOSX = true;
 //					bPollOSX = CSystem::ms_PlatformVersion < 10'07'00;
 #endif
-					
+
 					if (NMib::NFile::CFileChangeNotification::fs_Supported())
 					{
 						CStr TestDir = TestFileDir + "/TestDir2";
@@ -440,7 +440,7 @@ namespace
 							NSys::fg_Thread_Sleep(1.5); // Wait for old notifications to be unqueued
 						}
 #endif
-						
+
 						auto fSleep = [&]
 							{
 								if (CSystem::ms_PlatformVersion < 10'13'00)
@@ -453,13 +453,13 @@ namespace
 #endif
 							}
 						;
-						
+
 						fSleep();
-						
+
 						NMib::NThread::CEventAutoResetReportable Event;
 						CFileChangeNotification FileChangeNotification;
 						FileChangeNotification.f_Open(TestDir, bRecursive ? EFileChange_All : EFileChange_All & ~EFileChange_Recursive, &Event);
-						
+
 						auto fTrace = [&](CStr const &_Change, CFileChangeNotification::CNotification const &_Notification)
 							{
 #if 0
@@ -485,9 +485,9 @@ namespace
 								{
 									DMibExpectFalse(Event.f_WaitTimeout(10.0))(ETest_FailAndStop)(ETestFlag_Aggregated);
 								}
-								
+
 								fTrace(_Desc, Notification);
-								
+
 								return Notification;
 							}
 						;
@@ -991,7 +991,7 @@ namespace
 #endif
 						FileChangeNotification.f_Close();
 					}
-					
+
 
 					{
 						DMibTestPath("File attrib");
@@ -1004,7 +1004,7 @@ namespace
 						DMibTest((DMibExpr(File.f_GetAttributes()) & DMibExpr(EFileAttrib_ReadOnly | EFileAttrib_Executable)) == DMibExpr(EFileAttrib_None));
 						File.f_Close();
 					}
-					
+
 					auto fCheckAttribs = [&](EFileAttrib _SetAttrib, EFileAttrib _ExpectAttribMask, EFileAttrib _ExpectAttrib, EFileAttrib _ClearAttrib)
 						{
 							CFile File;
@@ -1015,7 +1015,7 @@ namespace
 							File.f_Close();
 						}
 					;
-					
+
 					auto fCheckTestFileOpenAttribs = [&](EFileAttrib _SetAttrib, EFileAttrib _ExpectAttribMask, EFileAttrib _ExpectAttrib, EFileAttrib _ClearAttrib)
 						{
 							{
@@ -1029,12 +1029,12 @@ namespace
 							CFile::fs_DeleteFile(TestFileName + ".attrib");
 						}
 					;
-					
+
 					{
 						DMibTestPath("File open attrib");
 						fCheckTestFileOpenAttribs(EFileAttrib_ReadOnly, EFileAttrib_ReadOnly | EFileAttrib_Executable, EFileAttrib_ReadOnly, EFileAttrib_None);
 					}
-					
+
 					{
 						DMibTestPath("File open unix attrib");
 						fCheckTestFileOpenAttribs
@@ -1042,11 +1042,11 @@ namespace
 								EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead
 								, EFileAttrib_AllUnixPermissions
 								, EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead
-								, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite 
+								, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite
 							)
 						;
 					}
-					
+
 					{
 						DMibTestPath("Read back");
 						CFile File;
@@ -1123,7 +1123,7 @@ namespace
 						CStr TestDirRename = TestFileDir + "/RenameDir2";
 						CFile::fs_CreateDirectory(TestDir);
 						CFile::fs_CopyFile(TestFileName, TestDir + "/TestFile");
-						
+
 						DMibTest(DMibExpr(CFile::fs_FileExists(TestDir, EFileAttrib_Directory)));
 
 						CFile::fs_RenameFile(TestDir, TestDirRename);
@@ -1134,7 +1134,7 @@ namespace
 
 						if (CFile::fs_FileExists(TestDir))
 							CFile::fs_DeleteDirectoryRecursive(TestDir);
-						
+
 						if (CFile::fs_FileExists(TestDirRename))
 							CFile::fs_DeleteDirectoryRecursive(TestDirRename);
 						DMibTest(DMibExpr(!CFile::fs_FileExists(TestDirRename)));
@@ -1151,7 +1151,7 @@ namespace
 						CFile::fs_RenameFile(TestFileName2, TestFileName3, Progress);
 						DMibTest(DMibExpr(CFile::fs_FileExists(TestFileName3, EFileAttrib_File)));
 						DMibTest(DMibExpr(Progress.m_bCalled) == DMibExpr(false));
-						
+
 						DMibTest(DMibExpr(TCThrowsException<NMib::NFile::CExceptionFile>()) == DMibLExpr(CFile::fs_RenameFile(TestFileName2 + "NotExist", TestFileName3, Progress)));
 
 						CFile::fs_DeleteFile(TestFileName3);
@@ -1167,7 +1167,7 @@ namespace
 					{
 						DMibTest(DMibExpr(CFile::fs_GetFileSize(TestFileName)) == DMibExpr(7));
 					}
-					
+
 
 					{
 						DMibTestPath("Delete");
@@ -1206,9 +1206,9 @@ namespace
 					File.f_Write("Testing", 7);
 					File.f_Close();
 				}
-				
+
 				CStr RenameDest = CFile::fs_GetTemporaryDirectory();
-				
+
 				// Rename directory
 				{
 					DMibTestPath("Rename Directory");
@@ -1216,18 +1216,18 @@ namespace
 					CStr TestDirRename = RenameDest + "/RenameDir2";
 					if (CFile::fs_FileExists(TestDirRename))
 						CFile::fs_DeleteDirectoryRecursive(TestDirRename);
-					
+
 					CFile::fs_CreateDirectory(RenameDest);
 					CFile::fs_CreateDirectory(TestDir);
 					CFile::fs_CopyFile(TestFileName, TestDir + "/TestFile");
-					
+
 					DMibTest(DMibExpr(TCThrowsException<NMib::NFile::CExceptionFile>()) == DMibLExpr(CFile::fs_RenameFile(TestDir, TestDirRename)));
 
 					DMibTest(DMibExpr(!CFile::fs_FileExists(TestDirRename)));
-					
+
 					if (CFile::fs_FileExists(TestDir))
 						CFile::fs_DeleteDirectoryRecursive(TestDir);
-					
+
 					DMibTest(DMibExpr(!CFile::fs_FileExists(TestDir)));
 				}
 				// Rename File
@@ -1237,51 +1237,51 @@ namespace
 					CStr TestDirRename = RenameDest + "/RenameDir2";
 					if (CFile::fs_FileExists(TestDirRename))
 						CFile::fs_CreateDirectory(TestDirRename);
-					
+
 					CFile::fs_CreateDirectory(TestDir);
 					CFile::fs_CopyFile(TestFileName, TestDir + "/TestFile");
 					CFile::fs_CreateDirectory(TestDirRename);
 					CFile::fs_RenameFile(TestDir + "/TestFile", TestDirRename + "/TestFile");
-					
+
 					DMibTest(DMibExpr(!CFile::fs_FileExists(TestDir + "/TestFile")));
 					DMibTest(DMibExpr(CFile::fs_FileExists(TestDirRename + "/TestFile")));
-					
+
 					if (CFile::fs_FileExists(TestDir))
 						CFile::fs_DeleteDirectoryRecursive(TestDir);
 					if (CFile::fs_FileExists(TestDirRename))
 						CFile::fs_DeleteDirectoryRecursive(TestDirRename);
-					
+
 					DMibTest(DMibExpr(!CFile::fs_FileExists(TestDir)));
 				}
 			};
-			
+
 			DMibTestSuite("Permissions")
 			{
 
 				if (!ProtectedFolder.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr((bint)true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write)) == DMibExpr((bint)false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr((bint)false));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write)) == DMibExpr(false));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(false));
 				}
 
 				if (!UnprotectedFolder.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Read)) == DMibExpr((bint)true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write)) == DMibExpr((bint)true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr((bint)true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Read)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(true));
 				}
 
 				if (!ProtectedButExecutableExe.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Read)) == DMibExpr((bint)true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write)) == DMibExpr((bint)false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write | EFileRight_Read)) == DMibExpr((bint)false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Execute)) == DMibExpr((bint)true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Read)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write)) == DMibExpr(false));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write | EFileRight_Read)) == DMibExpr(false));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Execute)) == DMibExpr(true));
 				}
 
 			};
-			
+
 			DMibTestCategory("Ownership")
 			{
 				DMibTestSuite("Get Ownership")
@@ -1300,7 +1300,7 @@ namespace
 				CStr TestDirectory = CFile::fs_GetCurrentDirectory() + "/TestDirectory";
 				CStr TestDirectoryFile = TestDirectory + "/MalterlibSetOwnershipTestFile";
 				CStr TestDirectoryLink = TestDirectory + "/MalterlibSetOwnershipTestLink";
-				
+
 				if (CFile::fs_FileExists(TestDirectoryLink))
 					CFile::fs_DeleteFile(TestDirectoryLink);
 				if (CFile::fs_FileExists(TestDirectoryFile))
@@ -1308,7 +1308,7 @@ namespace
 				if (CFile::fs_FileExists(TestDirectory))
 					CFile::fs_DeleteDirectory(TestDirectory);
 
-				
+
 #ifdef DPlatformFamily_OSX
 				{
 					DMibTestPath("Non-Existant");
@@ -1317,7 +1317,7 @@ namespace
 					DMibTest(DMibExpr(TCThrowsException<NMib::NException::CException>()) == DMibLExpr(CFile::fs_SetOwner("/dev", "NonExistingHansoftMalterlibTestUser")));
 					DMibTest(DMibExpr(TCThrowsException<NMib::NException::CException>()) == DMibLExpr(CFile::fs_SetGroup("/dev", "NonExistingHansoftMalterlibTestUser")));
 				}
-					
+
 				{
 					CFile File;
 					File.f_Open(TestFileName, EFileOpen_Write | EFileOpen_ShareAll);
@@ -1332,7 +1332,7 @@ namespace
 					DMibTest(DMibExpr(TCThrowsException<>()) == DMibLExpr(CFile::fs_SetGroup(TestFileName, "nobody")));
 					DMibTest(DMibExpr(CFile::fs_GetGroup(TestFileName)) == DMibExpr("nobody"));
 				}
-				
+
 				{
 					DMibTestPath("Recursive on File");
 					DMibTest(DMibExpr(TCThrowsException<>()) == DMibLExpr(CFile::fs_SetOwnerRecursive(TestFileName, "root")));
@@ -1344,7 +1344,7 @@ namespace
 				{
 					CFile::fs_DeleteFile(TestFileName);
 				}
-				
+
 				{
 					CFile::fs_CreateDirectory(TestDirectory);
 					CFile File;
@@ -1353,14 +1353,14 @@ namespace
 					File.f_Close();
 					CFile::fs_CreateSymbolicLink(TestDirectoryFile, TestDirectoryLink, EFileAttrib_File, ESymbolicLinkFlag_None);
 				}
-				
+
 				{
 					DMibTestPath("Recursive on Directory");
 					DMibTest(DMibExpr(TCThrowsException<>()) == DMibLExpr(CFile::fs_SetOwnerRecursive(TestDirectoryLink, "nobody", true)));
 					DMibTest(DMibExpr(CFile::fs_GetOwner(TestDirectoryFile)) == DMibExpr("nobody"));
 					DMibTest(DMibExpr(TCThrowsException<>()) == DMibLExpr(CFile::fs_SetGroupRecursive(TestDirectoryLink, "nobody", true)));
 					DMibTest(DMibExpr(CFile::fs_GetGroup(TestDirectoryFile)) == DMibExpr("nobody"));
-				}			
+				}
 
 				{
 					CFile::fs_DeleteFile(TestDirectoryLink);
@@ -1370,7 +1370,7 @@ namespace
 
 #endif
 			};
-				
+
 			};
 
 
@@ -1477,7 +1477,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1495,7 +1495,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1511,7 +1511,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1527,7 +1527,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1542,7 +1542,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1563,7 +1563,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1582,7 +1582,7 @@ namespace
 
 					FoundFiles.f_Sort();
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 				{
@@ -1598,7 +1598,7 @@ namespace
 					TCVector<CStr> ExpectedFiles0;
 					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1/TestFile");
 					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1");
-					
+
 					TCVector<CStr> FoundFiles1;
 					TCVector<CStr> ExpectedFiles1;
 					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2/Dir1");
@@ -1608,7 +1608,7 @@ namespace
 					TCVector<CStr> FoundFiles2;
 					TCVector<CStr> ExpectedFiles2;
 					ExpectedFiles2.f_Insert(CurrentDir + "/Dir3");
-					
+
 					for (auto &FoundFile : FoundFiles)
 					{
 						if (FoundFile.f_StartsWith(CurrentDir + "/Dir1"))
@@ -1635,7 +1635,7 @@ namespace
 					TCVector<CStr> ExpectedFiles0;
 					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1");
 					ExpectedFiles0.f_Insert(CurrentDir + "/Dir1/TestFile");
-					
+
 					TCVector<CStr> FoundFiles1;
 					TCVector<CStr> ExpectedFiles1;
 					ExpectedFiles1.f_Insert(CurrentDir + "/Dir2");
@@ -1645,7 +1645,7 @@ namespace
 					TCVector<CStr> FoundFiles2;
 					TCVector<CStr> ExpectedFiles2;
 					ExpectedFiles2.f_Insert(CurrentDir + "/Dir3");
-					
+
 					for (auto &FoundFile : FoundFiles)
 					{
 						if (FoundFile.f_StartsWith(CurrentDir + "/Dir1"))
@@ -1681,7 +1681,7 @@ namespace
 					TCVector<CStr> ExpectedFiles;
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir1/TestFile");
-					
+
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/Dir1");
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir2/TestFile");
@@ -1689,7 +1689,7 @@ namespace
 					ExpectedFiles.f_Insert(CurrentDir + "/Dir3");
 					ExpectedFiles.f_Insert(CurrentDir + "/TestDirSym");
 					ExpectedFiles.f_Sort();
-					
+
 					DMibExpect(FoundFiles, ==, ExpectedFiles);
 				}
 			};
@@ -1740,10 +1740,10 @@ namespace
 						DMibTest(DMibExpr(FoundFiles.f_GetLen()) == DMibExpr(1));
 						if (!FoundFiles.f_IsEmpty())
 							DMibTest((DMibExpr(FoundFiles[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link | EFileAttrib_Directory));
-						
+
 						if (!Flags)
 							DMibTest(DMibExpr(fl_FileContainData(DirSymLinkDestination + "/TestFile")));
-						
+
 					}
 
 					{
@@ -1798,8 +1798,8 @@ namespace
 				{
 					DMibTestPath("DevicePath");
 					{
-						auto Flags 
-							= CFile::fs_CanCreateSymbolicLink(EFileAttrib_Directory, ESymbolicLinkFlag_ConvertToDevicePath) 
+						auto Flags
+							= CFile::fs_CanCreateSymbolicLink(EFileAttrib_Directory, ESymbolicLinkFlag_ConvertToDevicePath)
 							? ESymbolicLinkFlag_None : ESymbolicLinkFlag_AllowEmulation
 						;
 						CStr DirSymLinkDestination = CurrentDir + "/TestDirSymDevicePath";
@@ -1974,6 +1974,6 @@ namespace
 			};
 		}
 	};
-	
+
 	DMibTestRegister(CFile_Tests, Malterlib::File);
 }

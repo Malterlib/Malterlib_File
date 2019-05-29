@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "PCH.h"
@@ -126,8 +126,8 @@ public:
 		m_Path = _Path;
 
 		if (m_Path != "")
-			m_Path = m_Path + "/"; 
-		
+			m_Path = m_Path + "/";
+
 		m_pFileSystem = _pFileSystem;
 		m_iCurrent = 0;
 		if (m_pFileSystem->OpenFs())
@@ -168,7 +168,7 @@ CFileSystem *CVfsWfx::fp_GetFS(CStr _Path, CStr &_FsPath)
 	if (fg_StrLen(_Path) > 1)
 	{
 		CStr Path;
-		
+
 		Path = _Path.f_Extract(1);
 
 		aint iFind = Path.f_Find("/");
@@ -201,7 +201,7 @@ CFindInstance *CVfsWfx::f_FindFirstFile(const ch16 *_pPath)
 	}
 	else if (fg_StrLen(_pPath) > 1)
 	{
-		
+
 		CStr FsPath;
 
 		CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pPath), FsPath);
@@ -214,7 +214,7 @@ CFindInstance *CVfsWfx::f_FindFirstFile(const ch16 *_pPath)
 	return nullptr;
 }
 
-bint CVfsWfx::f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData)
+bool CVfsWfx::f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData)
 {
 	return _pInstance->f_GetNext(_FindData);
 }
@@ -442,9 +442,9 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 					else
 						break;
 				}
-				
+
 				g_VfsWfx.m_FileSystems.f_Insert(pFileSystem);
-				
+
 				if (bChanged)
 					g_VfsWfx.f_SaveSettings();
 			}
@@ -459,7 +459,7 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 	return EExecuteError_OK;
 }
 
-int CVfsWfx::f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bint _bMove, bint _bOverWrite)
+int CVfsWfx::f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bool _bMove, bool _bOverWrite)
 {
 	return 0;
 }

@@ -8,7 +8,7 @@
 
 namespace NMib::NFile
 {
-	bint fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo);
+	bool fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo);
 
 	class CExeFS
 	{
@@ -30,7 +30,7 @@ namespace NMib::NFile
 		}
 	};
 	
-	bint fg_OpenExeFS(CExeFS &_FS);
+	bool fg_OpenExeFS(CExeFS &_FS);
 }
 
 #ifndef DMibPNoShortCuts

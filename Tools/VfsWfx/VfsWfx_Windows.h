@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+﻿// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
@@ -18,7 +18,7 @@ public:
 	int m_ClusterSize;
 	int m_InitialSize;
 	int m_GrowSize;
-	bint m_bCreateFile;
+	bool m_bCreateFile;
 
 	void *m_pParentWindow;
 };
