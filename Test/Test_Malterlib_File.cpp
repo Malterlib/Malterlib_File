@@ -1260,24 +1260,24 @@ namespace
 
 				if (!ProtectedFolder.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr(true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write)) == DMibExpr(false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(false));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr(ECheckFileRights_Access));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write)) == DMibExpr(ECheckFileRights_NoAccess));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(ECheckFileRights_NoAccess));
 				}
 
 				if (!UnprotectedFolder.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Read)) == DMibExpr(true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write)) == DMibExpr(true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Read)) == DMibExpr(ECheckFileRights_Access));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write)) == DMibExpr(ECheckFileRights_Access));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(UnprotectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(ECheckFileRights_Access));
 				}
 
 				if (!ProtectedButExecutableExe.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Read)) == DMibExpr(true));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write)) == DMibExpr(false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write | EFileRight_Read)) == DMibExpr(false));
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Execute)) == DMibExpr(true));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Read)) == DMibExpr(ECheckFileRights_Access));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write)) == DMibExpr(ECheckFileRights_NoAccess));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Write | EFileRight_Read)) == DMibExpr(ECheckFileRights_NoAccess));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedButExecutableExe, EFileRight_Execute)) == DMibExpr(ECheckFileRights_Access));
 				}
 
 			};
