@@ -129,7 +129,7 @@ namespace NMib::NFile
 		TCPromise<void> SyncsPromise;
 		Internal.f_RunFileSyncs(SyncsPromise);
 
-		co_await SyncsPromise;
+		co_await SyncsPromise.f_MoveFuture();
 
 		co_await Internal.m_Client.f_CallActor(&CDirectorySyncClient::f_Finished)();
 

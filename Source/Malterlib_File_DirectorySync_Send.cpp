@@ -135,7 +135,7 @@ namespace NMib::NFile
 	
 		TCPromise<CByteStats> Promise;
 
-		SubscriptionDestroyFuture > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
+		fg_Move(SubscriptionDestroyFuture) > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
 			{
 				if (!pThis->m_pRSyncServer)
 					return Promise.f_SetResult(CByteStats{});
