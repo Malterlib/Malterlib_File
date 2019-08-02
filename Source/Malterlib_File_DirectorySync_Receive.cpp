@@ -84,7 +84,6 @@ namespace NMib::NFile
 		for (auto &pRSync : Internal.m_RSyncStates)
 			pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
 		
-		TCPromise<void> Promise;
 		co_await RSyncDestroys.f_GetResults();
 
 		if (Internal.m_Client)

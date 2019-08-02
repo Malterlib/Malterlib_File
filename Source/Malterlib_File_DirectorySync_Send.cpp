@@ -83,7 +83,7 @@ namespace NMib::NFile
 		Result.m_Stats = Internal.m_Stats;
 		Result.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
 		
-		return fg_Explicit(Result);
+		co_return Result;
 	}
 	
 	void CDirectorySyncSend::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
@@ -111,53 +111,45 @@ namespace NMib::NFile
 		
 		for (auto &pState : Internal.m_RSyncStates)
 			pState->f_Destroy() > StateDestroys.f_AddResult();
-		
-		TCPromise<void> Promise;
-		
-		StateDestroys.f_GetResults() > Promise / [this, Promise]
-			{
-				auto &Internal = *mp_pInternal;
-				Internal.m_FileActor->f_Destroy() > Promise;
-			}
-		;
-		
-		return Promise.f_MoveFuture();
+
+		co_await StateDestroys.f_GetResults();
+		co_await Internal.m_FileActor.f_Destroy();
+
+		co_return {};
 	}
 
 	auto CDirectorySyncSend::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<CByteStats>
 	{
-		TCFuture<void> SubscriptionDestroyFuture;
-		
-		if (m_Subscription)
-			SubscriptionDestroyFuture = m_Subscription->f_Destroy();
-		else
-			SubscriptionDestroyFuture = fg_Explicit();
-	
-		TCPromise<CByteStats> Promise;
+		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this); // Keep this alive
 
-		fg_Move(SubscriptionDestroyFuture) > Promise / [pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this), Promise]
-			{
-				if (!pThis->m_pRSyncServer)
-					return Promise.f_SetResult(CByteStats{});
-				
-				g_Dispatch(pThis->m_FileActor) / [pThis]
-					{
-						pThis->m_pRSyncServer.f_Clear();
-						pThis->m_FileMemory.f_Clear();
-						pThis->m_pFile.f_Clear();
-						return pThis->m_ByteStats;
-					}
-					> Promise
-				;
-			}
+		co_await NConcurrency::ECoroutineFlag_AllowReferences;
+
+		if (m_Subscription)
+			co_await m_Subscription->f_Destroy();
+
+		if (!m_pRSyncServer)
+			co_return CByteStats{};
+
+		auto ByteStats = co_await
+			(
+			 	g_Dispatch(m_FileActor) / [pThis]
+				{
+					pThis->m_pRSyncServer.f_Clear();
+					pThis->m_FileMemory.f_Clear();
+					pThis->m_pFile.f_Clear();
+					return pThis->m_ByteStats;
+				}
+			)
 		;
 
-		return Promise.f_MoveFuture();
+		co_return fg_Move(ByteStats);
 	}
 	
 	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync)
 		-> TCFuture<FRunRSync>
 	{
+		TCPromise<FRunRSync> Promise;
+
 		CStr RSyncID = fg_RandomID();
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
@@ -170,9 +162,7 @@ namespace NMib::NFile
 		
 		RSyncState.m_FileActor = m_FileActor;
 		RSyncState.m_Subscription = fg_Move(_Subscription);
-		
-		TCPromise<FRunRSync> Promise;
-		
+
 		g_Dispatch(RSyncState.m_FileActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
 			{
 				fOpenRSync(*pRSyncState);
@@ -186,18 +176,14 @@ namespace NMib::NFile
 							g_ActorSubscription / [=]() -> TCFuture<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
-								
-								TCPromise<void> Promise;
-								pRSyncState->f_Destroy() > Promise / [this, Promise](CByteStats &&_Stats)
-									{
-										m_Stats.m_OutgoingBytes += _Stats.m_nOutgoing;
-										m_Stats.m_IncomingBytes += _Stats.m_nIncoming;
-										++m_Stats.m_nSyncedFiles;
+
+								CByteStats Stats = co_await pRSyncState->f_Destroy();
+
+								m_Stats.m_OutgoingBytes += Stats.m_nOutgoing;
+								m_Stats.m_IncomingBytes += Stats.m_nIncoming;
+								++m_Stats.m_nSyncedFiles;
 										
-										Promise.f_SetResult();
-									}
-								;
-								return Promise.f_MoveFuture();
+								co_return {};
 							}
 						)
 						/ [=](CSecureByteVector &&_Packet) -> TCFuture<CSecureByteVector>
@@ -229,9 +215,11 @@ namespace NMib::NFile
 	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
 	{
 		auto &Internal = *mp_pInternal;
-		return Internal.f_StartRSync
+		return fg_CallSafe
 			(
-				fg_Move(_Subscription)
+			 	Internal
+			 	, &CInternal::f_StartRSync
+				, fg_Move(_Subscription)
 				, [pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
 				{
 					auto &Config = *pConfig;
@@ -286,15 +274,15 @@ namespace NMib::NFile
 		auto &Internal = *mp_pInternal;
 		
 		if (auto pException = Internal.f_CheckFileName(_FileName))
-			return pException;
+			co_return pException;
 		
 		auto *pFile = Internal.m_pManifest->m_Files.f_FindEqual(_FileName);
 		
 		if (!pFile)
-			return DMibErrorInstance("File does not exist in manifest");
+			co_return DMibErrorInstance("File does not exist in manifest");
 
 		if (!pFile->f_IsFile())
-			return DMibErrorInstance("Is not a file in manifest");
+			co_return DMibErrorInstance("Is not a file in manifest");
 			
 		CStr FilePath;
 		
@@ -305,9 +293,11 @@ namespace NMib::NFile
 
 		FilePath = Internal.m_pConfig->m_FileOptions.f_TransformFileName(Internal.m_pConfig->m_BasePath, FilePath, EDirectorySyncStreamType_Source);
 
-		return Internal.f_StartRSync
+		co_return co_await fg_CallSafe
 			(
-				fg_Move(_Subscription)
+			 	Internal
+			 	, &CInternal::f_StartRSync
+				, fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{
 					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
@@ -323,6 +313,6 @@ namespace NMib::NFile
 		auto &Internal = *mp_pInternal;
 		Internal.m_bFinished = true;
 		
-		return fg_Explicit();
+		co_return {};
 	}
 }

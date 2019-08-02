@@ -148,8 +148,6 @@ namespace NMib::NFile
 					co_await NConcurrency::ECoroutineFlag_AllowReferences;
 					auto pThis = pThisUnsafe;
 
-					TCPromise<void> Promise;
-
 					CDirectoryManifest Manifest = co_await
 						(
 							g_Dispatch(pThis->m_FileActor) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
@@ -168,7 +166,7 @@ namespace NMib::NFile
 				}
 				, [this](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
-					return m_Client.f_CallActor(&CDirectorySyncClient::f_StartManifestRSync)(fg_Move(_Subscription));
+					return g_Future <<= m_Client.f_CallActor(&CDirectorySyncClient::f_StartManifestRSync)(fg_Move(_Subscription));
 				}
 			)
 		;

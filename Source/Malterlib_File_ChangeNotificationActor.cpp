@@ -73,7 +73,6 @@ namespace NMib::NFile
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
 			co_return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
 		
-		NConcurrency::TCPromise<NConcurrency::CActorSubscription> Promise;
 		auto &Internal = *mp_pInternal;
 		
 		try

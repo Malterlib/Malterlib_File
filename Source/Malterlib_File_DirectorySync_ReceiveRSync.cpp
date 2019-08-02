@@ -95,6 +95,8 @@ namespace NMib::NFile
 			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 		)
 	{
+		TCPromise<void> Promise;
+
 		CStr RSyncID = fg_RandomID();
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		pRSyncState->m_FileActor = m_FileActor;
@@ -106,7 +108,6 @@ namespace NMib::NFile
 			}
 		;
 
-		TCPromise<void> Promise;
 		g_Dispatch(m_FileActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
 				return fInitRSync(&*pRSyncState);

@@ -241,7 +241,7 @@ namespace NMib::NFile
 				}
 				, [this, _FileName](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
-					return m_Client.f_CallActor(&CDirectorySyncClient::f_StartRSync)(_FileName, fg_Move(_Subscription));
+					return g_Future <<= m_Client.f_CallActor(&CDirectorySyncClient::f_StartRSync)(_FileName, fg_Move(_Subscription));
 				}
 			)
 		;
@@ -251,7 +251,7 @@ namespace NMib::NFile
 	{
 		auto &Config = *m_pConfig;
 	
-		while (m_nRunningSyncs < Config.m_RSyncConcurrency && !m_PendingFileSyncs.f_IsEmpty() && !m_pThis->mp_bDestroyed)
+		while (m_nRunningSyncs < Config.m_RSyncConcurrency && !m_PendingFileSyncs.f_IsEmpty() && !m_pThis->f_IsDestroyed())
 		{
 			auto FileName = *m_PendingFileSyncs.f_FindSmallest();
 			m_PendingFileSyncs.f_Remove(FileName);
