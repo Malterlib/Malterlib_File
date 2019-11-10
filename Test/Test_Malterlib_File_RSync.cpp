@@ -177,48 +177,48 @@ namespace
 		}
 		static void fs_DoTests(uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
-			DMibTestCategory(NStr::CStr(NStr::CStr::CFormat("{} -> {}{}{}") << _MaxChunk << _MinChunk << (_bInPlace ? " In place" : "") << (_bEncrypt ? "Encrypted stream" : "")))
+			DMibTestPath(NStr::CStr(NStr::CStr::CFormat("{} -> {}{}{}") << _MaxChunk << _MinChunk << (_bInPlace ? " In place" : "") << (_bEncrypt ? "Encrypted stream" : "")));
 			{
-				DMibTestSuite("Same dual")
 				{
+					DMibTestPath("Same dual");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("aaa aaa"), CRSync_Tests::fs_ToVector("aaa aaa"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Same")
+				}
 				{
+					DMibTestPath("Same");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Addition")
+				}
 				{
+					DMibTestPath("Addition");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Same longer")
+				}
 				{
+					DMibTestPath("Same longer");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing New! 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Deletion")
+				}
 				{
+					DMibTestPath("Deletion");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing New! 123"), CRSync_Tests::fs_ToVector("Testing 123"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Long")
+				}
 				{
+					DMibTestPath("Long");
 					NStr::CStr LongStr;
 					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector(""), CRSync_Tests::fs_ToVector(LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Long Before")
+				}
 				{
+					DMibTestPath("Long Before");
 					NStr::CStr LongStr;
 					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("456"), CRSync_Tests::fs_ToVector(LongStr + "456"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Long After")
+				}
 				{
+					DMibTestPath("Long After");
 					NStr::CStr LongStr;
 					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Long Middle")
+				}
 				{
+					DMibTestPath("Long Middle");
 					NStr::CStr LongStr;
 					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync
@@ -230,13 +230,13 @@ namespace
 						 	, _bEncrypt
 						)
 					;
-				};
-				DMibTestSuite("Reverse")
+				}
 				{
+					DMibTestPath("Reverse");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("abcdefghijklmnopqr"), CRSync_Tests::fs_ToVector("qropmnklijghefcdab"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
-				DMibTestSuite("Non-sequential read for 16 byte blocks")
+				}
 				{
+					DMibTestPath("Non-sequential read for 16 byte blocks");
 					CRSync_Tests::fs_DoRSync
 						(
 							  CRSync_Tests::fs_ToVector("0123ABCD9abcdefEFGH56789abcdef0123456789IJKLf01MNOP6789abcdef0123456789abcdQRST23456789abcdef01234UVWXabcdef0123456789abcdef")
@@ -247,11 +247,11 @@ namespace
 						 	, _bEncrypt
 						)
 					;
-				};
-				DMibTestSuite("No intersection")
+				}
 				{
+					DMibTestPath("No intersection");
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("abcdefghijklmnopqr"), CRSync_Tests::fs_ToVector("0123456789"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
-				};
+				}
 			};
 		};
 
@@ -267,7 +267,7 @@ namespace
 
 		void f_DoTests()
 		{
-			DMibTestCategory("Basic")
+			DMibTestSuite("Basic")
 			{
 				for (mint e = 0; e < 2; ++e)
 				{
