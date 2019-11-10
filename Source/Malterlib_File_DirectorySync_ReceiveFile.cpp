@@ -44,6 +44,8 @@ namespace NMib::NFile
 									CFile::fs_DeleteDirectoryRecursive(File.m_Path);
 								break;
 							}
+						case EExcessFilesAction_Ignore:
+							break;
 						}
 					}
 				}
