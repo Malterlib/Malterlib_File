@@ -270,24 +270,36 @@ namespace
 				CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetCurrentDirectory() + "/FileTest");
 			};
 	#endif
-			for (mint i = 0; i < 4; ++i)
+			for (mint i = 0; i < 8; ++i)
 			{
 				CStr TestName = "File functions";
 				bool bLongNames = i & 1;
 				if (bLongNames)
 					TestName = "File functions long names";
 				bool bRecursive = i & 2;
+				bool bSymlinkDir = i & 4;
 
 				if (bRecursive)
 					TestName += " recursive notifications";
 				else
 					TestName += " non recursive notifications";
 
+				if (bSymlinkDir)
+					TestName += " in symlinked dir";
+
 				DMibTestSuite(TestName)
 				{
-					CStr CurrentDir = CFile::fs_GetCurrentDirectory() + "/FileTest";
+					CStr CurrentDir = CFile::fs_GetProgramDirectory() + "/FileTest";
 					if (CFile::fs_FileExists(CurrentDir, EFileAttrib_Directory))
 						CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
+
+					if (bSymlinkDir)
+					{
+						CFile::fs_CreateDirectory(CurrentDir / "LinkTarget");
+						CFile::fs_CreateSymbolicLink(CurrentDir / "LinkTarget", CurrentDir / "SymlinkDir", EFileAttrib_Directory, ESymbolicLinkFlag_None);
+						CurrentDir = CurrentDir / "SymlinkDir/Dir";
+					}
+
 					CStr TestFileName;
 					CStr FirstTestFileDir;
 					if (bLongNames)
