@@ -363,6 +363,7 @@ namespace
 							CFile File;
 							File.f_Open(TestFileName, EFileOpen_Write | EFileOpen_ShareAll);
 							File.f_Write("Testing", 7);
+							DMibTest((DMibExpr(File.f_GetAttributes()) & DMibExpr(EFileAttrib_File)) == DMibExpr(EFileAttrib_File));
 							File.f_SetAttributes(EFileAttrib_ReadOnly);
 							DMibTest((DMibExpr(File.f_GetAttributes()) & DMibExpr(EFileAttrib_ReadOnly | EFileAttrib_Executable)) == DMibExpr(EFileAttrib_ReadOnly));
 							File.f_SetAttributes(EFileAttrib_Executable);
@@ -1312,7 +1313,10 @@ namespace
 				CStr TestDirectory = CFile::fs_GetCurrentDirectory() + "/TestDirectory";
 				CStr TestDirectoryFile = TestDirectory + "/MalterlibSetOwnershipTestFile";
 				CStr TestDirectoryLink = TestDirectory + "/MalterlibSetOwnershipTestLink";
+				CStr TestDirectoryDirectoryLink = TestDirectory + "/MalterlibSetOwnershipTestDirectoryLink";
 
+				if (CFile::fs_FileExists(TestDirectoryDirectoryLink))
+					CFile::fs_DeleteFile(TestDirectoryDirectoryLink);
 				if (CFile::fs_FileExists(TestDirectoryLink))
 					CFile::fs_DeleteFile(TestDirectoryLink);
 				if (CFile::fs_FileExists(TestDirectoryFile))
@@ -1364,6 +1368,17 @@ namespace
 					File.f_Write("Testing", 7);
 					File.f_Close();
 					CFile::fs_CreateSymbolicLink(TestDirectoryFile, TestDirectoryLink, EFileAttrib_File, ESymbolicLinkFlag_None);
+
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryLink)) & DMibExpr(EFileAttrib_File)) == DMibExpr(EFileAttrib_File));
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryLink)) & DMibExpr(EFileAttrib_Directory)) == DMibExpr(EFileAttrib_None));
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryLink)) & DMibExpr(EFileAttrib_Link)) == DMibExpr(EFileAttrib_Link));
+				}
+				{
+					CFile::fs_CreateSymbolicLink("..", TestDirectoryDirectoryLink, EFileAttrib_Directory, ESymbolicLinkFlag_Relative);
+
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryDirectoryLink)) & DMibExpr(EFileAttrib_File)) == DMibExpr(EFileAttrib_None));
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryDirectoryLink)) & DMibExpr(EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Directory));
+					DMibTest((DMibExpr(CFile::fs_GetAttributes(TestDirectoryDirectoryLink)) & DMibExpr(EFileAttrib_Link)) == DMibExpr(EFileAttrib_Link));
 				}
 
 				{
@@ -1375,11 +1390,11 @@ namespace
 				}
 
 				{
+					CFile::fs_DeleteFile(TestDirectoryDirectoryLink);
 					CFile::fs_DeleteFile(TestDirectoryLink);
 					CFile::fs_DeleteFile(TestDirectoryFile);
 					CFile::fs_DeleteDirectory(TestDirectory);
 				}
-
 #endif
 			};
 
