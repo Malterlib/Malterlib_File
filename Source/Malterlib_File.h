@@ -464,7 +464,8 @@ namespace NMib::NFile
 				, bool _bRemoveWriteProtection = false
 			)
 		;
-		static bool fsp_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName);
+		static bool fsp_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName);
+		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName);
 
 	public:
 		CFile(CFile const &) = delete;
@@ -541,7 +542,8 @@ namespace NMib::NFile
 
 
 		static void fs_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bool _bRecursive = true, bool _bRaw = false, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
-		static bool fs_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName);
+		static bool fs_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName);
+		static bool fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName);
 		static NContainer::CByteVector fs_ReadFileTry(const NStr::CStr &_ToFileName);
 		static bool fs_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange = {});
 		static bool fs_CopyFileDiffDate(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);

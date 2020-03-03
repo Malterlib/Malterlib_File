@@ -949,7 +949,7 @@ namespace NMib::NFile
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
 
-	bool CFile::fs_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fs_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -967,7 +967,25 @@ namespace NMib::NFile
 		}
 	}
 
-	bool CFile::fsp_FileIsSame(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	{
+		int32 nTimes = 20 * 30; // 30 seconds
+		while (1)
+		{
+			try
+			{
+				return fsp_FileIsSame(_SourceData, _ToFileName);
+			}
+			catch (CExceptionFile const &)
+			{
+				if (--nTimes == 0)
+					throw;
+				NSys::fg_Thread_Sleep(NMisc::fg_GetRandomFloat() * 0.100);
+			}
+		}
+	}
+
+	bool CFile::fsp_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName)
 	{
 		NFile::CFile File;
 		bool bChanged = false;
@@ -982,6 +1000,33 @@ namespace NMib::NFile
 		if (!bChanged)
 		{
 			NContainer::CByteVector DestData;
+			DestData.f_SetLen(FileLen);
+			File.f_Read(DestData.f_GetArray(), FileLen);
+
+			if (NMemory::fg_MemCmp(DestData.f_GetArray(), _SourceData.f_GetArray(), FileLen) != 0)
+				bChanged = true;
+		}
+
+		if (bChanged)
+			return false;
+		return true;
+	}
+
+	bool CFile::fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	{
+		NFile::CFile File;
+		bool bChanged = false;
+
+		if (!fs_FileExists(_ToFileName))
+			return false;
+		File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
+
+		NStream::CFilePos FileLen = File.f_GetLength();
+		if (NStream::CFilePos(_SourceData.f_GetLen()) != FileLen)
+			bChanged = true;
+		if (!bChanged)
+		{
+			NContainer::CSecureByteVector DestData;
 			DestData.f_SetLen(FileLen);
 			File.f_Read(DestData.f_GetArray(), FileLen);
 
