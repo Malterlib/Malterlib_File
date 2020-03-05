@@ -150,7 +150,7 @@ namespace NMib::NFile
 	{
 		TCPromise<FRunRSync> Promise;
 
-		CStr RSyncID = fg_RandomID();
+		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
 		
