@@ -1795,12 +1795,12 @@ namespace NMib::NFile
 			mp_pFile = &_File;
 		}
 
-		void f_Open(CFile *_pFile)
+		void f_Open(CVirtualFSFile *_pFile)
 		{
 			mp_pFile = _pFile;
 		}
 
-		void f_Open(CFile &_File)
+		void f_Open(CVirtualFSFile &_File)
 		{
 			mp_pFile = &_File;
 		}
