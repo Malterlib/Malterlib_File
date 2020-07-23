@@ -1465,6 +1465,11 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetUsedSpace(_Path);
 	}
 
+	NMib::NStream::CFilePos CFile::fs_GetTotalSpace(const NMib::NStr::CStr &_Path)
+	{
+		return NSys::NFile::fg_GetTotalSpace(_Path);
+	}
+
 	bool CFile::fs_FileExists(const NStr::CStr &_File, EFileAttrib _AttribMask)
 	{
 		return NSys::NFile::fg_FileExists(_File, _AttribMask);

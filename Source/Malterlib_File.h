@@ -179,6 +179,7 @@ namespace NMib::NSys::NFile
 
 	NMib::NStream::CFilePos fg_GetFreeSpace(const NMib::NStr::CStr &_Path);
 	NMib::NStream::CFilePos fg_GetUsedSpace(const NMib::NStr::CStr &_Path);
+	NMib::NStream::CFilePos fg_GetTotalSpace(const NMib::NStr::CStr &_Path);
 
 	void fg_SetCurrentDirectory(const NMib::NStr::CStr &_Directory);
 
@@ -389,6 +390,7 @@ namespace NMib::NFile
 			, EDiffCopyChange_LinkCreated
 			, EDiffCopyChange_NoChange
 		};
+
 		enum EDiffCopyChangeAction
 		{
 			EDiffCopyChangeAction_Perform
@@ -704,6 +706,7 @@ namespace NMib::NFile
 
 		static NMib::NStream::CFilePos fs_GetFreeSpace(const NMib::NStr::CStr &_Path);
 		static NMib::NStream::CFilePos fs_GetUsedSpace(const NMib::NStr::CStr &_Path);
+		static NMib::NStream::CFilePos fs_GetTotalSpace(const NMib::NStr::CStr &_Path);
 		static void fs_FindFilesGeneral
 			(
 				const NStr::CStr &_FindPath
