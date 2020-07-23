@@ -1470,6 +1470,11 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetTotalSpace(_Path);
 	}
 
+	NContainer::TCVector<NStr::CStr> CFile::fs_GetMounts(EFileMountType _Types)
+	{
+		return NSys::NFile::fg_GetMounts(_Types);
+	}
+
 	bool CFile::fs_FileExists(const NStr::CStr &_File, EFileAttrib _AttribMask)
 	{
 		return NSys::NFile::fg_FileExists(_File, _AttribMask);

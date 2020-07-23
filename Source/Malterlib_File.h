@@ -181,6 +181,8 @@ namespace NMib::NSys::NFile
 	NMib::NStream::CFilePos fg_GetUsedSpace(const NMib::NStr::CStr &_Path);
 	NMib::NStream::CFilePos fg_GetTotalSpace(const NMib::NStr::CStr &_Path);
 
+	NContainer::TCVector<NMib::NStr::CStr> fg_GetMounts(NMib::NFile::EFileMountType _Types);
+
 	void fg_SetCurrentDirectory(const NMib::NStr::CStr &_Directory);
 
 	NMib::NStr::CStr fg_GetProgramPath();
@@ -707,6 +709,8 @@ namespace NMib::NFile
 		static NMib::NStream::CFilePos fs_GetFreeSpace(const NMib::NStr::CStr &_Path);
 		static NMib::NStream::CFilePos fs_GetUsedSpace(const NMib::NStr::CStr &_Path);
 		static NMib::NStream::CFilePos fs_GetTotalSpace(const NMib::NStr::CStr &_Path);
+		static NContainer::TCVector<NStr::CStr> fs_GetMounts(EFileMountType _Types);
+		
 		static void fs_FindFilesGeneral
 			(
 				const NStr::CStr &_FindPath
