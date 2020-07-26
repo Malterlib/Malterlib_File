@@ -36,7 +36,7 @@ namespace NMib::NFile
 		co_await NConcurrency::ECoroutineFlag_AllowReferences;
 
 		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this);
-		co_await m_fRunProtocol.f_Destroy();
+		co_await fg_Move(m_fRunProtocol).f_Destroy();
 
 		if (!pThis->m_pClient)
 			co_return {};
