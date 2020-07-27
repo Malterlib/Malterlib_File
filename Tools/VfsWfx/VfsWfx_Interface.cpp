@@ -109,7 +109,7 @@ int __stdcall FsExtractCustomIcon(char* RemoteName,int ExtractFlags,HICON* TheIc
 
 int __stdcall FsInitW(int PluginNr,tProgressProcW pProgressProcW, tLogProcW pLogProcW,tRequestProcW pRequestProcW)
 {
-	return g_VfsWfx.f_Init(pProgressProcW, pLogProcW, pRequestProcW, PluginNr);
+	return int(g_VfsWfx.f_Init(pProgressProcW, pLogProcW, pRequestProcW, PluginNr));
 }
 
 HANDLE __stdcall FsFindFirstW(WCHAR* _pPath,WIN32_FIND_DATAW *FindData)

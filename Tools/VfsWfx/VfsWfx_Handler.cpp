@@ -17,9 +17,7 @@ CTime FileTimeToMalterlibTime(FILETIME _Time);
 
 static CStr fg_StrFromWindows(const CWStr &_Str)
 {
-	CStr Temp;
-	Temp.fp_CopyFrom(_Str.f_GetStr(), _Str.f_GetLen());
-	return Temp.f_EncodeUTF8(false, false);
+	return _Str;
 }
 
 
@@ -35,7 +33,7 @@ aint CVfsWfx::f_Init(FProgressProc _ProgressProc, FLogProc _LogProc, FRequestPro
 
 void CVfsWfx::f_SetIniPath(CStr _Path)
 {
-	m_IniPath = _Path + "/IdsVfs.Settings";
+	m_IniPath = _Path + "/MalterlibVfs.Settings";
 
 	f_LoadSettings();
 }

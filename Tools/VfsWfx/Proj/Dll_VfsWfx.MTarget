@@ -20,7 +20,7 @@
 		FileExtension ".wfx"
 		FileExtension ".wfx64"
 		{
-			!!Architchture "x64"
+			!!Architecture "x64"
 		}
 		Type "DynamicLibrary"
 	}

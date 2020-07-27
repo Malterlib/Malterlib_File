@@ -115,7 +115,7 @@ enum EIconType
 
 typedef int (__stdcall *FProgressProc)(int PluginNr,ch16* SourceName,          ch16* TargetName,int PercentDone);
 typedef void (__stdcall *FLogProc)(int PluginNr,int MsgType,ch16* LogString);
-typedef bool (__stdcall *FRequestProc)(int PluginNr,int RequestType,ch16* CustomTitle, ch16* CustomText,ch16* ReturnedText,int maxlen);
+typedef BOOL (__stdcall *FRequestProc)(int PluginNr,int RequestType,ch16* CustomTitle, ch16* CustomText,ch16* ReturnedText,int maxlen);
 
 class CFindData
 {
@@ -306,7 +306,7 @@ class CVfsWfx
 {
 public:
 
-	NIntrusive::TCAVLTree<CFileSystem::CLinkTraits_m_Link, CFileSystem::CCompare> m_FileSystems;
+	NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare> m_FileSystems;
 
 	void fp_UnloadAll()
 	{
@@ -320,7 +320,7 @@ public:
 	}
 
 public:
-	typedef NIntrusive::TCAVLTree<CFileSystem::CLinkTraits_m_Link, CFileSystem::CCompare>::CIterator CFileSysIter;
+	typedef NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare>::CIterator CFileSysIter;
 
 	FProgressProc m_ProgressProc;
 	FLogProc m_LogProc;
