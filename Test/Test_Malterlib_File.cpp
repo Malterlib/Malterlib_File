@@ -526,11 +526,19 @@ namespace
 							DMibExpectFalse(fHasChange() && "Before");
 							CFile::fs_CreateDirectory(TestDir + "/SubDir");
 
-							auto Change0 = fWaitForChange("CreateDir: Change0");
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							Notifications[fWaitForChange("CreateDir: Change0")];
+							Notifications[fWaitForChange("CreateDir: Change1")];
+
+							auto iChange = Notifications.f_GetIterator();
+							auto Change0 = *iChange;
+							++iChange;
+							auto Change1 = *iChange;
+							++iChange;
+
 							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
 							DMibExpect(Change0.m_Path, ==, "SubDir");
 
-							auto Change1 = fWaitForChange("CreateDir: Change1");
 							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change1.m_Path, ==, "");
 
@@ -542,11 +550,19 @@ namespace
 							DMibExpectFalse(fHasChange() && "Before");
 							CFile::fs_Touch(TestDir / SubDir / "File.tst");
 
-							auto Change0 = fWaitForChange("CreateFile: Change0");
+							TCSet<CFileChangeNotification::CNotification> Notifications;
+							Notifications[fWaitForChange("CreateFile: Change0")];
+							Notifications[fWaitForChange("CreateFile: Change1")];
+
+							auto iChange = Notifications.f_GetIterator();
+							auto Change0 = *iChange;
+							++iChange;
+							auto Change1 = *iChange;
+							++iChange;
+
 							DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
 							DMibExpect(Change0.m_Path, ==, SubDir / "File.tst");
 
-							auto Change1 = fWaitForChange("CreateFile: Change1");
 							DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 							DMibExpect(Change1.m_Path, ==, SubDir);
 
