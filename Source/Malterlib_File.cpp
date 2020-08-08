@@ -2209,6 +2209,11 @@ namespace NMib::NFile
 		return fg_Move(FileData);
 	}
 
+	mint CFile::fs_MaximumPathLength()
+	{
+		return NSys::NFile::fg_MaximumPathLength();
+	}
+
 	const ch8 *CFile::fs_GetInvalidFileNameChars(bool _bPath)
 	{
 		if (_bPath)

@@ -309,11 +309,8 @@ namespace
 						FirstTestFileDir = CurrentDir + SubDir;
 						for (mint i = 0; i < 32; ++i)
 						{
-
-							#if defined(DPlatformFamily_Linux) || defined(DPlatformFamily_OSX) //  TODO: Should max path length be exposed via Malterlib? Probably.
-								if ( (TestFileName.f_GetLen() + SubDir.f_GetLen()) > (1024 - 32) )
-									break;
-							#endif
+							if (mint(TestFileName.f_GetLen() + SubDir.f_GetLen()) > (CFile::fs_MaximumPathLength() - 32u))
+								break;
 
 							TestFileName += SubDir;
 						}

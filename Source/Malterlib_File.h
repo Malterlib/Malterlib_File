@@ -110,7 +110,7 @@ namespace NMib::NSys::NFile
 
 	NMib::NFile::EFileAttrib fg_GetSupportedAttributes();
 	NMib::NFile::EFileAttrib fg_GetValidAttributes();
-
+	mint fg_MaximumPathLength();
 
 	CMibFilePos fg_GetSize(void *_pFile);
 	void fg_SetSize(void *_pFile, const CMibFilePos &_Size);
@@ -526,6 +526,8 @@ namespace NMib::NFile
 		NStream::CFilePos f_GetPosition() const;
 		void f_SetOwner(NStr::CStr const & _Owner);
 		void f_SetGroup(NStr::CStr const & _Group);
+
+		static mint fs_MaximumPathLength();
 
 		// Static functions
 		static bool fs_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable = true);
