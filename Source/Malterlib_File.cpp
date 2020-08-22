@@ -507,10 +507,11 @@ namespace NMib::NFile
 
 	void CFile::f_SetCacheSize(mint _CacheSize)
 	{
+		DMibRequire(_CacheSize > 0);
 		fp_FlushCache();
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
-			mint NewCacheSize = mint(1) << fg_GetHighestBitSet(_CacheSize);
+			mint NewCacheSize = mint(1) << fg_GetHighestBitSetNoZero(_CacheSize);
 			mp_CachePos = -1;
 			if (mp_bNonTracked)
 				mp_CacheBufferNonTracked.f_SetLen(NewCacheSize);
