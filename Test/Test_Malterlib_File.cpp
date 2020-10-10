@@ -526,6 +526,7 @@ namespace
 							TCSet<CFileChangeNotification::CNotification> Notifications;
 							Notifications[fWaitForChange("CreateDir: Change0")];
 							Notifications[fWaitForChange("CreateDir: Change1")];
+							DMibAssert(Notifications.f_GetLen(), ==, 2);
 
 							auto iChange = Notifications.f_GetIterator();
 							auto Change0 = *iChange;
@@ -550,6 +551,7 @@ namespace
 							TCSet<CFileChangeNotification::CNotification> Notifications;
 							Notifications[fWaitForChange("CreateFile: Change0")];
 							Notifications[fWaitForChange("CreateFile: Change1")];
+							DMibAssert(Notifications.f_GetLen(), ==, 2);
 
 							auto iChange = Notifications.f_GetIterator();
 							auto Change0 = *iChange;
@@ -592,6 +594,7 @@ namespace
 								Notifications[fWaitForChange("RenameFile: Change1")];
 								Notifications[fWaitForChange("RenameFile: Change2")];
 								Notifications[fWaitForChange("RenameFile: Change3")];
+								DMibAssert(Notifications.f_GetLen(), ==, 4);
 
 								auto iChange = Notifications.f_GetIterator();
 								auto Change0 = *iChange;
@@ -626,7 +629,13 @@ namespace
 
 								Notifications[fWaitForChange("RenameFile: Change1")];
 								if (bRecursive)
+								{
 									Notifications[fWaitForChange("RenameFile: Change2")];
+									DMibAssert(Notifications.f_GetLen(), ==, 2);
+								}
+								else
+									DMibAssert(Notifications.f_GetLen(), ==, 1);
+
 								auto iChange = Notifications.f_GetIterator();
 								auto Change1 = *iChange;
 								++iChange;
@@ -743,6 +752,7 @@ namespace
 								Notifications[fWaitForChange("RenameHardLink2: Change2")];
 								Notifications[fWaitForChange("RenameHardLink2: Change3")];
 								Notifications[fWaitForChange("RenameHardLink2: Change4")];
+								DMibAssert(Notifications.f_GetLen(), ==, 5);
 								auto iNotification = Notifications.f_GetIterator();
 								auto Change0 = *iNotification;
 								++iNotification;
@@ -776,6 +786,7 @@ namespace
 								Notifications[fWaitForChange("RenameHardLink2: Change0")];
 								Notifications[fWaitForChange("RenameHardLink2: Change1")];
 								Notifications[fWaitForChange("RenameHardLink2: Change2")];
+								DMibAssert(Notifications.f_GetLen(), ==, 3);
 								auto iNotification = Notifications.f_GetIterator();
 								auto Change0 = *iNotification;
 								++iNotification;
@@ -804,7 +815,12 @@ namespace
 								TCSet<CFileChangeNotification::CNotification> Notifications;
 								Notifications[fWaitForChange("RenameHardLink2: Change2")];
 								if (bRecursive)
+								{
 									Notifications[fWaitForChange("RenameHardLink2: Change3")];
+									DMibAssert(Notifications.f_GetLen(), ==, 2);
+								}
+								else
+									DMibAssert(Notifications.f_GetLen(), ==, 1);
 
 								auto iChange = Notifications.f_GetIterator();
 								auto Change2 = *iChange;
@@ -990,8 +1006,13 @@ namespace
 								Notifications[fWaitForChange("Delete self: Change1")];
 #ifdef DPlatformFamily_Linux
 								Notifications[fWaitForChange("Delete self: Change2")];
+								DMibAssert(Notifications.f_GetLen(), ==, 3);
+#else
+								DMibAssert(Notifications.f_GetLen(), ==, 2);
 #endif
 							}
+							else
+								DMibAssert(Notifications.f_GetLen(), ==, 1);
 
 							auto iChange = Notifications.f_GetIterator();
 							auto Change0 = *iChange;
