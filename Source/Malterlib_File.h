@@ -214,7 +214,7 @@ namespace NMib::NSys::NFile
 //			NMib::NStr::CStr fg_GetProgramRootDirectory();		// This defaults to the program directory but can be changed via fg_SetProgramRootDirectory.
 //			void fg_SetProgramRootDirectory(NMib::NStr::CStr const& _Root);
 
-	void *fg_ChangeNotification_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreReportableAggregate *_pReportTo);
+	void *fg_ChangeNotification_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo);
 	void fg_ChangeNotification_Close(void *_pNotification);
 	bool fg_ChangeNotification_Changed(void *_pNotification);
 	bool fg_ChangeNotification_GetNotification(void *_pNotification, NMib::NStr::CStr &_Path, NMib::NFile::EFileChangeNotification &_Notification, NMib::NStr::CStr &_PathFrom);
@@ -261,7 +261,7 @@ namespace NMib::NFile
 			}
 		}
 
-		void f_Open(const NStr::CStr &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreReportableAggregate *_pReportTo)
+		void f_Open(const NStr::CStr &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo)
 		{
 			f_Close();
 			mp_pNotification = NSys::NFile::fg_ChangeNotification_Open(_Path, _OpenFlags, _pReportTo);

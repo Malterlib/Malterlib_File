@@ -466,7 +466,7 @@ namespace
 
 						fSleep();
 
-						NMib::NThread::CEventAutoResetReportable Event;
+						NMib::NThread::CEventAutoReset Event;
 						CFileChangeNotification FileChangeNotification;
 						FileChangeNotification.f_Open(TestDir, bRecursive ? EFileChange_All : EFileChange_All & ~EFileChange_Recursive, &Event);
 
