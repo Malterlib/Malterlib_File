@@ -26,20 +26,13 @@ Import "../Core/Lib_Malterlib.MTarget"
 
 Property
 {
-	MalterlibLibrary_File true
-	{
-		&
-		{
-			MalterlibLibrary_File ""
-			MalterlibLibrary_All true
-		}
-	}
-	MalterlibSubLibraries "File;@(MalterlibSubLibraries)"
+	MalterlibLibrary_File define bool = MalterlibLibrary_All
+	MalterlibSubLibraries =+ "File"
 	{
 		!!MalterlibLibrary_File true
 	}
-//	MalterlibSubLibrarySeparate_Lib_Malterlib_File true
-	MalterlibIncludeRoots "@('Include'->MakeAbsolute());@(MalterlibIncludeRoots)"
+//	MalterlibSubLibrarySeparate_Lib_Malterlib_File define bool = true
+	MalterlibIncludeRoots =+ "Include"->MakeAbsolute()
 	{
 		!!MalterlibLibrary_File true
 	}
@@ -47,15 +40,14 @@ Property
 
 %Group "{Test}/{Malterlib_File}"
 {
-	Property.MalterlibLinkWithOpenSSL true
 }
 
 Property
 {
 	!!MalterlibEnableInternalTests true
 	
-	MalterlibTests "Malterlib_File;@(MalterlibTests)"
-	MalterlibTestFiles_Malterlib_File "@('Test/*'->MakeAbsolute())"
-	MalterlibTestExtraGroups_Malterlib_File "{Test}/{Malterlib_File}"
+	MalterlibTests =+ "Malterlib_File"
+	MalterlibTestFiles_Malterlib_File define [type(CEntity)] = ["Test/*"->MakeAbsolute()]
+	MalterlibTestExtraGroups_Malterlib_File define [string] = ["{Test}/{Malterlib_File}"]
 }
 
