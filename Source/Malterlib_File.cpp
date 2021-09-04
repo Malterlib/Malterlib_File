@@ -3139,11 +3139,6 @@ namespace NMib::NFile
 		f_Stop();
 	}
 
-	bool CFileChangeNotification::CNotification::operator < (CNotification const &_Right) const
-	{
-		return NStorage::fg_TupleReferences(m_Notification, m_Path, m_PathFrom) < NStorage::fg_TupleReferences(_Right.m_Notification, _Right.m_Path, _Right.m_PathFrom);
-	}
-
 	NEncoding::CEJSON CFile::fs_AttribToJSON(EFileAttrib _Attribs)
 	{
 		NEncoding::CEJSON JSON;

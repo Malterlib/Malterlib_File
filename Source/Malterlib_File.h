@@ -57,21 +57,7 @@ namespace NMib::NFile
 		uint64 m_VolumeID = TCLimitsInt<uint64>::mc_Max;
 		uint128 m_FileID = TCLimitsInt<uint64>::mc_Max;
 
-		bool operator < (CUniqueFileIdentifier const &_Right) const
-		{
-			if (m_VolumeID < _Right.m_VolumeID)
-				return true;
-			else if (m_VolumeID > _Right.m_VolumeID)
-				return false;
-			return m_FileID < _Right.m_FileID;
-		}
-
-		bool operator == (CUniqueFileIdentifier const &_Right) const
-		{
-			if (m_VolumeID != _Right.m_VolumeID)
-				return false;
-			return m_FileID == _Right.m_FileID;
-		}
+		auto operator <=> (CUniqueFileIdentifier const &_Right) const = default;
 	};
 }
 
@@ -284,7 +270,7 @@ namespace NMib::NFile
 			NStr::CStr m_Path;
 			NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
 
-			bool operator < (CNotification const &_Right) const;
+			auto operator <=> (CNotification const &_Right) const = default;
 		};
 
 		bool f_GetNotification(CNotification &_ToFill)
@@ -348,21 +334,7 @@ namespace NMib::NFile
 				_Stream >> m_Attribs;
 			}
 
-			bool operator == (CFoundFile const &_Other) const
-			{
-				if (m_Path != _Other.m_Path)
-					return false;
-				return m_Attribs == _Other.m_Attribs;
-			}
-
-			bool operator < (CFoundFile const &_Other) const
-			{
-				if (m_Path < _Other.m_Path)
-					return true;
-				if (m_Path > _Other.m_Path)
-					return false;
-				return m_Attribs < _Other.m_Attribs;
-			}
+			auto operator <=> (CFoundFile const &_Other) const = default;
 		};
 
 		struct CFindFilesOptions
