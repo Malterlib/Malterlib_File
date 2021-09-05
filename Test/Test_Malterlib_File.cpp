@@ -501,6 +501,19 @@ namespace
 								return Notification;
 							}
 						;
+						auto fTryWaitForChange = [&](CStr const &_Desc, CFileChangeNotification::CNotification &o_Notification)
+							{
+								while (!FileChangeNotification.f_GetNotification(o_Notification))
+								{
+									if (Event.f_WaitTimeout(2.0))
+										return false;
+								}
+
+								fTrace(_Desc, o_Notification);
+
+								return true;
+							}
+						;
 						auto fHasChange = [&]() -> bool
 							{
 								CFileChangeNotification::CNotification Notification;
@@ -752,6 +765,12 @@ namespace
 								Notifications[fWaitForChange("RenameHardLink2: Change2")];
 								Notifications[fWaitForChange("RenameHardLink2: Change3")];
 								Notifications[fWaitForChange("RenameHardLink2: Change4")];
+								{
+									CFileChangeNotification::CNotification Notification;
+									if (fTryWaitForChange("RenameHardLink2: Change5", Notification))
+										Notifications[Notification];
+								}
+
 								DMibAssert(Notifications.f_GetLen(), ==, 5);
 								auto iNotification = Notifications.f_GetIterator();
 								auto Change0 = *iNotification;
