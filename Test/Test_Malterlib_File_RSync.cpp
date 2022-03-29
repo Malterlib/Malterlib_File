@@ -59,9 +59,9 @@ namespace
 		static void fs_DoRSync(CSecureByteVector const &_Orig, CSecureByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			bool bServerDone = false;
-			mint TotalSizeClient = 0;
-			mint TotalSizeServer = 0;
-			mint nRawBytes;
+			[[maybe_unused]] mint TotalSizeClient = 0;
+			[[maybe_unused]] mint TotalSizeServer = 0;
+			[[maybe_unused]] mint nRawBytes;
 			NTime::CTimer Timer;
 			Timer.f_Start();
 			CSecureByteVector Synced;
