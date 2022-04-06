@@ -21,7 +21,7 @@ namespace NMib::NFile
 				{
 					void *pFind = nullptr;
 					pFind = NSys::NFile::fg_FindOpen(_FindPath);
-					auto Cleanup = g_OnScopeExit > [&]
+					auto Cleanup = g_OnScopeExit / [&]
 						{
 							NSys::NFile::fg_FindClose(pFind);
 						}
@@ -74,7 +74,7 @@ namespace NMib::NFile
 						NStr::CStr ToFind = _Path + "*";
 						void *pFind = nullptr;
 						pFind = NSys::NFile::fg_FindOpen(ToFind);
-						auto Cleanup = g_OnScopeExit > [&]
+						auto Cleanup = g_OnScopeExit / [&]
 							{
 								NSys::NFile::fg_FindClose(pFind);
 							}
@@ -1125,7 +1125,7 @@ namespace NMib::NFile
 
 			NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_RandomID() + ".tmp");
 
-			auto Cleanup = g_OnScopeExit > [&]
+			auto Cleanup = g_OnScopeExit / [&]
 				{
 					try
 					{
