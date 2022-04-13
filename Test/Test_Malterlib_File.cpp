@@ -1254,7 +1254,7 @@ namespace
 			CStr ProtectedButExecutableExe;
 
 			#ifdef DPlatformFamily_Windows
-				ProtectedFolder = "C:\\Windows";
+				ProtectedFolder = "C:\\System Volume Information";
 				UnprotectedFolder = CFile::fs_GetProgramDirectory();
 				ProtectedButExecutableExe = "C:\\Windows\\notepad.exe";
 			#else
@@ -1326,7 +1326,7 @@ namespace
 
 				if (!ProtectedFolder.f_IsEmpty())
 				{
-					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr(ECheckFileRights_Access));
+					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Read)) == DMibExpr(ECheckFileRights_NoAccess));
 					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write)) == DMibExpr(ECheckFileRights_NoAccess));
 					DMibTest(DMibExpr(CFile::fs_CheckFileRights(ProtectedFolder, EFileRight_Write | EFileRight_Read)) == DMibExpr(ECheckFileRights_NoAccess));
 				}
