@@ -2442,6 +2442,16 @@ namespace NMib::NFile
 		}
 
 		const ch8 *pParse = File;
+		auto fParsePrefix = [&]
+			{
+				if (NStr::fg_CharIsAnsiAlphabetical(pParse[0]) && pParse[1] == ':')
+					pParse += 2; // Windows drive
+				else if ((NStr::fg_StrStartsWith(pParse, "//./") || NStr::fg_StrStartsWith(pParse, "//?/")) && NStr::fg_CharIsAnsiAlphabetical(pParse[4]) && pParse[5] == ':')
+					pParse += 6; // Windows drive
+			}
+		;
+		fParsePrefix();
+
 		while (*pParse)
 		{
 			if (*pParse >= 1 && *pParse <= 31)
@@ -2497,6 +2507,7 @@ namespace NMib::NFile
 		}
 
 		pParse = File;
+		fParsePrefix();
 
 		// Parse away absolute starter
 		while (*pParse == '/')

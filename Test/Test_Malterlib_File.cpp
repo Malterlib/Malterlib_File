@@ -96,6 +96,9 @@ namespace
 				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("COM", Error)));
 				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("com.malterlib", Error)));
 				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("malterlib.com", Error)));
+				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("C:/malterlib.com", Error)));
+				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("//./b:/malterlib.com/malterlib.com", Error)));
+				DMibTest(DMibExpr(CFile::fs_IsValidFilePath("//?/a:/malterlib.com/malterlib.com", Error)));
 			};
 			DMibTestSuite("Nice filename")
 			{
