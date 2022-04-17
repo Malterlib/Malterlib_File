@@ -153,11 +153,12 @@ namespace NMib::NFile
 #ifdef DMibFileChangeNotificationsDebug
 		switch (_Change.m_Notification)
 		{
-		case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("@@@ {} Unknown {}\n", Sequence, _Change.m_Path); break;
-		case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("@@@ {} Added {}\n", Sequence, _Change.m_Path); break;
-		case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("@@@ {} Removed {}\n", Sequence, _Change.m_Path); break;
-		case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("@@@ {} Modified {}\n", Sequence, _Change.m_Path); break;
-		case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut("@@@ {} Renamed {} -> {}\n", Sequence, _Change.m_PathFrom, _Change.m_Path); break;
+		case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("@@@ {} Unknown {}", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("@@@ {} Added {}", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("@@@ {} Removed {}", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("@@@ {} Modified {}", Sequence, _Change.m_Path); break;
+		case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut("@@@ {} Renamed {} -> {}", Sequence, _Change.m_PathFrom, _Change.m_Path); break;
+		case EFileChangeNotification_Undefined: break;
 		}
 #endif
 
@@ -216,19 +217,20 @@ namespace NMib::NFile
 
 			switch (Change.m_Notification.m_Notification)
 			{
-			case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("=== {}{} Unknown {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
-			case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("=== {}{} Added {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
-			case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("=== {}{} Removed {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
-			case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("=== {}{} Modified {}\n", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Unknown: DMibFileChangeNotificationsDebugOut("=== {}{} Unknown {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("=== {}{} Added {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("=== {}{} Removed {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
+			case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("=== {}{} Modified {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
 			case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut
 				(
-				 	"=== {}{} Renamed {} -> {}\n"
+				 	"=== {}{} Renamed {} -> {}"
 				 	, Change.m_Sequence
 				 	, pForced
 				 	, Change.m_Notification.m_PathFrom
 				 	, Change.m_Notification.m_Path
 				);
 				break;
+			case EFileChangeNotification_Undefined: break;
 			}
 #endif
 		}

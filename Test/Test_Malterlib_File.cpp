@@ -86,6 +86,29 @@ namespace
 
 		void f_DoTests()
 		{
+#ifdef DMibFileChangeNotificationsDebug
+			fg_GetSys()->f_AddStdErrLogger();
+			auto LogActor = NMib::NConcurrency::fg_ConstructActor<NMib::NConcurrency::CSeparateThreadActor>(fg_Construct("Log Dispatcher"));
+			fg_GetSys()->f_GetLogger().f_SetDispatcher
+				(
+					[LogActor](NFunction::TCFunctionMovable<void ()> &&_fToDispatch)
+					{
+						fg_Dispatch
+							(
+								LogActor
+								, fg_Move(_fToDispatch)
+							)
+							> NMib::NConcurrency::fg_DiscardResult()
+						;
+					}
+				)
+			;
+			auto Cleanup2 = g_OnScopeExit / [&]
+				{
+					fg_GetSys()->f_GetLogger().f_SetDispatcher(nullptr);
+				}
+			;
+#endif
 			DMibTestSuite("Valid path")
 			{
 				CStr Error;

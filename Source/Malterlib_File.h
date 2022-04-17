@@ -7,7 +7,7 @@
 //#	define DMibFileChangeNotificationsDebug
 
 #	if defined(DMibFileChangeNotificationsDebug)
-#		define DMibFileChangeNotificationsDebugOut DMibConOut2
+#		define DMibFileChangeNotificationsDebugOut(...) DMibLog(Info, __VA_ARGS__)
 #	else
 #		define DMibFileChangeNotificationsDebugOut(...)  (void)0
 #	endif
