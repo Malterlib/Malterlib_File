@@ -738,20 +738,31 @@ namespace
 								DMibExpect(Change0.m_PathFrom, ==, "File.tst");
 
 								auto Change1 = fWaitForChange("RenameHardLink: Change1");
-								DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
-								DMibExpect(Change1.m_Path, ==, "");
-
 	#ifdef DPlatformFamily_OSX
 								if (CSystem::ms_PlatformVersion >= 10'13'00)
 								{
+									TCSet<CFileChangeNotification::CNotification> Notifications;
+									Notifications[Change1];
 									auto Change2 = fWaitForChange("RenameHardLink: Change2");
 									auto Change3 = fWaitForChange("RenameHardLink: Change3");
-									DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
-									DMibExpect(Change2.m_Path, ==, "File2.tst");
-									DMibExpect(Change3.m_Notification, ==, EFileChangeNotification_Modified);
-									DMibExpect(Change3.m_Path, ==, "File4.tst");
+									Notifications[Change2];
+									Notifications[Change3];
+
+									auto NotificationsVector = TCVector<CFileChangeNotification::CNotification>::fs_FromContainer(Notifications);
+
+									DMibExpect(NotificationsVector[0].m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(NotificationsVector[0].m_Path, ==, "");
+									DMibExpect(NotificationsVector[1].m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(NotificationsVector[1].m_Path, ==, "File2.tst");
+									DMibExpect(NotificationsVector[2].m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(NotificationsVector[2].m_Path, ==, "File4.tst");
 								}
+								else
 	#endif
+								{
+									DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(Change1.m_Path, ==, "");
+								}
 
 								DMibExpectFalse(fHasChange() && "After");
 							}
