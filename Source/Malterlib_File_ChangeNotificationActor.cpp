@@ -2,7 +2,6 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_ChangeNotificationActor.h"
-#include <Mib/Concurrency/ActorCallbackManager>
 #include <Mib/Concurrency/ActorSubscription>
 
 namespace NMib::NFile
