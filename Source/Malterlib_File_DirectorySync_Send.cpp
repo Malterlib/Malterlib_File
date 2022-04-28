@@ -27,10 +27,11 @@ namespace NMib::NFile
 			uint64 m_nOutgoing = 0;
 		};
 		
-		struct CRunningSyncState : public TCSharedPointerIntrusiveBase<ESharedPointerOption_SupportWeakPointer>
+		struct CRunningSyncState
 		{
 			TCFuture<CByteStats> f_Destroy();
-		
+
+			CIntrusiveRefCountWithWeak m_RefCount;
 			TCActor<CSeparateThreadActor> m_FileActor;
 			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
 			CBinaryStreamMemory<> m_FileMemory;
