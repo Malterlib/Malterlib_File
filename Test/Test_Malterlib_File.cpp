@@ -1723,6 +1723,13 @@ namespace
 							FoundFiles2.f_Insert(FoundFile);
 					}
 
+					FoundFiles0.f_Sort();
+					ExpectedFiles0.f_Sort();
+					FoundFiles1.f_Sort();
+					ExpectedFiles1.f_Sort();
+					FoundFiles2.f_Sort();
+					ExpectedFiles2.f_Sort();
+
 					DMibExpect(FoundFiles0, ==, ExpectedFiles0);
 					DMibExpect(FoundFiles1, ==, ExpectedFiles1);
 					DMibExpect(FoundFiles2, ==, ExpectedFiles2);
@@ -1759,6 +1766,13 @@ namespace
 						else if (FoundFile.f_StartsWith(CurrentDir + "/Dir3"))
 							FoundFiles2.f_Insert(FoundFile);
 					}
+
+					FoundFiles0.f_Sort();
+					ExpectedFiles0.f_Sort();
+					FoundFiles1.f_Sort();
+					ExpectedFiles1.f_Sort();
+					FoundFiles2.f_Sort();
+					ExpectedFiles2.f_Sort();
 
 					DMibExpect(FoundFiles0, ==, ExpectedFiles0);
 					DMibExpect(FoundFiles1, ==, ExpectedFiles1);
