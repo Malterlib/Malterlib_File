@@ -6,6 +6,10 @@
 
 namespace NMib::NFile
 {
+#if DMibConfig_Tests_Enable
+	constinit NAtomic::TCAtomic<pfp32> g_TestDirectorySyncSourceOpenDelay = 0.0f;
+#endif
+
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_HandleExcessFiles()
 	{
 		if (m_pConfig->m_ExcessFilesAction == EExcessFilesAction_Ignore)
@@ -137,7 +141,22 @@ namespace NMib::NFile
 						;
 
 						if (Source && CFile::fs_FileExists(Source))
-							RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+						{
+#if DMibConfig_Tests_Enable
+							if (auto Delay = g_TestDirectorySyncSourceOpenDelay.f_Load(); Delay)
+								NSys::fg_Thread_Sleep(Delay);
+#endif
+							try
+							{
+								RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+							}
+							catch (CExceptionFile const &)
+							{
+								// Protect against file dissapearing after existence check
+								if (CFile::fs_FileExists(Source))
+									throw;
+							}
+						}
 
 						RSyncState.m_pClient
 							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
