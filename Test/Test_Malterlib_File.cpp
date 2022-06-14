@@ -350,7 +350,7 @@ namespace
 							}
 
 							CFileChangeNotification FileChangeNotification;
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 							if (!bLongNames)
 								FileChangeNotification.f_Open(TestFileDir.f_UpperCase(), EFileChange_Recursive | EFileChange_Write | EFileChange_FileName, nullptr);
 							else
@@ -439,10 +439,10 @@ namespace
 							DMibExpect(Files.f_Contains(TestFileName), >=, 0);
 						}
 
-						bool bPollOSX = false;
-	#ifdef DPlatformFamily_OSX
-						bPollOSX = true;
-	//					bPollOSX = CSystem::ms_PlatformVersion < 10'07'00;
+						bool bPollMacOS = false;
+	#ifdef DPlatformFamily_macOS
+						bPollMacOS = true;
+	//					bPollMacOS = CSystem::ms_PlatformVersion < 10'07'00;
 	#endif
 
 						if (NMib::NFile::CFileChangeNotification::fs_Supported())
@@ -453,7 +453,7 @@ namespace
 							if (CFile::fs_FileExists(CFile::fs_GetPath(TestDir) + "/SubDir2"))
 								CFile::fs_DeleteDirectoryRecursive(CFile::fs_GetPath(TestDir) + "/SubDir2");
 							CFile::fs_CreateDirectory(TestDir);
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 							if (CSystem::ms_PlatformVersion < 10'13'00)
 							{
 								NSys::fg_Thread_Sleep(1.5); // Wait for old notifications to be unqueued
@@ -464,7 +464,7 @@ namespace
 								{
 									if (CSystem::ms_PlatformVersion < 10'13'00)
 									{
-										if (bPollOSX)
+										if (bPollMacOS)
 											NSys::fg_Thread_Sleep(1.5f);
 									}
 	#ifdef DPlatformFamily_Windows
@@ -672,7 +672,7 @@ namespace
 										DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
 										DMibExpect(Change2.m_Path, ==, SubDir);
 									}
-		#ifdef DPlatformFamily_OSX
+		#ifdef DPlatformFamily_macOS
 									if (CSystem::ms_PlatformVersion >= 10'13'00)
 									{
 										auto Change3 = fWaitForChange("RenameFile: Change3");
@@ -698,7 +698,7 @@ namespace
 								DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 								DMibExpect(Change1.m_Path, ==, "");
 
-								if (bPollOSX)
+								if (bPollMacOS)
 								{
 									auto Change2 = fWaitForChange("CreateHardLink: Change2");
 									DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
@@ -715,7 +715,7 @@ namespace
 								DMibTestPath("Touch hard link");
 								DMibExpectFalse(fHasChange() && "Before");
 								CFile::fs_Touch(TestDir + "/File.tst");
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 								auto Change0 = fWaitForChange("TouchHardLink: Change0");
 								DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
 								DMibExpect(Change0.m_Path, ==, "File2.tst");
@@ -735,7 +735,7 @@ namespace
 
 								CFile::fs_RenameFile(TestDir / "File.tst", TestDir / "File4.tst");
 
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 								if (CSystem::ms_PlatformVersion >= 10'13'00)
 								{
 									TCSet<CFileChangeNotification::CNotification> Notifications;
@@ -914,7 +914,7 @@ namespace
 										DMibExpect(Change3.m_Path, ==, "SubDir");
 									}
 
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 									if (CSystem::ms_PlatformVersion >= 10'13'00)
 									{
 										auto Change4 = fWaitForChange("RenameHardLink2: Change4");
@@ -955,7 +955,7 @@ namespace
 								DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
 								DMibExpect(Change2.m_Path, ==, "");
 
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 								if (CSystem::ms_PlatformVersion >= 10'13'00)
 								{
 									auto Change3 = fWaitForChange("RenameSubDir: Change2");
@@ -979,7 +979,7 @@ namespace
 								DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
 								DMibExpect(Change1.m_Path, ==, "");
 
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 								if (CSystem::ms_PlatformVersion >= 10'13'00)
 								{
 									if (!bRecursive)
@@ -1199,7 +1199,7 @@ namespace
 							CProgress Progress;
 							CFile::fs_CopyFile(TestFileName, TestFileName2, Progress);
 							DMibTest(DMibExpr(CFile::fs_FileExists(TestFileName2, EFileAttrib_File)));
-	#ifdef DPlatformFamily_OSX
+	#ifdef DPlatformFamily_macOS
 							DMibTest(DMibExpr(Progress.m_bCalled) == DMibExpr(true));
 	#endif
 							DMibTest(DMibExpr(TCThrowsException<NMib::NFile::CExceptionFile>()) == DMibLExpr(CFile::fs_CopyFile(TestFileName + "NotExists", TestFileName2, Progress)));
@@ -1413,7 +1413,7 @@ namespace
 			{
 				DMibTestSuite("Get Ownership")
 				{
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 					DMibTest(DMibExpr(CFile::fs_GetOwner("/dev")) == DMibExpr("root"));
 					DMibTest(DMibExpr(CFile::fs_GetGroup("/dev")) == DMibExpr("wheel"));
 					DMibTest(DMibExpr(TCThrowsException<NMib::NException::CException>()) == DMibLExpr(CFile::fs_GetOwner("/_HansoftPathThatDoesNotExist")));
@@ -1441,7 +1441,7 @@ namespace
 					CFile::fs_DeleteDirectory(TestDirectory);
 
 
-#ifdef DPlatformFamily_OSX
+#ifdef DPlatformFamily_macOS
 				{
 					DMibTestPath("Non-Existant");
 					DMibTest(DMibExpr(TCThrowsException<NMib::NException::CException>()) == DMibLExpr(CFile::fs_SetOwner("/_HansoftPathThatDoesNotExist", "root")));
@@ -2020,7 +2020,7 @@ namespace
 				NTime::CTimeSpan Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(0.000000001);
 #if defined(DPlatformFamily_Windows)
 				Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(0.0000001);
-#elif defined(DPlatformFamily_OSX)
+#elif defined(DPlatformFamily_macOS)
 				if (CSystem::ms_PlatformVersion < 10'13'00)
 					Precision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(2.0);
 #endif
