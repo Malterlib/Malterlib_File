@@ -276,6 +276,9 @@ namespace
 	#endif
 			DMibTestSuite("Tests")
 			{
+				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestMain";
+				fg_TestAddCleanupPath(RootPath);
+
 				for (mint i = 0; i < 8; ++i)
 				{
 					CStr TestName = "File functions";
@@ -295,7 +298,7 @@ namespace
 
 					{
 						DMibTestPath(TestName);
-						CStr CurrentDir = CFile::fs_GetProgramDirectory() + "/FileTestMain";
+						CStr CurrentDir = RootPath;
 						if (CFile::fs_FileExists(CurrentDir, EFileAttrib_Directory))
 							CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
 
@@ -1567,6 +1570,8 @@ namespace
 			{
 				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestFind";
 
+				fg_TestAddCleanupPath(RootPath);
+
 				CStr CurrentDir = RootPath + "/FileTestFind";
 				if (CFile::fs_FileExists(CurrentDir))
 					CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
@@ -1854,6 +1859,8 @@ namespace
 			{
 				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestSymlink";
 
+				fg_TestAddCleanupPath(RootPath);
+
 				CStr CurrentDir = RootPath + "/FileTest2";
 				if (CFile::fs_FileExists(CurrentDir))
 					CFile::fs_DeleteDirectoryRecursive(CurrentDir, true);
@@ -1998,6 +2005,8 @@ namespace
 			DMibTestSuite("Time")
 			{
 				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestTime";
+
+				fg_TestAddCleanupPath(RootPath);
 
 				CStr CurrentDir = RootPath + "/FileTest3";
 				if (CFile::fs_FileExists(CurrentDir))
