@@ -31,72 +31,66 @@ namespace NMib::NFile
 					: m_Context(*_pContext)
 				{
 				}
-				#if 1
+
 				inline_small bool operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
 				{
 					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_nMapped - Pos1;
-					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
+					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
+					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
+					DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
+					DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
+
+					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, CompareLen);
+					if (Diff)
+						return Diff < 0;
+
 					return Len0 < Len1;
 				}
+
 				inline_small bool operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
 				{
 					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Pos1 = _pSecond - m_Context.m_pFindData;
 					mint Len0 = m_Context.m_nMapped - Pos0;
 					mint Len1 = m_Context.m_FindLen - Pos1;
-					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, mc_MapLength) < 0;
+					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
+					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
+					DMibFastCheck(_pSecond >= m_Context.m_pFindData);
+					DMibFastCheck((_pSecond + CompareLen) <= m_Context.m_pFindDataEnd);
+
+					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, CompareLen);
+					if (Diff)
+						return Diff < 0;
+
 					return Len0 < Len1;
 				}
+
 				inline_small bool operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
 				{
 					mint Pos0 = _pFirst - m_Context.m_pFindData;
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Len0 = m_Context.m_FindLen - Pos1;
-					mint Len1 = m_Context.m_nMapped - Pos0;
-					if (fg_Min(Len0, Len1) >= mc_MapLength)
-						return NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, mc_MapLength) < 0;
-					return Len0 < Len1;
-				}
-				#else
-				inline_small bool operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
-				{
-					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Len0 = m_Context.m_nMapped - Pos0;
+					mint Len0 = m_Context.m_FindLen - Pos0;
 					mint Len1 = m_Context.m_nMapped - Pos1;
-					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
+					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+					DMibFastCheck(_pFirst >= m_Context.m_pFindData);
+					DMibFastCheck((_pFirst + CompareLen) <= m_Context.m_pFindDataEnd);
+					DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
+					DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
+
+					auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, CompareLen);
 					if (Diff)
 						return Diff < 0;
+
 					return Len0 < Len1;
 				}
-				inline_small bool operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
-				{
-					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Pos1 = _pSecond - m_Context.m_pFindData;
-					mint Len0 = m_Context.m_nMapped - Pos0;
-					mint Len1 = m_Context.m_FindLen - Pos1;
-					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, fg_Min(Len0, Len1));
-					if (Diff)
-						return Diff < 0;
-					return Len0 < Len1;
-				}
-				inline_small bool operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
-				{
-					mint Pos0 = _pFirst - m_Context.m_pFindData;
-					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Len0 = m_Context.m_FindLen - Pos1;
-					mint Len1 = m_Context.m_nMapped - Pos0;
-					auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, fg_Min(Len0, Len1));
-					if (Diff)
-						return Diff < 0;
-					return Len0 < Len1;
-				}
-				#endif
 			};
 
 			NIntrusive::TCAVLLinkAggregate<> m_TreeLink;
@@ -114,6 +108,11 @@ namespace NMib::NFile
 		const uint8 *m_pFindData;
 		mint m_FindLen;
 
+#if DMibEnableSafeCheck > 0
+		const uint8 *m_pOrigDataEnd;
+		const uint8 *m_pFindDataEnd;
+#endif
+
 		void f_MapOrig(const NContainer::CByteVector &_Orig)
 		{
 			const uint8 *pOrig = _Orig.f_GetArray();
@@ -122,6 +121,9 @@ namespace NMib::NFile
 			m_pOrigData = pOrig;
 			const uint8 *pOrigSave = pOrig;
 			const uint8 *pOrigEnd = pOrig + _Orig.f_GetLen();
+#if DMibEnableSafeCheck > 0
+			m_pOrigDataEnd = pOrigEnd;
+#endif
 
 			aint iMapped = 0;
 			mint nMapped = pOrigEnd - pOrig;
@@ -133,6 +135,9 @@ namespace NMib::NFile
 
 			m_pFindData = m_pOrigData;
 			m_FindLen = _Orig.f_GetLen();
+#if DMibEnableSafeCheck > 0
+			m_pFindDataEnd = m_pFindData + m_FindLen;
+#endif
 
 			while (pOrig < pOrigEnd)
 			{
@@ -157,6 +162,9 @@ namespace NMib::NFile
 		{
 			m_pFindData = _Changed.f_GetArray();
 			m_FindLen = _Changed.f_GetLen();
+#if DMibEnableSafeCheck > 0
+			m_pFindDataEnd = m_pFindData + m_FindLen;
+#endif
 
 			const uint8 *pChanged = _Changed.f_GetArray();
 			const uint8 *pChangedEnd = pChanged + _Changed.f_GetLen();
@@ -168,7 +176,7 @@ namespace NMib::NFile
 
 			while (pChanged < pChangedEnd)
 			{
-				CMappedChunk *pChunk = m_MappedTree.f_FindSmallestGreaterThanEqual(pChanged, CMappedChunk::CCompare(this));
+				CMappedChunk *pChunk = m_MappedTree.f_FindLargestLessThanEqual(pChanged, CMappedChunk::CCompare(this));
 				if (pChunk)
 				{
 					uint32 BestStart = 0;
