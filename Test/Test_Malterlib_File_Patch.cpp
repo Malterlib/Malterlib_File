@@ -3,36 +3,37 @@
 
 #include <Mib/File/Patch>
 
-#if 0
-class CTestDataProcessing : public CMalterlibTest
+namespace
 {
-public:
-
-	NMib::NStr::CStr Certify(CTestInterface &_Interface)
+	struct CPatch_Tests : public NMib::NTest::CTest
 	{
-		NMib::NContainer::CByteVector OrigVector;
-		const ch8 *pStartStr = " nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
-		const ch8 *pEndStr = "khxlheu nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN onethuu athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
-		OrigVector.f_Insert((const uint8 *)pStartStr, NMib::NStr::fg_StrLen(pStartStr));
+		void f_DoTests()
+		{
+			DMibTestSuite("Basic")
+			{
+				NMib::NContainer::CByteVector OrigVector;
+				const ch8 *pStartStr = " nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
+				const ch8 *pEndStr = "khxlheu nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN onethuu athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
+				OrigVector.f_Insert((const uint8 *)pStartStr, NMib::NStr::fg_StrLen(pStartStr));
 
-		NMib::NContainer::CByteVector ChangedVector;
-		ChangedVector.f_Insert((const uint8 *)pEndStr, NMib::NStr::fg_StrLen(pEndStr));
+				NMib::NContainer::CByteVector ChangedVector;
+				ChangedVector.f_Insert((const uint8 *)pEndStr, NMib::NStr::fg_StrLen(pEndStr));
 
-		NMib::NContainer::CByteVector PatchData;
-		NMib::NFile::fg_MalterlibPatchEncode(OrigVector, ChangedVector, PatchData);
+				NMib::NContainer::CByteVector PatchData = NMib::NFile::fg_MalterlibPatchEncode(OrigVector, ChangedVector);
+				NMib::NContainer::CByteVector Decoded = NMib::NFile::fg_MalterlibPatchDecode(OrigVector, PatchData);
 
-		NMib::NContainer::CByteVector Decoded;
-		if (!NMib::NFile::fg_MalterlibPatchDecode(OrigVector, Decoded, PatchData))
-			return "Patch decode failed";
+				mint Overhead = 40;
+				mint FoundChunkOverhead = 4 * 3;
+				mint ExpectedFoundChunks = 2;
+				mint ExpectedRaw0 = 4 + 7;
+				mint ExpectedRaw1 = 4 + 7;
+				mint ExpectedSize = Overhead + FoundChunkOverhead * ExpectedFoundChunks + ExpectedRaw0 + ExpectedRaw1;
 
-		if (Decoded.f_Compare(ChangedVector) != 0)
-			return "Patch was incorrectly decoded";
+				DMibExpect(PatchData.f_GetLen(), ==, ExpectedSize);
+				DMibExpect(Decoded, ==, ChangedVector);
+			};
+		}
+	};
 
-		return "";
-	}
-		
-};
-
-
-DMibRuntimeClass(CMalterlibTest, CTestDataProcessing);
-#endif
+	DMibTestRegister(CPatch_Tests, Malterlib::File);
+}
