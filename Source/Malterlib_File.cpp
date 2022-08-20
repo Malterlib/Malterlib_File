@@ -6,6 +6,50 @@
 
 namespace NMib::NFile
 {
+	struct CSubSystem_File : public CSubSystem
+	{
+		struct CThreadLocal
+		{
+			bool m_bEnableAttributesEmulation = true;
+		};
+		
+		NThread::TCThreadLocal<CThreadLocal, NMemory::CAllocator_Heap, NThread::EThreadLocalFlag_Inherit> m_ThreadLocal;
+	};
+
+	constinit TCSubSystem<CSubSystem_File, ESubSystemDestruction_BeforeMemoryManager> g_MalterlibSubSystem_File = {DAggregateInit};
+
+	CFile::CSetAttributeEmulationScope::CSetAttributeEmulationScope(bool _bEnableEmulation)
+		: m_bEnableEmulation(_bEnableEmulation)
+	{
+		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
+
+		m_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
+		ThreadLocal.m_bEnableAttributesEmulation = _bEnableEmulation;
+	}
+
+	CFile::CSetAttributeEmulationScope::~CSetAttributeEmulationScope()
+	{
+	}
+
+	void CFile::CSetAttributeEmulationScope::f_Suspend()
+	{
+		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
+		ThreadLocal.m_bEnableAttributesEmulation = m_bPreviousEnableEmulation;
+	}
+
+	void CFile::CSetAttributeEmulationScope::f_Resume()
+	{
+		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
+		m_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
+		ThreadLocal.m_bEnableAttributesEmulation = m_bEnableEmulation;
+	}
+
+	bool CFile::CSetAttributeEmulationScope::fs_IsEmulationEnabled()
+	{
+		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
+		return ThreadLocal.m_bEnableAttributesEmulation;
+	}
+
 	namespace
 	{
 		void fg_FindFilesLeaf

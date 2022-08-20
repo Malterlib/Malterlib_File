@@ -315,6 +315,21 @@ namespace NMib::NFile
 		using CFileChecksumState_SHA256 = TCFileChecksumState<NCryptography::CHash_SHA256>;
 		using CFileChecksumState_SHA512 = TCFileChecksumState<NCryptography::CHash_SHA512>;
 
+		struct CSetAttributeEmulationScope final : public CCoroutineThreadLocalHandler
+		{
+			CSetAttributeEmulationScope(bool _bEnableEmulation);
+			~CSetAttributeEmulationScope();
+			void f_Suspend() override;
+			void f_Resume() override;
+			void operator ()();
+
+			static bool fs_IsEmulationEnabled();
+
+		private:
+			bool m_bEnableEmulation = false;
+			bool m_bPreviousEnableEmulation = false;
+		};
+
 		struct CFoundFile
 		{
 			NStr::CStr m_Path;
