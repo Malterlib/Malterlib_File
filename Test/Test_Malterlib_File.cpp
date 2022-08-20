@@ -811,9 +811,16 @@ namespace
 									Notifications[fWaitForChange("RenameHardLink2: Change2")];
 									Notifications[fWaitForChange("RenameHardLink2: Change3")];
 									{
-										CFileChangeNotification::CNotification Notification;
-										if (fTryWaitForChange("RenameHardLink2: Change4", Notification))
+										while (true)
+										{
+											CFileChangeNotification::CNotification Notification;
+											if (!fTryWaitForChange("RenameHardLink2: Change4", Notification))
+												break;
+											if (Notifications.f_FindEqual(Notification))
+												continue;
 											Notifications[Notification];
+											break;
+										}
 									}
 
 									mint ExpectedLen = 4;
