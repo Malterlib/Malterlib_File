@@ -126,29 +126,23 @@ namespace NMib::NFile
 			class CCompareDirectoryID
 			{
 			public:
-				inline_small bool operator () (CFile const &_Left, CFile const &_Right) const
+				inline_small COrdering_Partial operator () (CFile const &_Left, CFile const &_Right) const
 				{
-					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
-						return true;
-					if (_Left.m_DirectoryID > _Right.m_DirectoryID)
-						return false;
-					return _Left.m_FileClusterID < _Right.m_FileClusterID;
+					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+						return Result;
+					return _Left.m_FileClusterID <=> _Right.m_FileClusterID;
 				}
-				inline_small bool operator () (CFile const &_Left, const CDirectoryKey &_Right) const
+				inline_small COrdering_Partial operator () (CFile const &_Left, const CDirectoryKey &_Right) const
 				{
-					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
-						return true;
-					if (_Left.m_DirectoryID > _Right.m_DirectoryID)
-						return false;
-					return _Left.m_FileClusterID < _Right.m_ClusterID;
+					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+						return Result;
+					return _Left.m_FileClusterID <=> _Right.m_ClusterID;
 				}
-				inline_small bool operator () (const CDirectoryKey &_Left, CFile const &_Right) const
+				inline_small COrdering_Partial operator () (const CDirectoryKey &_Left, CFile const &_Right) const
 				{
-					if (_Left.m_DirectoryID < _Right.m_DirectoryID)
-						return true;
-					if (_Left.m_DirectoryID > _Right.m_DirectoryID)
-						return false;
-					return _Left.m_ClusterID < _Right.m_FileClusterID;
+					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+						return Result;
+					return _Left.m_ClusterID <=> _Right.m_FileClusterID;
 				}
 			};
 

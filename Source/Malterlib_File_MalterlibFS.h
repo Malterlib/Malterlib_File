@@ -783,10 +783,6 @@ namespace NMib::NFile
 				{
 					return _Node.m_FullPath;
 				}
-				inline_small bool operator () (NStr::CStr const &_Left, NStr::CStr const &_Right) const
-				{
-					return fg_StrCmp(_Left, _Right) < 0;
-				}
 			};
 
 			NIntrusive::TCAVLLink<> m_CacheLink;

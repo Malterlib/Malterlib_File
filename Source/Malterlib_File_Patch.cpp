@@ -32,7 +32,7 @@ namespace NMib::NFile
 				{
 				}
 
-				inline_small bool operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
+				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
 				{
 					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
@@ -47,12 +47,12 @@ namespace NMib::NFile
 
 					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, CompareLen);
 					if (Diff)
-						return Diff < 0;
+						return Diff <=> 0;
 
-					return Len0 < Len1;
+					return Len0 <=> Len1;
 				}
 
-				inline_small bool operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
+				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
 				{
 					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					mint Pos1 = _pSecond - m_Context.m_pFindData;
@@ -67,12 +67,12 @@ namespace NMib::NFile
 
 					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, CompareLen);
 					if (Diff)
-						return Diff < 0;
+						return Diff <=> 0;
 
-					return Len0 < Len1;
+					return Len0 <=> Len1;
 				}
 
-				inline_small bool operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
+				inline_small COrdering_Partial operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
 				{
 					mint Pos0 = _pFirst - m_Context.m_pFindData;
 					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
@@ -87,9 +87,9 @@ namespace NMib::NFile
 
 					auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, CompareLen);
 					if (Diff)
-						return Diff < 0;
+						return Diff <=> 0;
 
-					return Len0 < Len1;
+					return Len0 <=> Len1;
 				}
 			};
 
