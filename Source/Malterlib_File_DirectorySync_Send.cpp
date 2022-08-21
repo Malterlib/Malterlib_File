@@ -155,7 +155,7 @@ namespace NMib::NFile
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
 		
-		auto pCleanup = g_OnScopeExitActor > [this, RSyncID]
+		auto pCleanup = g_OnScopeExitActor / [this, RSyncID]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
 			}

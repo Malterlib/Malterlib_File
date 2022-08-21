@@ -196,7 +196,7 @@ namespace NMib::NFile
 			return;
 		
 		++Notification.m_nOutstanding;
-		auto pCleanup = g_OnScopeExitActor > [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
+		auto pCleanup = g_OnScopeExitActor / [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
 			{
 				if (*pDestroyed)
 					return;
