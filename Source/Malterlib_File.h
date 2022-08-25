@@ -16,23 +16,18 @@ namespace NMib::NEncoding
 {
 	namespace NPrivate
 	{
-		template <template <typename t_CParent> class t_TCValue, typename t_CTypes>
-		class TCJSONValueBase;
+		template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
+		struct TCJSONValueBase;
 		struct CEJSONExtraTypes;
 	}
 
 	template <typename t_CParent>
-	class TCEJSONValue;
+	struct TCEJSONValue;
 
-	template <template <typename t_CParent> class t_TCValue, typename t_CTypes>
-	using TCJSON = t_TCValue<NPrivate::TCJSONValueBase<t_TCValue, t_CTypes>>;
+	template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
+	using TCJSON = t_TCValue<NPrivate::TCJSONValueBase<t_TCValue, t_CTypes, t_bOrdered>>;
 
-	using CEJSON = TCJSON
-		<
-			TCEJSONValue
-			, NPrivate::CEJSONExtraTypes
-		>
-	;
+	using CEJSON = TCJSON<TCEJSONValue, NPrivate::CEJSONExtraTypes, true>;
 }
 
 namespace NMib::NFile
