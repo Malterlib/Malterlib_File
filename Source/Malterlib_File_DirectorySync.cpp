@@ -55,7 +55,7 @@ namespace NMib::NFile
 	{
 		CDirectoryManifestConfig ManifestConfig;
 		ManifestConfig.m_Root = CFile::fs_GetPath(_FileName);
-		ManifestConfig.m_IncludeWildcards = {CFile::fs_GetFile(_FileName)};
+		ManifestConfig.m_IncludeWildcards = {{CFile::fs_GetFile(_FileName), {}}};
 		m_Manifest = fg_Move(ManifestConfig);
 	}
 

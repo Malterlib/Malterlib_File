@@ -61,7 +61,7 @@ namespace NMib::NFile
 		void f_Stream(tf_CStream &_Stream);
 		
 		NStr::CStr m_Root;																		///< The root directory of the backup.
-		NContainer::TCMap<NStr::CStr, CDestination> m_IncludeWildcards = {"^*"};				///< \brief Relative to m_Root. This is a file search. Only file name can have wildcards.
+		NContainer::TCMap<NStr::CStr, CDestination> m_IncludeWildcards = {{"^*", {}}};				///< \brief Relative to m_Root. This is a file search. Only file name can have wildcards.
 																								///		Use ^ in the beginning of the file path to create a recursive search. Value is used
 																								///		for specifying the destination of the files in the manifest.
 																								///		e.g. {"Folder1/^*", "Folder2"} will place all files from Folder1 in Folder2.
