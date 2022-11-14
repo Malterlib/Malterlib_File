@@ -10,7 +10,14 @@ namespace NMib::NFile
 	{
 		struct CThreadLocal
 		{
-			bool m_bEnableAttributesEmulation = true;
+			CThreadLocal() = default;
+
+			CThreadLocal(CThreadLocal const &_ThreadLocal)
+				: m_bEnableAttributesEmulation(_ThreadLocal.m_bEnableAttributesEmulation.f_Load())
+			{
+			}
+
+			NAtomic::TCAtomic<bool> m_bEnableAttributesEmulation = true;
 		};
 		
 		NThread::TCThreadLocal<CThreadLocal, NMemory::CAllocator_Heap, NThread::EThreadLocalFlag_Inherit> m_ThreadLocal;
