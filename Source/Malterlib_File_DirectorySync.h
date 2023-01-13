@@ -35,7 +35,8 @@ namespace NMib::NFile
 		enum : uint32 
 		{
 			EProtocolVersion_Min = 0x101
-			, EProtocolVersion_Current = 0x101
+			, EProtocolVersion_UseSHA256 = 0x102
+			, EProtocolVersion_Current = 0x102
 		};
 
 		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CSecureByteVector> (NContainer::CSecureByteVector &&_Packet)>;

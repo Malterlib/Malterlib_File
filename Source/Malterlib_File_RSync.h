@@ -5,24 +5,25 @@
 
 namespace NMib::NFile
 {
+	enum ERSyncFlag
+	{
+		ERSyncFlag_None = 0
+		, ERSyncFlag_ClientTruncateOutput = DMibBit(0)
+		, ERSyncFlag_UseSHA256 = DMibBit(1)
+	};
+
 	class CRSyncServer
 	{
 		class CImplementation;
 		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
 
 	public:
-		CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize);
+		CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags = ERSyncFlag_None);
 		~CRSyncServer();
 
 		void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
 
 		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient);
-	};
-
-	enum ERSyncClientFlag
-	{
-		ERSyncClientFlag_None = 0
-		, ERSyncClientFlag_TruncateOutput = DMibBit(0)
 	};
 
 	class CRSyncClient
@@ -39,7 +40,7 @@ namespace NMib::NFile
 				, uint32 _MaxChunkSize
 				, uint32 _MaxPacketSize
 				, NStream::CBinaryStream *_pTempStream = nullptr
-				, ERSyncClientFlag _Flags = ERSyncClientFlag_TruncateOutput
+				, ERSyncFlag _Flags = ERSyncFlag_ClientTruncateOutput
 			)
 		;
 		~CRSyncClient();

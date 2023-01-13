@@ -93,27 +93,34 @@ namespace NMib::NFile
 
 	struct CChecksum
 	{
-		CHashDigest_MD5 m_MD5;
-		uint32 m_Running;
-		static CChecksum ms_StaticChecksum;
-		static mint fs_NetworkSize()
-		{
-			NStream::TCBinaryStreamNull<> Stream;
-			Stream << ms_StaticChecksum.m_MD5;
-			Stream << ms_StaticChecksum.m_Running;
-			return Stream.f_GetLength();
-		}
+		constexpr CChecksum() = default;
+
+		CHashDigest_SHA256_16 m_Digest;
+		uint32 m_Running = 0;
+
 		void f_Feed(NStream::CBinaryStreamDefault &_Stream) const
 		{
-			_Stream << m_MD5;
+			_Stream << m_Digest;
 			_Stream << m_Running;
 		}
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
-			_Stream >> m_MD5;
+			_Stream >> m_Digest;
 			_Stream >> m_Running;
 		}
 	};
+
+	constexpr static mint gc_ChecksumNetworkSize = []()
+		{
+			constexpr CChecksum c_Checksum;
+
+			NStream::TCBinaryStreamNull<> Stream;
+			Stream << c_Checksum.m_Digest;
+			Stream << c_Checksum.m_Running;
+
+			return Stream.f_GetLength();
+		}()
+	;
 
 	struct CPacket_ServerChecksums : public CPacket
 	{
@@ -350,7 +357,7 @@ namespace NMib::NFile
 			Sum1 += Sum0;
 		}
 		return ((uint32(Sum0) & uint32(0xFFFF)) | (uint32(Sum1) << 16));
-		/*TCBinaryStreamHash<CHash_MD5> Hash;
+		/*TCBinaryStreamHash<CHash_SHA256_16> Hash;
 		Hash << Sum0;
 		Hash << Sum1;
 		auto Digest = Hash.f_GetDigest();
@@ -361,19 +368,43 @@ namespace NMib::NFile
 		return Hash32;*/
 	}
 
-	CHashDigest_MD5 fg_GetMD5Checksum(void const *_pData, mint _nBytes)
+	static_assert(sizeof(CHashDigest_MD5) == sizeof(CHashDigest_SHA256_16));
+
+	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData, mint _nBytes)
 	{
-		NMib::NCryptography::CHash_MD5 Hash;
-		Hash.f_AddData(_pData, _nBytes);
-		return Hash;
+		_Hash.f_Reset();
+		_Hash.f_AddData(_pData, _nBytes);
+		auto TempDigest = fg_Move(_Hash).f_GetDigest();
+		CHashDigest_SHA256_16 Return;
+		fg_MemCopy(Return.f_GetData(), TempDigest.f_GetData(), TempDigest.mc_Size);
+		return Return;
 	}
 
-	CHashDigest_MD5 fg_GetMD5Checksum(void const *_pData0, mint _nBytes0, void const *_pData1, mint _nBytes1)
+	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData0, mint _nBytes0, void const *_pData1, mint _nBytes1)
 	{
-		NMib::NCryptography::CHash_MD5 Hash;
-		Hash.f_AddData(_pData0, _nBytes0);
-		Hash.f_AddData(_pData1, _nBytes1);
-		return Hash;
+		_Hash.f_Reset();
+		_Hash.f_AddData(_pData0, _nBytes0);
+		_Hash.f_AddData(_pData1, _nBytes1);
+		auto TempDigest = fg_Move(_Hash).f_GetDigest();
+		CHashDigest_SHA256_16 Return;
+		fg_MemCopy(Return.f_GetData(), TempDigest.f_GetData(), TempDigest.mc_Size);
+		return Return;
+	}
+
+
+	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData, mint _nBytes)
+	{
+		_Hash.f_Reset();
+		_Hash.f_AddData(_pData, _nBytes);
+		return fg_Move(_Hash);
+	}
+
+	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData0, mint _nBytes0, void const *_pData1, mint _nBytes1)
+	{
+		_Hash.f_Reset();
+		_Hash.f_AddData(_pData0, _nBytes0);
+		_Hash.f_AddData(_pData1, _nBytes1);
+		return fg_Move(_Hash);
 	}
 
 	struct CRollsum
@@ -430,7 +461,7 @@ namespace NMib::NFile
 
 		uint32 f_Digest()
 		{
-			/*TCBinaryStreamHash<CHash_MD5> Hash;
+			/*TCBinaryStreamHash<CHash_SHA256_16> Hash;
 			Hash << m_Sum0;
 			Hash << m_Sum1;
 			auto Digest = Hash.f_GetDigest();
@@ -459,6 +490,8 @@ namespace NMib::NFile
 		NStream::CBinaryStream *mp_pFileToSend = nullptr;
 		uint32 mp_MaxPacketSize = 0;
 
+		ERSyncFlag mp_Flags = ERSyncFlag_None;
+
 		EServerMode mp_ServerMode = EServerMode_Init;
 		bool mp_bDone = false;
 
@@ -472,9 +505,10 @@ namespace NMib::NFile
 		}
 #endif
 	public:
-		CImplementation(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize)
+		CImplementation(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags)
 			: mp_pFileToSend(&_FileToSend)
 			, mp_MaxPacketSize(_MaxPacketSize)
+			, mp_Flags(_Flags)
 		{
 		}
 
@@ -486,6 +520,8 @@ namespace NMib::NFile
 		void f_GetChecksums(TCVector<CChecksum> &_Destination, TCVector<COutstandingRange> const &_Outstanding, uint32 _ChunkSize)
 		{
 			//DMibTrace("RSync: Checksums" DMibNewLine, 0);
+			CHash_MD5 HashMD5;
+			CHash_SHA256_16 HashSHA1;
 			for (COutstandingRange const &Range : _Outstanding)
 			{
 				//DMibTrace("   {} -> {}" DMibNewLine, (Range.m_Start/_ChunkSize) << ((Range.m_Start + Range.m_Length)/_ChunkSize));
@@ -500,7 +536,10 @@ namespace NMib::NFile
 					mint nBytesToRead = fg_Min(nBytes, _ChunkSize);
 					nBytes -= nBytesToRead;
 					mp_pFileToSend->f_ConsumeBytes(TempBuffer.f_GetArray(), nBytesToRead);
-					Checksum.m_MD5 = fg_GetMD5Checksum(TempBuffer.f_GetArray(), nBytesToRead);
+					if (mp_Flags & ERSyncFlag_UseSHA256)
+						Checksum.m_Digest = fg_GetSHA256Checksum(HashSHA1, TempBuffer.f_GetArray(), nBytesToRead);
+					else
+						Checksum.m_Digest = fg_GetMD5Checksum(HashMD5, TempBuffer.f_GetArray(), nBytesToRead);
 					Checksum.m_Running = fg_GetRunningSum(TempBuffer.f_GetArray(), nBytesToRead);
 				}
 			}
@@ -603,9 +642,9 @@ namespace NMib::NFile
 		}
 	};
 
-	CRSyncServer::CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize)
+	CRSyncServer::CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags)
 	{
-		mp_pImpl = fg_Construct<CImplementation>(_FileToSend, _MaxPacketSize);
+		mp_pImpl = fg_Construct<CImplementation>(_FileToSend, _MaxPacketSize, _Flags);
 	}
 
 	void CRSyncServer::f_SetSyncStream(NStream::CBinaryStream *_pFileToSend)
@@ -727,7 +766,7 @@ namespace NMib::NFile
 
 		void f_GetOutstanding(TCVector<COutstandingRange> &_Outstanding, uint64 &_TotalBytes, uint64 &_ChecksumSizes, mint _ChunkSize)
 		{
-			mint ChecksumSize = CChecksum::fs_NetworkSize();
+			mint ChecksumSize = gc_ChecksumNetworkSize;
 			for (auto &Chunk : m_Chunks)
 			{
 				if (Chunk.f_OldFileStart() < 0)
@@ -948,7 +987,7 @@ namespace NMib::NFile
 		uint64 mp_RawBytes = 0;
 		uint64 mp_RawBytesTotal = 0;
 
-		ERSyncClientFlag mp_Flags = ERSyncClientFlag_None;
+		ERSyncFlag mp_Flags = ERSyncFlag_None;
 
 		bool mp_bSentDoneMessage = false;
 		bool mp_bReceivedDoneMessage = false;
@@ -984,12 +1023,12 @@ namespace NMib::NFile
 
 		struct CInnerHash
 		{
-			CHashDigest_MD5 m_Hash;
+			CHashDigest_SHA256_16 m_Hash;
 			//TCVector<uint64, NMemory::TCAllocator_Static<sizeof(uint64)*2, sizeof(uint64)>, TCVectorOptions<1>> m_Positions;
 			TCVector<uint64, CAllocator_Heap, TCVectorOptions<1, true, false>> m_Positions;
 			//TCVector<uint64> m_Positions;
 
-			CInnerHash(CHashDigest_MD5 const &_Hash)
+			CInnerHash(CHashDigest_SHA256_16 const &_Hash)
 				: m_Hash(_Hash)
 			{
 			}
@@ -997,7 +1036,7 @@ namespace NMib::NFile
 			class CCompare
 			{
 			public:
-				inline_small CHashDigest_MD5 const &operator () (CInnerHash const &_Node) const
+				inline_small CHashDigest_SHA256_16 const &operator () (CInnerHash const &_Node) const
 				{
 					return _Node.m_Hash;
 				}
@@ -1046,7 +1085,7 @@ namespace NMib::NFile
 				, uint32 _MaxChunkSize
 				, uint32 _MaxPacketSize
 				, NStream::CBinaryStream *_pTempStream
-				, ERSyncClientFlag _Flags
+				, ERSyncFlag _Flags
 			)
 			: mp_OldFile(_OldFile)
 			, mp_NewFile(_NewFile)
@@ -1132,10 +1171,10 @@ namespace NMib::NFile
 						pOuter = m_OuterPool.f_New(Checksum.m_Running);
 						Tree.f_Insert(pOuter);
 					}
-					auto *pInner = pOuter->m_InnerHash.f_FindEqual(Checksum.m_MD5);
+					auto *pInner = pOuter->m_InnerHash.f_FindEqual(Checksum.m_Digest);
 					if (!pInner)
 					{
-						pInner = m_InnerPool.f_New(Checksum.m_MD5);
+						pInner = m_InnerPool.f_New(Checksum.m_Digest);
 						pOuter->m_InnerHash.f_Insert(pInner);
 					}
 					pInner->m_Positions.f_Insert(CurrentPos);
@@ -1154,6 +1193,8 @@ namespace NMib::NFile
 			uint8 ByteBuffer[1024];
 			auto TheseRegions = m_UnfoundRegions;
 
+			CHash_SHA256_16 HashSHA1;
+			CHash_MD5 HashMD5;
 
 			for (auto iRegion = TheseRegions.f_GetIterator(); iRegion && !bFound; ++iRegion)
 			{
@@ -1179,8 +1220,12 @@ namespace NMib::NFile
 						{
 							mint First = fg_Min(ChunkSize - iCurrentHistory, Rollsum.m_Count);
 							mint Second = fg_Min(iCurrentHistory, Rollsum.m_Count - First);
-							CHashDigest_MD5 MD5Digest = fg_GetMD5Checksum(pHistory + iCurrentHistory, First, pHistory, Second);
-							auto *pPosition = pFind->m_InnerHash.f_FindEqual(MD5Digest);
+							CHashDigest_SHA256_16 Digest;
+							if (mp_Flags & ERSyncFlag_UseSHA256)
+								Digest = fg_GetSHA256Checksum(HashSHA1, pHistory + iCurrentHistory, First, pHistory, Second);
+							else
+								Digest = fg_GetMD5Checksum(HashMD5, pHistory + iCurrentHistory, First, pHistory, Second);
+							auto *pPosition = pFind->m_InnerHash.f_FindEqual(Digest);
 							if (pPosition)
 							{
 								mint nPosition = pPosition->m_Positions.f_GetLen();
@@ -1344,7 +1389,7 @@ namespace NMib::NFile
 			bool bIsDone = mp_Outstanding.f_IsEmpty() && mp_LastAskedFor.f_IsEmpty() && mp_bSentDoneMessage && mp_bReceivedDoneMessage;
 			if (bIsDone)
 			{
-				if (mp_Flags & ERSyncClientFlag_TruncateOutput)
+				if (mp_Flags & ERSyncFlag_ClientTruncateOutput)
 					mp_NewFile.f_SetLength(mp_FileSize);
 				return true;
 			}
@@ -1588,7 +1633,7 @@ namespace NMib::NFile
 			, uint32 _MaxChunkSize
 			, uint32 _MaxPacketSize
 			, NStream::CBinaryStream *_pTempStream
-			, ERSyncClientFlag _Flags
+			, ERSyncFlag _Flags
 		)
 	{
 		mp_pImpl = fg_Construct<CImplementation>(_OldFile, _NewFile, _MinChunkSize, _MaxChunkSize, _MaxPacketSize, _pTempStream, _Flags);
@@ -1617,6 +1662,4 @@ namespace NMib::NFile
 	{
 		return mp_pImpl->f_GetProgress(_Stage, _Stages, _BytesTransfered, _TotalBytes);
 	}
-
-	CChecksum CChecksum::ms_StaticChecksum;
 }

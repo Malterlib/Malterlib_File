@@ -8,9 +8,13 @@ namespace NMib::NFile
 {
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncManifest()
 	{
+		auto ClientFlags = ERSyncFlag_ClientTruncateOutput;
+		if (m_Client->f_InterfaceVersion() >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
+			ClientFlags |= ERSyncFlag_UseSHA256;
+
 		return f_RSync
 			(
-				[pConfig = m_pConfig](CRunningSyncState *_pRSyncState)
+				[pConfig = m_pConfig, ClientFlags](CRunningSyncState *_pRSyncState)
 				{
 					auto &Config = *pConfig;
 					auto &RSyncState = *_pRSyncState;
@@ -97,7 +101,7 @@ namespace NMib::NFile
 							)
 						;
 						RSyncState.m_pClient
-							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ERSyncClientFlag_TruncateOutput)
+							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ClientFlags)
 						;
 					}
 					else
@@ -136,7 +140,7 @@ namespace NMib::NFile
 							 	, 4*1024*1024
 							 	, 8*1024*1024
 							 	, &*RSyncState.m_pTempStream
-							 	, ERSyncClientFlag_TruncateOutput
+							 	, ClientFlags
 							)
 						;
 					}

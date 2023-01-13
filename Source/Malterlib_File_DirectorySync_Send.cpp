@@ -215,13 +215,14 @@ namespace NMib::NFile
 
 	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
 	{
+		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
 		auto &Internal = *mp_pInternal;
 		return fg_CallSafe
 			(
 			 	Internal
 			 	, &CInternal::f_StartRSync
 				, fg_Move(_Subscription)
-				, [pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
+				, [ProtocolVersion, pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
 				{
 					auto &Config = *pConfig;
 					
@@ -263,8 +264,12 @@ namespace NMib::NFile
 					default:
 						DMibError("Invalid manifest type");
 					}
-							
-					_RSyncState.m_pRSyncServer = fg_Construct(*pBinaryStream, 8*1024*1024);
+
+					auto ServerFlags = ERSyncFlag_None;
+					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
+						ServerFlags |= ERSyncFlag_UseSHA256;
+
+					_RSyncState.m_pRSyncServer = fg_Construct(*pBinaryStream, 8*1024*1024, ServerFlags);
 				}
 			)
 		;
@@ -272,6 +277,8 @@ namespace NMib::NFile
 	
 	auto CDirectorySyncSend::f_StartRSync(NStr::CStr const &_FileName, TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
 	{
+		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
+
 		auto &Internal = *mp_pInternal;
 		
 		if (auto pException = Internal.f_CheckFileName(_FileName))
@@ -303,7 +310,11 @@ namespace NMib::NFile
 				{
 					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
 
-					_RSyncState.m_pRSyncServer = fg_Construct(*_RSyncState.m_pFile, 8*1024*1024);
+					auto ServerFlags = ERSyncFlag_None;
+					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
+						ServerFlags |= ERSyncFlag_UseSHA256;
+
+					_RSyncState.m_pRSyncServer = fg_Construct(*_RSyncState.m_pFile, 8*1024*1024, ServerFlags);
 				}
 			)
 		;

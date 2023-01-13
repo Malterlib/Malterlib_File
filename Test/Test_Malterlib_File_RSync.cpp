@@ -108,8 +108,8 @@ namespace
 					}
 				}
 
-				CRSyncServer RSyncServer(ServerStream, 32*1024*1024);
-				CRSyncClient RSyncClient(*pClientOld, *pClientNewStream, _MinChunk, _MaxChunk, 32*1024*1024, pTemporaryStream);
+				CRSyncServer RSyncServer(ServerStream, 32*1024*1024, ERSyncFlag_UseSHA256);
+				CRSyncClient RSyncClient(*pClientOld, *pClientNewStream, _MinChunk, _MaxChunk, 32*1024*1024, pTemporaryStream, ERSyncFlag_ClientTruncateOutput | ERSyncFlag_UseSHA256);
 				
 				TCVector<CSecureByteVector> ServerData;
 				TCVector<CSecureByteVector> ClientData;
