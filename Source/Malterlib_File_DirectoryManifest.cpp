@@ -93,7 +93,7 @@ namespace NMib::NFile
 			auto &FileName = m_Files.fs_GetKey(File);
 			auto &Entry = JSON[FileName];
 			
-			Entry["Digest"] = NContainer::CByteVector{File.m_Digest.f_GetData(), File.m_Digest.fs_GetSize()};
+			Entry["Digest"] = NContainer::CByteVector{File.m_Digest.f_GetData(), File.m_Digest.mc_Size};
 			Entry["Length"] = File.m_Length;
 			Entry["WriteTime"] = File.m_WriteTime;
 			Entry["SymlinkData"] = File.m_SymlinkData;
@@ -117,9 +117,9 @@ namespace NMib::NFile
 			
 			{
 				auto Digest = ManifestJSON["Digest"].f_Binary();
-				if (Digest.f_GetLen() != OutFile.m_Digest.fs_GetSize())
+				if (Digest.f_GetLen() != OutFile.m_Digest.mc_Size)
 					DMibError("Digest is wrong size");
-				NMemory::fg_MemCopy(OutFile.m_Digest.f_GetData(), Digest.f_GetArray(), OutFile.m_Digest.fs_GetSize());
+				NMemory::fg_MemCopy(OutFile.m_Digest.f_GetData(), Digest.f_GetArray(), OutFile.m_Digest.mc_Size);
 			}
 			OutFile.m_Length = ManifestJSON["Length"].f_Integer();
 			OutFile.m_WriteTime = ManifestJSON["WriteTime"].f_Date();

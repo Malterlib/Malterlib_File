@@ -2164,7 +2164,7 @@ namespace NMib::NFile
 				else
 					FileHash = fs_GetFileChecksum(*FIter);
 
-				Checksum.f_AddData(FileHash.f_GetData(), FileHash.fs_GetSize());
+				Checksum.f_AddData(FileHash.f_GetData(), FileHash.mc_Size);
 			}
 
 			NStr::CStr FileName = CFile::fs_GetFile(*FIter);
