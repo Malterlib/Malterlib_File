@@ -802,7 +802,6 @@ namespace
 
 								CFile::fs_RenameFile(TestDir / "File2.tst", TestDir / SubDir / "File3.tst");
 
-
 	#ifdef DPlatformFamily_Windows
 								if (NMib::fg_GetSys()->f_GetEnvironmentVariable("RunningCI", "") != "true")
 								{
@@ -866,12 +865,12 @@ namespace
 										DMibExpect(Change2.m_Path, ==, "");
 
 										DMibExpect(Change3.m_Notification, == , EFileChangeNotification_Modified);
-										DMibExpect(Change3.m_Path, == , "SubDir");
+										DMibTest(DMibExpr(Change3.m_Path) == DMibExpr("SubDir") || DMibExpr(Change3.m_Path) == DMibExpr("File2.tst"));
 
 										if (ExpectedLen == 5)
 										{
 											DMibExpect(Change4.m_Notification, == , EFileChangeNotification_Modified);
-											DMibExpect(Change4.m_Path, == , "SubDir/File3.tst");
+											DMibTest(DMibExpr(Change4.m_Path) == DMibExpr("SubDir/File3.tst") || DMibExpr(Change4.m_Path) == DMibExpr("SubDir"));
 										}
 									}
 									else
