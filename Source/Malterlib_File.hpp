@@ -99,7 +99,7 @@ namespace NMib::NFile
 			}
 		}
 
-		if (_Path[0] == '/')
+		if (fg_Const(_Path)[0] == '/')
 		{
 			_Path = _Path.f_Extract(1);
 			return "/";
@@ -308,9 +308,10 @@ namespace NMib::NFile
 		if (_Path.f_IsEmpty())
 			return _Path;
 
-		tf_CStr Temp = _Path;
+		tf_CStr TempValue = _Path;
+		fg_StrReplaceChar(TempValue, '\\', '/');
+		tf_CStr const &Temp = TempValue;
 
-		fg_StrReplaceChar(Temp, '\\', '/');
 
 		tf_CStr NewPath;
 
@@ -365,9 +366,9 @@ namespace NMib::NFile
 					tf_CStr New = fs_GetPath(NewPath);
 					if (NewPath[aint(Len-1)] == '/')
 						;
-					else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
+					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
 						;
-					else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
+					else if (Len > 1 && fg_Const(NewPath)[0] == '/' && fg_Const(NewPath)[1] == '/' && New.f_GetLen() <= 2)
 						;
 					else
 						NewPath = New;
@@ -394,9 +395,9 @@ namespace NMib::NFile
 		if (_Path.f_IsEmpty())
 			return _Path;
 
-		tf_CStr Temp = _Path;
-
-		fg_StrReplaceChar(Temp, '\\', '/');
+		tf_CStr TempValue = _Path;
+		fg_StrReplaceChar(TempValue, '\\', '/');
+		tf_CStr const &Temp = TempValue;
 
 		tf_CStr NewPath;
 
@@ -451,9 +452,9 @@ namespace NMib::NFile
 					tf_CStr New = fs_GetPath(NewPath);
 					if (NewPath[aint(Len-1)] == '/')
 						;
-					else if (Len > 1 && NewPath[1] == ':' && New.f_IsEmpty())
+					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
 						;
-					else if (Len > 1 && NewPath[0] == '/' && NewPath[1] == '/' && New.f_GetLen() <= 2)
+					else if (Len > 1 && fg_Const(NewPath)[0] == '/' && fg_Const(NewPath)[1] == '/' && New.f_GetLen() <= 2)
 						;
 					else
 						NewPath = New;
@@ -606,10 +607,10 @@ namespace NMib::NFile
 		fg_StrReplaceChar(Ret, '\\', '/');
 
 		mint Len = Ret.f_GetLen();
-		if (Len > 1 && Ret[1] == ':')
+		if (Len > 1 && fg_Const(Ret)[1] == ':')
 			return Ret.f_Left(2);
 
-		if (Len > 1 && Ret[0] == '/' && Ret[1] == '/')
+		if (Len > 1 && fg_Const(Ret)[0] == '/' && fg_Const(Ret)[1] == '/')
 		{
 			Ret = Ret.f_Extract(2);
 			aint iDir = fg_StrFindChar(Ret, '/');

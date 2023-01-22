@@ -688,12 +688,13 @@ namespace NMib::NFile
 
 	CVirtualFS::ECheckFSError CVirtualFS::fs_CheckFS(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS)
 	{
+		DMibRequire(_pStorageStream);
+		DMibRequire(_pReporter);
 		try
 		{
 			if (_pFixDestinationFS)
 			{
-				if (_pReporter)
-					_pReporter->f_ReportError("Rebuilding file system.");
+				_pReporter->f_ReportError("Rebuilding file system.");
 
 				// First detemine the cluster size
 
@@ -702,7 +703,6 @@ namespace NMib::NFile
 				CRootData RootData;
 				RootData.f_Read(*_pStorageStream);
 
-				uint64 ClusterSize = 128;
 				uint64 nMaxFiles = 0;
 				uint64 BestClusterSize = 128;
 				uint64 FileLenth = _pStorageStream->f_GetLength();
@@ -711,12 +711,13 @@ namespace NMib::NFile
 
 				if (RootData.f_Validate())
 				{
-					BestClusterSize = ClusterSize = RootData.m_ClusterSize;
+					BestClusterSize = RootData.m_ClusterSize;
 					Version = RootData.m_Version;
 					nMaxFiles = 1;
 				}
 				else
 				{
+					uint64 ClusterSize = 128;
 					// Loop until the number of files found decrease
 					_pReporter->f_StepDown(13);
 					aint iLoop = 0;
@@ -777,7 +778,7 @@ namespace NMib::NFile
 					return ECheckFSError_None;
 				}
 
-				ClusterSize = BestClusterSize;
+				mint ClusterSize = BestClusterSize;
 				uint64 ClusterIDsPerCluster = (ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID)*2 + sizeof(uint64))) / sizeof(CClusterID);
 				uint64 nClusters = FileLenth / ClusterSize;
 
@@ -876,8 +877,7 @@ namespace NMib::NFile
 
 				Tree.f_Destroy();
 
-				if (_pReporter)
-					_pReporter->f_ReportError("File system successfully rebuilt.");
+				_pReporter->f_ReportError("File system successfully rebuilt.");
 
 				_pReporter->f_StepUp();
 
@@ -885,13 +885,10 @@ namespace NMib::NFile
 			}
 			else
 			{
-				if (_pReporter)
-				{
-					if (_bFix)
-						_pReporter->f_ReportError("Fixing file system.");
-					else
-						_pReporter->f_ReportError("Checking file system.");
-				}
+				if (_bFix)
+					_pReporter->f_ReportError("Fixing file system.");
+				else
+					_pReporter->f_ReportError("Checking file system.");
 
 				ECheckFSError Ret = ECheckFSError_None;
 				for (int i = 0; i < 2; ++i)
@@ -906,17 +903,14 @@ namespace NMib::NFile
 					Context.mp_RootData.f_Read(*_pStorageStream);
 					if (!Context.mp_RootData.f_Validate())
 					{
-						if (_pReporter)
-						{
-							_pReporter->f_ReportError("Error: Root data checksum failure");
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_ClusterSize {}") << Context.mp_RootData.m_ClusterSize);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_RootFileCluster {}") << Context.mp_RootData.m_RootFileCluster);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_FirstFreeCluster {}") << Context.mp_RootData.m_FirstFreeCluster);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_FileSystemGrowSize {}") << Context.mp_RootData.m_FileSystemGrowSize);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_nFreeClusters {}") << Context.mp_RootData.m_nFreeClusters);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_DirectoryCacheSize {}") << Context.mp_RootData.m_DirectoryCacheSize);
-							_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_ClusterCacheSize {}") << Context.mp_RootData.m_ClusterCacheSize);
-						}
+						_pReporter->f_ReportError("Error: Root data checksum failure");
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_ClusterSize {}") << Context.mp_RootData.m_ClusterSize);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_RootFileCluster {}") << Context.mp_RootData.m_RootFileCluster);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_FirstFreeCluster {}") << Context.mp_RootData.m_FirstFreeCluster);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_FileSystemGrowSize {}") << Context.mp_RootData.m_FileSystemGrowSize);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_nFreeClusters {}") << Context.mp_RootData.m_nFreeClusters);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_DirectoryCacheSize {}") << Context.mp_RootData.m_DirectoryCacheSize);
+						_pReporter->f_ReportError(NStr::CStr::CFormat("\tm_ClusterCacheSize {}") << Context.mp_RootData.m_ClusterCacheSize);
 						Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 						break;
 					}
@@ -943,8 +937,7 @@ namespace NMib::NFile
 					if (Size != _pStorageStream->f_GetLength())
 					{
 						// Unaligned stream length
-						if (_pReporter)
-							_pReporter->f_ReportError("Error: The stream isn't a multiple of the cluster size");
+						_pReporter->f_ReportError("Error: The stream isn't a multiple of the cluster size");
 
 						if (_bFix)
 						{
@@ -1005,13 +998,10 @@ namespace NMib::NFile
 		}
 		catch (NException::CException &_Exception)
 		{
-			if (_pReporter)
-			{
-				if (_bFix)
-					_pReporter->f_ReportError(NStr::CStr("Exception during file system fix: ") + _Exception.f_GetErrorStr());
-				else
-					_pReporter->f_ReportError(NStr::CStr("Exception during file system check: ") + _Exception.f_GetErrorStr());
-			}
+			if (_bFix)
+				_pReporter->f_ReportError(NStr::CStr("Exception during file system fix: ") + _Exception.f_GetErrorStr());
+			else
+				_pReporter->f_ReportError(NStr::CStr("Exception during file system check: ") + _Exception.f_GetErrorStr());
 
 			if (_bFix && _pFixDestinationFS)
 				return ECheckFSError_NotFixable;

@@ -219,13 +219,16 @@ namespace NMib::NFile
 							pState = &TempState;
 						pState->m_pFile->f_Open(OriginalFileName, _FileOpenFlags);
 					}
+					else
+						DMibFastCheck(pState);
+
 					o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
 						(
 							OriginalFileName
 							, pState
 						)
 					;
-					o_ManifestFile.m_Length = o_pState->m_Length;
+					o_ManifestFile.m_Length = pState->m_Length;
 				}
 			}
 		}
@@ -390,19 +393,24 @@ namespace NMib::NFile
 		for (auto &Destination : ImplicitDirectories)
 		{
 			auto &File = ImplicitDirectories.fs_GetKey(Destination);
-			auto Mapping = BackupManifest.m_Files(File);
-			if (!Mapping.f_WasCreated())
-				continue;
-			
-			auto &ManifestFile = *Mapping;
+
 			CStr OriginalPath;
 			if (Destination)
 				OriginalPath = *Destination;
 			else
 				OriginalPath = File;
-			
-			ManifestFile.m_Attributes = CFile::fs_GetAttributes(CFile::fs_AppendPath(_Config.m_Root, OriginalPath));
 
+			auto Attributes = CFile::fs_GetAttributes(CFile::fs_AppendPath(_Config.m_Root, OriginalPath));
+			if (!(Attributes & EFileAttrib_Directory))
+				continue; // Should be a directory
+
+			auto Mapping = BackupManifest.m_Files(File);
+			if (!Mapping.f_WasCreated())
+				continue;
+			
+			auto &ManifestFile = *Mapping;
+
+			ManifestFile.m_Attributes = Attributes;
 			fs_UpdateManifestFile(_Config, File, ManifestFile, OriginalPath);
 		}
 		
