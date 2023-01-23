@@ -803,7 +803,7 @@ namespace
 								CFile::fs_RenameFile(TestDir / "File2.tst", TestDir / SubDir / "File3.tst");
 
 	#ifdef DPlatformFamily_Windows
-								if (NMib::fg_GetSys()->f_GetEnvironmentVariable("RunningCI", "") != "true")
+								if (NMib::fg_GetSys()->f_GetEnvironmentVariable("RunningCI", "") == "true")
 								{
 									// Flaky test
 									CFileChangeNotification::CNotification Notification;
