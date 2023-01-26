@@ -128,9 +128,9 @@ namespace NMib::NFile
 			
 			co_return fg_Move(Callback);
 		}
-		catch (NException::CException const &_Exception)
+		catch (NException::CException const &)
 		{
-			co_return _Exception.f_ExceptionPointer();
+			co_return NException::fg_CurrentException();
 		}
 
 		DMibNeverGetHere;
