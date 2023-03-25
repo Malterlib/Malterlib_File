@@ -223,11 +223,11 @@ namespace
 					LongStr.f_AddChars('a', 256*1000);
 					CRSync_Tests::fs_DoRSync
 						(
-						 	CRSync_Tests::fs_ToVector("Testing 123456"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr + "456")
-						 	, _MinChunk
-						 	, _MaxChunk
-						 	, _bInPlace
-						 	, _bEncrypt
+							CRSync_Tests::fs_ToVector("Testing 123456"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr + "456")
+							, _MinChunk
+							, _MaxChunk
+							, _bInPlace
+							, _bEncrypt
 						)
 					;
 				}
@@ -239,12 +239,12 @@ namespace
 					DMibTestPath("Non-sequential read for 16 byte blocks");
 					CRSync_Tests::fs_DoRSync
 						(
-							  CRSync_Tests::fs_ToVector("0123ABCD9abcdefEFGH56789abcdef0123456789IJKLf01MNOP6789abcdef0123456789abcdQRST23456789abcdef01234UVWXabcdef0123456789abcdef")
-						 	, CRSync_Tests::fs_ToVector("0123456789abcdefUVWXQRSTMNOPEFGHABCDIJKL0123456789abcdef....ABCD1234EFGH4567IJKL5678MNOP7890QRST9876UVWX")
-						 	, _MinChunk
-						 	, _MaxChunk
-						 	, _bInPlace
-						 	, _bEncrypt
+							CRSync_Tests::fs_ToVector("0123ABCD9abcdefEFGH56789abcdef0123456789IJKLf01MNOP6789abcdef0123456789abcdQRST23456789abcdef01234UVWXabcdef0123456789abcdef")
+							, CRSync_Tests::fs_ToVector("0123456789abcdefUVWXQRSTMNOPEFGHABCDIJKL0123456789abcdef....ABCD1234EFGH4567IJKL5678MNOP7890QRST9876UVWX")
+							, _MinChunk
+							, _MaxChunk
+							, _bInPlace
+							, _bEncrypt
 						)
 					;
 				}

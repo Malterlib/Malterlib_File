@@ -183,21 +183,21 @@ namespace NMib::NFile
 
 						RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
 							(
-							 	TempFileName
-							 	, EDirectorySyncStreamType_TempSourceDestination
-							 	, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
-							 	, Attributes
+								TempFileName
+								, EDirectorySyncStreamType_TempSourceDestination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, Attributes
 							)
 						;
 						RSyncState.m_pClient = fg_Construct
 							(
-							 	*RSyncState.m_pSourceDestinationStream
-							 	, *RSyncState.m_pSourceDestinationStream
-							 	, 256
-							 	, 4*1024*1024
-							 	, 8*1024*1024
-							 	, &*RSyncState.m_pTempStream
-							 	, ClientFlags
+								*RSyncState.m_pSourceDestinationStream
+								, *RSyncState.m_pSourceDestinationStream
+								, 256
+								, 4*1024*1024
+								, 8*1024*1024
+								, &*RSyncState.m_pTempStream
+								, ClientFlags
 							)
 						;
 					}

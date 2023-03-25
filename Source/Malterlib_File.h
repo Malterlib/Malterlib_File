@@ -419,7 +419,7 @@ namespace NMib::NFile
 				NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
 				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
-			 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
+				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 			)
 		;
 		static bool fsp_CopyFileDiff
@@ -565,7 +565,7 @@ namespace NMib::NFile
 				NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
 				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
-			 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns = {}
+				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns = {}
 				, fp32 _Timeout = 30.0f
 			)
 		;
@@ -1107,7 +1107,7 @@ namespace NMib::NFile
 			ELockResult_Locked,
 			ELockResult_TimedOut,
 			ELockResult_NoAccess,
-			ELockResult_DoesNotExist, 	// Only ever returned if your lockflags do not permit creating the lock file...
+			ELockResult_DoesNotExist,	// Only ever returned if your lockflags do not permit creating the lock file...
 										// ...OR if the file can be created but the path does not exist.
 
 			ELockResult_Unlocked,	// Only ever returned by f_GetLockStatus()

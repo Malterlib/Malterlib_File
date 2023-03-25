@@ -32,9 +32,9 @@ namespace NMib::NFile
 
 							PreviousManifestFileName = Config.m_FileOptions.f_TransformFileName
 								(
-								 	Config.m_TempDirectory
-								 	, fg_Format("{}.manifest", fg_RandomID())
-								 	, EDirectorySyncStreamType_ManifestSource
+									Config.m_TempDirectory
+									, fg_Format("{}.manifest", fg_RandomID())
+									, EDirectorySyncStreamType_ManifestSource
 								)
 							;
 							if (!PreviousManifestFileName.f_StartsWith("<Internal>"))
@@ -44,9 +44,9 @@ namespace NMib::NFile
 
 							TCUniquePointer<NStream::CBinaryStream> pStream = Config.m_FileOptions.f_OpenFile
 								(
-								 	PreviousManifestFileName
-								 	, EDirectorySyncStreamType_ManifestSource
-								 	, EFileOpen_Write
+									PreviousManifestFileName
+									, EDirectorySyncStreamType_ManifestSource
+									, EFileOpen_Write
 								)
 							;
 
@@ -69,9 +69,9 @@ namespace NMib::NFile
 					{
 						ManifestDestination = Config.m_FileOptions.f_TransformFileName
 							(
-							 	Config.m_TempDirectory
-							 	, fg_Format("{}.manifest", fg_RandomID())
-							 	, EDirectorySyncStreamType_ManifestDestination
+								Config.m_TempDirectory
+								, fg_Format("{}.manifest", fg_RandomID())
+								, EDirectorySyncStreamType_ManifestDestination
 							)
 						;
 						if (!ManifestDestination.f_StartsWith("<Internal>"))
@@ -87,9 +87,9 @@ namespace NMib::NFile
 						{
 							RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile
 								(
-								 	PreviousManifestFileName
-								 	, EDirectorySyncStreamType_ManifestSource
-								 	, EFileOpen_Read | EFileOpen_ShareAll
+									PreviousManifestFileName
+									, EDirectorySyncStreamType_ManifestSource
+									, EFileOpen_Read | EFileOpen_ShareAll
 								)
 							;
 						}
@@ -115,9 +115,9 @@ namespace NMib::NFile
 						;
 						CStr TempFileName = Config.m_FileOptions.f_TransformFileName
 							(
-							 	Config.m_TempDirectory
-							 	, fg_Format("{}.rsynctemp", fg_RandomID())
-							 	, EDirectorySyncStreamType_TempManifestSourceDestination
+								Config.m_TempDirectory
+								, fg_Format("{}.rsynctemp", fg_RandomID())
+								, EDirectorySyncStreamType_TempManifestSourceDestination
 							)
 						;
 						if (!TempFileName.f_StartsWith("<Internal>"))
@@ -127,20 +127,20 @@ namespace NMib::NFile
 						}
 						RSyncState.m_pTempStream = Config.m_FileOptions.f_OpenFile
 							(
-							 	TempFileName
-							 	, EDirectorySyncStreamType_TempManifestSourceDestination
-							 	, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								TempFileName
+								, EDirectorySyncStreamType_TempManifestSourceDestination
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
 							)
 						;
 						RSyncState.m_pClient = fg_Construct
 							(
-							 	*RSyncState.m_pSourceDestinationStream
-							 	, *RSyncState.m_pSourceDestinationStream
-							 	, 256
-							 	, 4*1024*1024
-							 	, 8*1024*1024
-							 	, &*RSyncState.m_pTempStream
-							 	, ClientFlags
+								*RSyncState.m_pSourceDestinationStream
+								, *RSyncState.m_pSourceDestinationStream
+								, 256
+								, 4*1024*1024
+								, 8*1024*1024
+								, &*RSyncState.m_pTempStream
+								, ClientFlags
 							)
 						;
 					}

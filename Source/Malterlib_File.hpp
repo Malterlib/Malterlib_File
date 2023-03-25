@@ -18,9 +18,9 @@ namespace NMib::NFile
 		if
 			(
 				NSys::NFile::fg_FileSystemHasDrives()
-				&& 	Len > 2
-				&& 	_Path[1] == ':'
-				&& 	_Path[2] == '/'
+				&& Len > 2
+				&& _Path[1] == ':'
+				&& _Path[2] == '/'
 			)
 		{
 			return true;

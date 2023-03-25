@@ -365,12 +365,12 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 				if (pFileSystem->m_pVirtualFS)
 				{
 					Params.m_ClusterSize = -((int)pFileSystem->m_pVirtualFS->f_GetClusterSize());
-                	Params.m_GrowSize = pFileSystem->m_pVirtualFS->f_GetFileSystemGrowSize();
+					Params.m_GrowSize = pFileSystem->m_pVirtualFS->f_GetFileSystemGrowSize();
 				}
 				else
 				{
 					Params.m_ClusterSize = -1;
-                	Params.m_GrowSize = -1;
+					Params.m_GrowSize = -1;
 				}
 				Params.m_InitialSize = -1;
 				Params.m_VolumeName = pFileSystem->m_Name;

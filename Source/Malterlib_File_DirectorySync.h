@@ -94,8 +94,8 @@ namespace NMib::NFile
 
 		NFunction::TCFunctionMutable<NStr::CStr (NStr::CStr const &_BasePath, NStr::CStr const &_FileName, EDirectorySyncStreamType _FileType)>
 			m_fTransformFilePath
-		; 	///< If set, this functor is called to transform the file name used for file operations. Return a string starting <Internal> to specify that file
-			/// 	operations should not be performed for manifest files
+		;	///< If set, this functor is called to transform the file name used for file operations. Return a string starting <Internal> to specify that file
+			///	operations should not be performed for manifest files
 	};
 	
 	struct CDirectorySyncSend : public CDirectorySyncClient

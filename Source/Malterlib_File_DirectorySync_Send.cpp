@@ -133,7 +133,7 @@ namespace NMib::NFile
 
 		auto ByteStats = co_await
 			(
-			 	g_Dispatch(m_FileActor) / [pThis]
+				g_Dispatch(m_FileActor) / [pThis]
 				{
 					pThis->m_pRSyncServer.f_Clear();
 					pThis->m_FileMemory.f_Clear();
@@ -219,8 +219,8 @@ namespace NMib::NFile
 		auto &Internal = *mp_pInternal;
 		return fg_CallSafe
 			(
-			 	Internal
-			 	, &CInternal::f_StartRSync
+				Internal
+				, &CInternal::f_StartRSync
 				, fg_Move(_Subscription)
 				, [ProtocolVersion, pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
 				{
@@ -251,9 +251,9 @@ namespace NMib::NFile
 							auto &ManifestFileName = Config.m_Manifest.f_Get<2>();
 							_RSyncState.m_pFile = Config.m_FileOptions.f_OpenFile
 								(
-								 	ManifestFileName
-								 	, EDirectorySyncStreamType_ManifestSource
-								 	, EFileOpen_Read | EFileOpen_ShareAll
+									ManifestFileName
+									, EDirectorySyncStreamType_ManifestSource
+									, EFileOpen_Read | EFileOpen_ShareAll
 								)
 							;
 							*_RSyncState.m_pFile >> *pManifest;
@@ -303,8 +303,8 @@ namespace NMib::NFile
 
 		co_return co_await fg_CallSafe
 			(
-			 	Internal
-			 	, &CInternal::f_StartRSync
+				Internal
+				, &CInternal::f_StartRSync
 				, fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{

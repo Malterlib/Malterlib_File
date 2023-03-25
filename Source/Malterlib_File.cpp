@@ -2817,7 +2817,7 @@ namespace NMib::NFile
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
 			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
-		 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
+			, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 		)
 	{
 		auto SourceAttribs = CFile::fs_GetAttributes(_Source);
@@ -3028,7 +3028,7 @@ namespace NMib::NFile
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
 			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
-		 	, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
+			, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 			, fp32 _Timeout
 		)
 	{

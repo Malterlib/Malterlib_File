@@ -222,11 +222,11 @@ namespace NMib::NFile
 			case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("=== {}{} Modified {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
 			case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut
 				(
-				 	"=== {}{} Renamed {} -> {}"
-				 	, Change.m_Sequence
-				 	, pForced
-				 	, Change.m_Notification.m_PathFrom
-				 	, Change.m_Notification.m_Path
+					"=== {}{} Renamed {} -> {}"
+					, Change.m_Sequence
+					, pForced
+					, Change.m_Notification.m_PathFrom
+					, Change.m_Notification.m_Path
 				);
 				break;
 			case EFileChangeNotification_Undefined: break;

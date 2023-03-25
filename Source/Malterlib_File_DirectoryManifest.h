@@ -95,8 +95,8 @@ namespace NMib::NFile
 				, CDirectoryManifestFile &o_ManifestFile
 				, NStr::CStr const &_OriginalPath
 				, NFile::CFile::CFileChecksumState_SHA256 *o_pState = nullptr
-			 	, NFile::EFileOpen _FileOpenFlags = NFile::EFileOpen_None
-			 	, CDirectoryManifestFile const *_pPreviousManifestFile = nullptr
+				, NFile::EFileOpen _FileOpenFlags = NFile::EFileOpen_None
+				, CDirectoryManifestFile const *_pPreviousManifestFile = nullptr
 			)
 		;
 		static CDirectoryManifest fs_GetManifest
@@ -104,8 +104,8 @@ namespace NMib::NFile
 				CDirectoryManifestConfig const &_Config
 				, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 				, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates = nullptr
-			 	, NFile::EFileOpen _FileOpenFlags = NFile::EFileOpen_None
-			 	, CDirectoryManifest const *_pPreviousManifest = nullptr
+				, NFile::EFileOpen _FileOpenFlags = NFile::EFileOpen_None
+				, CDirectoryManifest const *_pPreviousManifest = nullptr
 			)
 		;
 	};

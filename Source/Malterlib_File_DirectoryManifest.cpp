@@ -177,8 +177,8 @@ namespace NMib::NFile
 			, CDirectoryManifestFile &o_ManifestFile
 			, NStr::CStr const &_OriginalPath
 			, NFile::CFile::CFileChecksumState_SHA256 *o_pState
-		 	, NFile::EFileOpen _FileOpenFlags
-		 	, CDirectoryManifestFile const *_pPreviousManifestFile
+			, NFile::EFileOpen _FileOpenFlags
+			, CDirectoryManifestFile const *_pPreviousManifestFile
 		)
 	{
 		using namespace NFile;
@@ -294,7 +294,7 @@ namespace NMib::NFile
 			CDirectoryManifestConfig const &_Config
 			, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 			, NContainer::TCMap<NStr::CStr, NFile::CFile::CFileChecksumState_SHA256> *o_pAppendStates
-		 	, NFile::EFileOpen _FileOpenFlags
+			, NFile::EFileOpen _FileOpenFlags
 			, CDirectoryManifest const *_pPreviousManifest
 		)
 	{
