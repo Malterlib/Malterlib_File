@@ -38,13 +38,13 @@ namespace NMib::NFile
 	{
 	}
 
-	void CFile::CSetAttributeEmulationScope::f_Suspend()
+	void CFile::CSetAttributeEmulationScope::f_Suspend() noexcept
 	{
 		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
 		ThreadLocal.m_bEnableAttributesEmulation = m_bPreviousEnableEmulation;
 	}
 
-	void CFile::CSetAttributeEmulationScope::f_Resume()
+	void CFile::CSetAttributeEmulationScope::f_ResumeNoExcept() noexcept
 	{
 		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
 		m_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;

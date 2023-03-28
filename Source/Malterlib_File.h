@@ -314,8 +314,8 @@ namespace NMib::NFile
 		{
 			CSetAttributeEmulationScope(bool _bEnableEmulation);
 			~CSetAttributeEmulationScope();
-			void f_Suspend() override;
-			void f_Resume() override;
+			void f_Suspend() noexcept override;
+			void f_ResumeNoExcept() noexcept override;
 			void operator ()();
 
 			static bool fs_IsEmulationEnabled();
