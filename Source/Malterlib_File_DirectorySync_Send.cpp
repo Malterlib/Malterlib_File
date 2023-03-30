@@ -97,7 +97,7 @@ namespace NMib::NFile
 	{
 		CStr Error;
 		if (!CFile::fs_IsSafeRelativePath(_FileName, Error))
-			return NException::fg_ExceptionPointer(DMibErrorInstance("The path cannot {}"_f << Error));
+			return NException::fg_MakeException(DMibErrorInstance("The path cannot {}"_f << Error));
 
 		return nullptr;
 	}
