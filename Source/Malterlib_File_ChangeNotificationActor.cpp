@@ -74,67 +74,59 @@ namespace NMib::NFile
 		
 		auto &Internal = *mp_pInternal;
 		
-		try
-		{				
-			auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
-			pNotification->m_fOnChange = fg_Move(_fOnChange);
+		auto CaptureScope = co_await g_CaptureExceptions;
 
-			auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCFuture<void>
-				{
-					if (*pDestroyed)
-						co_return {};
+		auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
+		pNotification->m_fOnChange = fg_Move(_fOnChange);
 
-					auto &Internal = *mp_pInternal;
-					pNotification->m_pNotifier.f_Clear();
-					Internal.fp_SendNotifications(pNotification, true);
-					Internal.m_Notifications.f_Remove(*pNotification);
+		auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCFuture<void>
+			{
+				if (*pDestroyed)
 					co_return {};
+
+				auto &Internal = *mp_pInternal;
+				pNotification->m_pNotifier.f_Clear();
+				Internal.fp_SendNotifications(pNotification, true);
+				Internal.m_Notifications.f_Remove(*pNotification);
+				co_return {};
+			}
+		;
+
+		pNotification->m_pNotifier =
+			fg_Construct
+			(
+				_Path
+				, _OpenFlags
+				,
+				[
+					this
+					, pNotification
+					, pDestroyed = pNotification->m_pDestroyed
+					, ThisWeak = NConcurrency::fg_ThisActor(this).f_Weak()
+				]
+				(CFileChangeNotification::CNotification const &_Change)
+				{
+					auto ThisActor = ThisWeak.f_Lock();
+
+					if (!ThisActor)
+						return;
+
+					NConcurrency::g_Dispatch(ThisActor) / [=]
+						{
+							if (*pDestroyed)
+								return;
+
+							auto &Internal = *mp_pInternal;
+
+							Internal.fp_HandleNotification(pNotification, _Change);
+						}
+						> NConcurrency::fg_DiscardResult()
+					;
 				}
-			;
+			)
+		;
 
-			pNotification->m_pNotifier = 
-				fg_Construct
-				(
-					_Path
-					, _OpenFlags
-					, 
-					[
-						this
-						, pNotification
-						, pDestroyed = pNotification->m_pDestroyed
-						, ThisWeak = NConcurrency::fg_ThisActor(this).f_Weak()
-					]
-					(CFileChangeNotification::CNotification const &_Change)
-					{
-						auto ThisActor = ThisWeak.f_Lock();
-						
-						if (!ThisActor)
-							return;
-						
-						NConcurrency::g_Dispatch(ThisActor) / [=]
-							{
-								if (*pDestroyed)
-									return;
-								
-								auto &Internal = *mp_pInternal;
-								
-								Internal.fp_HandleNotification(pNotification, _Change);
-							}
-							> NConcurrency::fg_DiscardResult()
-						;					
-					}
-				)
-			;
-			
-			co_return fg_Move(Callback);
-		}
-		catch (NException::CException const &)
-		{
-			co_return NException::fg_CurrentException();
-		}
-
-		DMibNeverGetHere;
-		co_return {};
+		co_return fg_Move(Callback);
 	}
 	
 	void CFileChangeNotificationActor::CInternal::fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)
