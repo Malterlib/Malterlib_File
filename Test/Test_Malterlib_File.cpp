@@ -803,101 +803,91 @@ namespace
 								CFile::fs_RenameFile(TestDir / "File2.tst", TestDir / SubDir / "File3.tst");
 
 	#ifdef DPlatformFamily_Windows
-								if (NMib::fg_GetSys()->f_GetEnvironmentVariable("RunningCI", "") == "true")
+								if (bRecursive)
 								{
-									// Flaky test
-									CFileChangeNotification::CNotification Notification;
-									while (fTryWaitForChange("RenameHardLink2: Flaky", Notification))
-										;
+									TCSet<CFileChangeNotification::CNotification> Notifications;
+									Notifications[fWaitForChange("RenameHardLink2: Change0")];
+									Notifications[fWaitForChange("RenameHardLink2: Change1")];
+									Notifications[fWaitForChange("RenameHardLink2: Change2")];
+									Notifications[fWaitForChange("RenameHardLink2: Change3")];
+									{
+										while (true)
+										{
+											CFileChangeNotification::CNotification Notification;
+											if (!fTryWaitForChange("RenameHardLink2: Change4", Notification))
+												break;
+											if (Notifications.f_FindEqual(Notification))
+												continue;
+											Notifications[Notification];
+											break;
+										}
+									}
+
+									mint ExpectedLen = 4;
+									if (Notifications.f_GetLen() == 5)
+										ExpectedLen = 5;
+
+									DMibAssert(Notifications.f_GetLen(), ==, ExpectedLen);
+
+									auto iNotification = Notifications.f_GetIterator();
+									auto Change0 = *iNotification;
+									++iNotification;
+									auto Change1 = *iNotification;
+									++iNotification;
+									auto Change2 = *iNotification;
+									++iNotification;
+									auto Change3 = *iNotification;
+									++iNotification;
+
+									CFileChangeNotification::CNotification Change4;
+									if (ExpectedLen == 5)
+									{
+										Change4 = *iNotification;
+										++iNotification;
+									}
+
+									DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
+									DMibExpect(Change0.m_Path, ==, "SubDir/File3.tst");
+
+									DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
+									DMibExpect(Change1.m_Path, ==, "File2.tst");
+
+									DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(Change2.m_Path, ==, "");
+
+									DMibExpect(Change3.m_Notification, == , EFileChangeNotification_Modified);
+									DMibTest(DMibExpr(Change3.m_Path) == DMibExpr("SubDir") || DMibExpr(Change3.m_Path) == DMibExpr("File2.tst"));
+
+									if (ExpectedLen == 5)
+									{
+										DMibExpect(Change4.m_Notification, == , EFileChangeNotification_Modified);
+										DMibTest(DMibExpr(Change4.m_Path) == DMibExpr("SubDir/File3.tst") || DMibExpr(Change4.m_Path) == DMibExpr("SubDir"));
+									}
 								}
 								else
 								{
-									if (bRecursive)
-									{
-										TCSet<CFileChangeNotification::CNotification> Notifications;
-										Notifications[fWaitForChange("RenameHardLink2: Change0")];
-										Notifications[fWaitForChange("RenameHardLink2: Change1")];
-										Notifications[fWaitForChange("RenameHardLink2: Change2")];
-										Notifications[fWaitForChange("RenameHardLink2: Change3")];
-										{
-											while (true)
-											{
-												CFileChangeNotification::CNotification Notification;
-												if (!fTryWaitForChange("RenameHardLink2: Change4", Notification))
-													break;
-												if (Notifications.f_FindEqual(Notification))
-													continue;
-												Notifications[Notification];
-												break;
-											}
-										}
+									TCSet<CFileChangeNotification::CNotification> Notifications;
+									Notifications[fWaitForChange("RenameHardLink2: Change0")];
+									Notifications[fWaitForChange("RenameHardLink2: Change1")];
+									Notifications[fWaitForChange("RenameHardLink2: Change2")];
+									DMibAssert(Notifications.f_GetLen(), ==, 3);
+									auto iNotification = Notifications.f_GetIterator();
+									auto Change0 = *iNotification;
+									++iNotification;
+									auto Change1 = *iNotification;
+									++iNotification;
+									auto Change2 = *iNotification;
+									++iNotification;
 
-										mint ExpectedLen = 4;
-										if (Notifications.f_GetLen() == 5)
-											ExpectedLen = 5;
+									DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
+									DMibExpect(Change0.m_Path, ==, "");
 
-										DMibAssert(Notifications.f_GetLen(), ==, ExpectedLen);
+									DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
+									DMibTest(DMibExpr(Change1.m_Path) == DMibExpr("File3.tst") || DMibExpr(Change1.m_Path) == DMibExpr("File2.tst"));
 
-										auto iNotification = Notifications.f_GetIterator();
-										auto Change0 = *iNotification;
-										++iNotification;
-										auto Change1 = *iNotification;
-										++iNotification;
-										auto Change2 = *iNotification;
-										++iNotification;
-										auto Change3 = *iNotification;
-										++iNotification;
-
-										CFileChangeNotification::CNotification Change4;
-										if (ExpectedLen == 5)
-										{
-											Change4 = *iNotification;
-											++iNotification;
-										}
-
-										DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Added);
-										DMibExpect(Change0.m_Path, ==, "SubDir/File3.tst");
-
-										DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Removed);
-										DMibExpect(Change1.m_Path, ==, "File2.tst");
-
-										DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Modified);
-										DMibExpect(Change2.m_Path, ==, "");
-
-										DMibExpect(Change3.m_Notification, == , EFileChangeNotification_Modified);
-										DMibTest(DMibExpr(Change3.m_Path) == DMibExpr("SubDir") || DMibExpr(Change3.m_Path) == DMibExpr("File2.tst"));
-
-										if (ExpectedLen == 5)
-										{
-											DMibExpect(Change4.m_Notification, == , EFileChangeNotification_Modified);
-											DMibTest(DMibExpr(Change4.m_Path) == DMibExpr("SubDir/File3.tst") || DMibExpr(Change4.m_Path) == DMibExpr("SubDir"));
-										}
-									}
-									else
-									{
-										TCSet<CFileChangeNotification::CNotification> Notifications;
-										Notifications[fWaitForChange("RenameHardLink2: Change0")];
-										Notifications[fWaitForChange("RenameHardLink2: Change1")];
-										Notifications[fWaitForChange("RenameHardLink2: Change2")];
-										DMibAssert(Notifications.f_GetLen(), ==, 3);
-										auto iNotification = Notifications.f_GetIterator();
-										auto Change0 = *iNotification;
-										++iNotification;
-										auto Change1 = *iNotification;
-										++iNotification;
-										auto Change2 = *iNotification;
-										++iNotification;
-
-										DMibExpect(Change0.m_Notification, ==, EFileChangeNotification_Modified);
-										DMibExpect(Change0.m_Path, ==, "");
-
-										DMibExpect(Change1.m_Notification, ==, EFileChangeNotification_Modified);
-										DMibTest(DMibExpr(Change1.m_Path) == DMibExpr("File3.tst") || DMibExpr(Change1.m_Path) == DMibExpr("File2.tst"));
-
-										DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Renamed);
-										DMibExpect(Change2.m_Path, ==, "File3.tst");
-										DMibExpect(Change2.m_PathFrom, ==, "File2.tst");
-									}
+									DMibExpect(Change2.m_Notification, ==, EFileChangeNotification_Renamed);
+									DMibExpect(Change2.m_Path, ==, "File3.tst");
+									DMibExpect(Change2.m_PathFrom, ==, "File2.tst");
 								}
 	#else
 								{
