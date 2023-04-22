@@ -5,6 +5,7 @@
 #include <Mib/Cryptography/RandomID>
 #include <Mib/File/RSync>
 #include <Mib/Concurrency/ActorSubscription>
+#include <Mib/Concurrency/LogError>
 
 namespace NMib::NFile
 {
@@ -108,13 +109,16 @@ namespace NMib::NFile
 		
 		*Internal.m_pDestroyed = true;
 		
+		CLogError LogError("DirectorySyncSend");
+
 		TCActorResultVector<CInternal::CByteStats> StateDestroys;
 		
 		for (auto &pState : Internal.m_RSyncStates)
 			pState->f_Destroy() > StateDestroys.f_AddResult();
 
-		co_await StateDestroys.f_GetResults();
-		co_await Internal.m_FileActor.f_Destroy();
+		co_await StateDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
+
+		co_await Internal.m_FileActor.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy file actor states");
 
 		co_return {};
 	}
@@ -125,8 +129,10 @@ namespace NMib::NFile
 
 		co_await NConcurrency::ECoroutineFlag_AllowReferences;
 
+		CLogError LogError("DirectorySyncSend");
+
 		if (m_Subscription)
-			co_await m_Subscription->f_Destroy();
+			co_await m_Subscription->f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy subscription");
 
 		if (!m_pRSyncServer)
 			co_return CByteStats{};

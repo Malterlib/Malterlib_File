@@ -4,6 +4,8 @@
 #include "Malterlib_File_DirectorySync.h"
 #include "Malterlib_File_DirectorySync_ReceiveInternal.h"
 
+#include <Mib/Concurrency/LogError>
+
 namespace NMib::NFile
 {
 	CDirectorySyncReceive::CDirectorySyncReceive(CConfig &&_Config, TCDistributedActorInterface<CDirectorySyncClient> &&_Client)
@@ -35,8 +37,10 @@ namespace NMib::NFile
 	{
 		co_await NConcurrency::ECoroutineFlag_AllowReferences;
 
+		CLogError LogError("DirectorySyncReceive");
+
 		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this);
-		co_await fg_Move(m_fRunProtocol).f_Destroy();
+		co_await fg_Move(m_fRunProtocol).f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy run protocol");
 
 		if (!pThis->m_pClient)
 			co_return {};
@@ -78,16 +82,23 @@ namespace NMib::NFile
 	{
 		auto &Internal = *mp_pInternal;
 		*Internal.m_pDestroyed = true;
-		
-		TCActorResultVector<void> RSyncDestroys;
-		
-		for (auto &pRSync : Internal.m_RSyncStates)
-			pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
-		
-		co_await RSyncDestroys.f_GetResults();
+
+		CLogError LogError("DirectorySyncReceive");
 
 		if (Internal.m_Client)
-			co_await Internal.m_Client.f_Destroy();
+			co_await Internal.m_Client.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy client");
+
+		{
+			TCActorResultVector<void> RSyncDestroys;
+
+			for (auto &pRSync : Internal.m_RSyncStates)
+				pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
+
+			co_await RSyncDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
+		}
+
+		if (Internal.m_FileActor)
+			fg_Move(Internal.m_FileActor).f_Destroy() > LogError.f_Warning("Failed to destroy file actor");
 
 		co_return {};
 	}
