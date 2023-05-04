@@ -820,8 +820,8 @@ namespace NMib::NFile
 		template <typename tf_CStr>
 		static tf_CStr fs_GetFileNoExt(const tf_CStr &_File);
 
-		static EFileAttrib fs_AttribFromJSON(NEncoding::CEJSON const &_JSON);
-		static NEncoding::CEJSON fs_AttribToJSON(EFileAttrib _Attribs);
+		static EFileAttrib fs_AttribFromJson(NEncoding::CEJSON const &_JSON);
+		static NEncoding::CEJSON fs_AttribToJson(EFileAttrib _Attribs);
 
 	private:
 		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;

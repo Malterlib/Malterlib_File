@@ -83,7 +83,7 @@ namespace NMib::NFile
 		return NContainer::TCMap<NStr::CStr, CDirectoryManifestFile>::fs_GetKey(*this);
 	}
 	
-	NEncoding::CEJSON CDirectoryManifest::f_ToJSON() const
+	NEncoding::CEJSON CDirectoryManifest::f_ToJson() const
 	{
 		NEncoding::CEJSON JSON;
 		JSON.f_Object();
@@ -97,7 +97,7 @@ namespace NMib::NFile
 			Entry["Length"] = File.m_Length;
 			Entry["WriteTime"] = File.m_WriteTime;
 			Entry["SymlinkData"] = File.m_SymlinkData;
-			Entry["Attributes"] = NFile::CFile::fs_AttribToJSON(File.m_Attributes);
+			Entry["Attributes"] = NFile::CFile::fs_AttribToJson(File.m_Attributes);
 			Entry["Owner"] = File.m_Owner;
 			Entry["Group"] = File.m_Group;
 			Entry["Flags"] = CDirectoryManifestFile::fs_GenerateSyncFlags(File.m_Flags);
@@ -106,7 +106,7 @@ namespace NMib::NFile
 		return JSON;
 	}
 
-	CDirectoryManifest CDirectoryManifest::fs_FromJSON(NEncoding::CEJSON const &_JSON)
+	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJSON const &_JSON)
 	{
 		CDirectoryManifest Manifest;
 		
@@ -124,7 +124,7 @@ namespace NMib::NFile
 			OutFile.m_Length = ManifestJSON["Length"].f_Integer();
 			OutFile.m_WriteTime = ManifestJSON["WriteTime"].f_Date();
 			OutFile.m_SymlinkData = ManifestJSON["SymlinkData"].f_String();
-			OutFile.m_Attributes = NFile::CFile::fs_AttribFromJSON(ManifestJSON["Attributes"]);
+			OutFile.m_Attributes = NFile::CFile::fs_AttribFromJson(ManifestJSON["Attributes"]);
 			OutFile.m_Owner = ManifestJSON["Owner"].f_String();
 			OutFile.m_Group = ManifestJSON["Group"].f_String();
 			OutFile.m_Flags = CDirectoryManifestFile::fs_ParseSyncFlags(ManifestJSON["Flags"]);

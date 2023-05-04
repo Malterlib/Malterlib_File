@@ -76,8 +76,8 @@ namespace NMib::NFile
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream);
 		
-		NEncoding::CEJSON f_ToJSON() const;
-		static CDirectoryManifest fs_FromJSON(NEncoding::CEJSON const &_JSON);
+		NEncoding::CEJSON f_ToJson() const;
+		static CDirectoryManifest fs_FromJson(NEncoding::CEJSON const &_JSON);
 		
 		enum
 		{
