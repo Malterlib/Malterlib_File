@@ -360,11 +360,11 @@ namespace NMib::NFile
 			}
 			if (SubPath == "..")
 			{
-				if (NewPath != "")
+				if (!NewPath.f_IsEmpty())
 				{
-					mint Len = NewPath.f_GetLen();
 					tf_CStr New = fs_GetPath(NewPath);
-					if (NewPath[aint(Len-1)] == '/')
+					mint Len = NewPath.f_GetLen();
+					if (Len > 0 && fg_Const(NewPath)[Len - 1] == '/')
 						;
 					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
 						;
@@ -379,8 +379,11 @@ namespace NMib::NFile
 			}
 			else
 			{
-				if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
-					NewPath += "/" + SubPath;
+				if (!NewPath.f_IsEmpty() && NewPath[NewPath.f_GetLen()-1] != '/')
+				{
+					NewPath += "/";
+					NewPath += SubPath;
+				}
 				else
 					NewPath += SubPath;
 			}
@@ -446,11 +449,11 @@ namespace NMib::NFile
 			}
 			if (SubPath == "..")
 			{
-				if (NewPath != "")
+				if (!NewPath.f_IsEmpty())
 				{
-					mint Len = NewPath.f_GetLen();
 					tf_CStr New = fs_GetPath(NewPath);
-					if (NewPath[aint(Len-1)] == '/')
+					mint Len = NewPath.f_GetLen();
+					if (Len > 0 && fg_Const(NewPath)[Len - 1] == '/')
 						;
 					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
 						;
@@ -465,8 +468,11 @@ namespace NMib::NFile
 			}
 			else
 			{
-				if (NewPath != "" && NewPath[NewPath.f_GetLen()-1] != '/')
-					NewPath += "/" + SubPath;
+				if (!NewPath.f_IsEmpty() && NewPath[NewPath.f_GetLen() - 1] != '/')
+				{
+					NewPath += "/";
+					NewPath += SubPath;
+				}
 				else
 					NewPath += SubPath;
 			}
