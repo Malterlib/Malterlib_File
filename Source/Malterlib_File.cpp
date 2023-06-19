@@ -3201,9 +3201,9 @@ namespace NMib::NFile
 		f_Stop();
 	}
 
-	NEncoding::CEJSON CFile::fs_AttribToJson(EFileAttrib _Attribs)
+	NEncoding::CEJSONSorted CFile::fs_AttribToJson(EFileAttrib _Attribs)
 	{
-		NEncoding::CEJSON JSON;
+		NEncoding::CEJSONSorted JSON;
 		auto &OutArray = JSON.f_Array();
 
 		if (_Attribs & EFileAttrib_Directory)
@@ -3250,7 +3250,7 @@ namespace NMib::NFile
 		return JSON;
 	}
 
-	EFileAttrib CFile::fs_AttribFromJson(NEncoding::CEJSON const &_JSON)
+	EFileAttrib CFile::fs_AttribFromJson(NEncoding::CEJSONSorted const &_JSON)
 	{
 		EFileAttrib Attribs = EFileAttrib_None;
 

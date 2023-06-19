@@ -18,7 +18,7 @@ namespace NMib::NEncoding
 	{
 		template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
 		struct TCJSONValueBase;
-		struct CEJSONExtraTypes;
+		struct CEJSONExtraTypesSorted;
 	}
 
 	template <typename t_CParent>
@@ -27,7 +27,7 @@ namespace NMib::NEncoding
 	template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
 	using TCJSON = t_TCValue<NPrivate::TCJSONValueBase<t_TCValue, t_CTypes, t_bOrdered>>;
 
-	using CEJSON = TCJSON<TCEJSONValue, NPrivate::CEJSONExtraTypes, true>;
+	using CEJSONSorted = TCJSON<TCEJSONValue, NPrivate::CEJSONExtraTypesSorted, false>;
 }
 
 namespace NMib::NFile
@@ -820,8 +820,8 @@ namespace NMib::NFile
 		template <typename tf_CStr>
 		static tf_CStr fs_GetFileNoExt(const tf_CStr &_File);
 
-		static EFileAttrib fs_AttribFromJson(NEncoding::CEJSON const &_JSON);
-		static NEncoding::CEJSON fs_AttribToJson(EFileAttrib _Attribs);
+		static EFileAttrib fs_AttribFromJson(NEncoding::CEJSONSorted const &_JSON);
+		static NEncoding::CEJSONSorted fs_AttribToJson(EFileAttrib _Attribs);
 
 	private:
 		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;

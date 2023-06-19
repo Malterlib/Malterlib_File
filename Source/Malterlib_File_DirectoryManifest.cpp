@@ -11,7 +11,7 @@ namespace NMib::NFile
 	using namespace NContainer;
 	using namespace NStr;
 	
-	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJSON const &_JSON) -> EDirectoryManifestSyncFlag
+	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJSONSorted const &_JSON) -> EDirectoryManifestSyncFlag
 	{
 		EDirectoryManifestSyncFlag Flags = EDirectoryManifestSyncFlag_None;
 		
@@ -28,9 +28,9 @@ namespace NMib::NFile
 		return Flags;
 	}
 	
-	NEncoding::CEJSON CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
+	NEncoding::CEJSONSorted CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
 	{
-		NEncoding::CEJSON Json;
+		NEncoding::CEJSONSorted Json;
 		Json.f_Array();
 		
 		if (_Flags & EDirectoryManifestSyncFlag_Append)
@@ -83,9 +83,9 @@ namespace NMib::NFile
 		return NContainer::TCMap<NStr::CStr, CDirectoryManifestFile>::fs_GetKey(*this);
 	}
 	
-	NEncoding::CEJSON CDirectoryManifest::f_ToJson() const
+	NEncoding::CEJSONSorted CDirectoryManifest::f_ToJson() const
 	{
-		NEncoding::CEJSON JSON;
+		NEncoding::CEJSONSorted JSON;
 		JSON.f_Object();
 
 		for (auto &File : m_Files)
@@ -106,7 +106,7 @@ namespace NMib::NFile
 		return JSON;
 	}
 
-	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJSON const &_JSON)
+	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJSONSorted const &_JSON)
 	{
 		CDirectoryManifest Manifest;
 		

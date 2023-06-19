@@ -30,8 +30,8 @@ namespace NMib::NFile
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream, uint32 _Version);
 
-		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(NEncoding::CEJSON const &_JSON);
-		static NEncoding::CEJSON fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags);
+		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(NEncoding::CEJSONSorted const &_JSON);
+		static NEncoding::CEJSONSorted fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags);
 
 		NCryptography::CHashDigest_SHA256 m_Digest;
 		uint64 m_Length = 0;
@@ -76,8 +76,8 @@ namespace NMib::NFile
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream);
 		
-		NEncoding::CEJSON f_ToJson() const;
-		static CDirectoryManifest fs_FromJson(NEncoding::CEJSON const &_JSON);
+		NEncoding::CEJSONSorted f_ToJson() const;
+		static CDirectoryManifest fs_FromJson(NEncoding::CEJSONSorted const &_JSON);
 		
 		enum
 		{
