@@ -112,7 +112,7 @@ namespace NMib::NFile
 			{
 				return fInitRSync(&*pRSyncState);
 			}
-			> Promise / [=, pCleanup = pCleanup, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
+			> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
 			{
 				if (_bAlreadySynced)
 				{
@@ -135,7 +135,7 @@ namespace NMib::NFile
 								Promise.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));
 						}
 					)
-					> Promise / [=, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone)](CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
+					> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone)](CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
 					{
 						auto &RSyncState = *pRSyncState;
 						RSyncState.m_fRunProtocol = fg_Move(_fRunRSync);

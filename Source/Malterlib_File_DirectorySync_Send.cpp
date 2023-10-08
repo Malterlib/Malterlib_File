@@ -174,13 +174,13 @@ namespace NMib::NFile
 			{
 				fOpenRSync(*pRSyncState);
 			}
-			> Promise / [=]()
+			> Promise / [=, this]()
 			{
 				Promise.f_SetResult
 					(
 						g_ActorFunctor(pRSyncState->m_FileActor)
 						(
-							g_ActorSubscription / [=]() -> TCFuture<void>
+							g_ActorSubscription / [=, this]() -> TCFuture<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
 

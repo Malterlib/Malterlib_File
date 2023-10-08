@@ -111,7 +111,7 @@ namespace NMib::NFile
 					if (!ThisActor)
 						return;
 
-					NConcurrency::g_Dispatch(ThisActor) / [=]
+					NConcurrency::g_Dispatch(ThisActor) / [=, this]
 						{
 							if (*pDestroyed)
 								return;
