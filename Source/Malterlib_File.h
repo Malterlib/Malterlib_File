@@ -542,6 +542,7 @@ namespace NMib::NFile
 		static void fs_SetCurrentDirectory(const NStr::CStr &_Directory);
 
 		static void fs_CreateDirectory(const NStr::CStr &_Path);
+		static void fs_CreateDirectoryForFile(const NStr::CStr &_Path);
 		static void fs_DeleteFile(const NStr::CStr &_File);
 		static void fs_DeleteDirectory(const NStr::CStr &_File);
 

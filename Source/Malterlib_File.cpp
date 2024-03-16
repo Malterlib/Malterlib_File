@@ -1352,6 +1352,11 @@ namespace NMib::NFile
 		NSys::NFile::fg_CreateDirectory(_Path);
 	}
 
+	void CFile::fs_CreateDirectoryForFile(const NStr::CStr &_Path)
+	{
+		NSys::NFile::fg_CreateDirectory(CFile::fs_GetPath(_Path));
+	}
+
 	void CFile::fs_DeleteFile(const NStr::CStr &_File)
 	{
 		NSys::NFile::fg_Delete(_File);
