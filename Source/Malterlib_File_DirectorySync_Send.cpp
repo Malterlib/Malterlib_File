@@ -33,7 +33,6 @@ namespace NMib::NFile
 			TCFuture<CByteStats> f_Destroy();
 
 			CIntrusiveRefCountWithWeak m_RefCount;
-			TCActor<CSeparateThreadActor> m_FileActor;
 			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
 			CBinaryStreamMemory<> m_FileMemory;
 			TCUniquePointer<CRSyncServer> m_pRSyncServer;
@@ -49,7 +48,6 @@ namespace NMib::NFile
 		CDirectorySyncSend *m_pThis = nullptr;
 		TCSharedPointer<CConfig> m_pConfig;
 		TCSharedPointer<CDirectoryManifest> m_pManifest = fg_Construct();
-		TCActor<CSeparateThreadActor> m_FileActor;
 		TCSharedPointer<TCAtomic<bool>> m_pDestroyed = fg_Construct(false);
 		TCMap<CStr, TCSharedPointerSupportWeak<CRunningSyncState>> m_RSyncStates;
 		CClock m_Clock{true};
@@ -62,7 +60,6 @@ namespace NMib::NFile
 		: m_pThis(_pThis)
 		, m_pConfig(fg_Construct(fg_Move(_Config)))
 	{
-		m_FileActor = fg_Construct(fg_Construct(), "Directory sync file access");
 		if (m_pConfig->m_bUseOriginalLocation)
 			m_bUseOriginalLocation = *m_pConfig->m_bUseOriginalLocation;
 		else if (m_pConfig->m_Manifest.f_IsOfType<CDirectoryManifestConfig>())
@@ -118,8 +115,6 @@ namespace NMib::NFile
 
 		co_await StateDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
 
-		co_await Internal.m_FileActor.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy file actor states");
-
 		co_return {};
 	}
 
@@ -137,9 +132,11 @@ namespace NMib::NFile
 		if (!m_pRSyncServer)
 			co_return CByteStats{};
 
+		auto BlockingActorCheckout = fg_BlockingActor();
+		
 		auto ByteStats = co_await
 			(
-				g_Dispatch(m_FileActor) / [pThis]
+				g_Dispatch(BlockingActorCheckout) / [pThis]
 				{
 					pThis->m_pRSyncServer.f_Clear();
 					pThis->m_FileMemory.f_Clear();
@@ -167,20 +164,23 @@ namespace NMib::NFile
 			}
 		;
 		
-		RSyncState.m_FileActor = m_FileActor;
 		RSyncState.m_Subscription = fg_Move(_Subscription);
 
-		g_Dispatch(RSyncState.m_FileActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
+		auto BlockingActorCheckout = fg_BlockingActor();
+		auto BlockingActor = BlockingActorCheckout.f_Actor();
+		
+		g_Dispatch(BlockingActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
 			{
 				fOpenRSync(*pRSyncState);
 			}
-			> Promise / [=, this]()
+			> Promise / [=, this, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() mutable
 			{
+				auto BlockingActor = BlockingActorCheckout.f_Actor();
 				Promise.f_SetResult
 					(
-						g_ActorFunctor(pRSyncState->m_FileActor)
+						g_ActorFunctor(BlockingActor)
 						(
-							g_ActorSubscription / [=, this]() -> TCFuture<void>
+							g_ActorSubscription / [=, this, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() -> TCFuture<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
 

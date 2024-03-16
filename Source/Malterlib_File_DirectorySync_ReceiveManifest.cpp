@@ -152,9 +152,10 @@ namespace NMib::NFile
 					co_await NConcurrency::ECoroutineFlag_AllowReferences;
 					auto pThis = pThisUnsafe;
 
+					auto BlockingActorCheckout = fg_BlockingActor();
 					CDirectoryManifest Manifest = co_await
 						(
-							g_Dispatch(pThis->m_FileActor) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
+							g_Dispatch(BlockingActorCheckout) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
 							{
 								CDirectoryManifest Manifest;
 								pSourceDestinationStream->f_SetPosition(0);

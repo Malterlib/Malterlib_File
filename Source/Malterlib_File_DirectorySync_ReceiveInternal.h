@@ -33,7 +33,6 @@ namespace NMib::NFile
 			TCFuture<void> f_Destroy();
 
 			CIntrusiveRefCountWithWeak m_RefCount;
-			TCActor<CSeparateThreadActor> m_FileActor;
 
 			TCUniquePointer<NStream::CBinaryStream> m_pSourceDestinationStream = fg_Construct<TCBinaryStreamFile<>>();
 			TCUniquePointer<NStream::CBinaryStream> m_pSourceStream = fg_Construct<TCBinaryStreamFile<>>();
@@ -80,7 +79,6 @@ namespace NMib::NFile
 		CClock m_Clock{true};
 		TCSharedPointer<CDirectoryManifest> m_pManifest;
 		CDirectorySyncStats m_Stats;
-		TCActor<CSeparateThreadActor> m_FileActor;
 		CStr m_SyncErrors;
 		TCSharedPointer<TCAtomic<bool>> m_pDestroyed = fg_Construct(false);
 		bool m_bStartedSync = false;

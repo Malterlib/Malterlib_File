@@ -14,10 +14,11 @@ namespace NMib::NFile
 	{
 		if (m_pConfig->m_ExcessFilesAction == EExcessFilesAction_Ignore)
 			co_return {};
-		
+
+		auto BlockingActorCheckout = fg_BlockingActor();
 		co_await
 			(
-				g_Dispatch(m_FileActor) / [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
+				g_Dispatch(BlockingActorCheckout) / [pConfig = m_pConfig, pManifest = m_pManifest, pDestroyed = m_pDestroyed]
 				{
 					auto &Config = *pConfig;
 					auto &Manifest = *pManifest;
@@ -204,7 +205,7 @@ namespace NMib::NFile
 					
 					return false;
 				}
-				, [=, this, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFuture<void>
+				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFuture<void>
 				{
 					co_await NConcurrency::ECoroutineFlag_AllowReferences;
 
@@ -214,9 +215,10 @@ namespace NMib::NFile
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
 						co_return {};
 					
+					auto BlockingActorCheckout = fg_BlockingActor();
 					co_await
 						(
-							g_Dispatch(m_FileActor) / [=, Destination = _pRSyncState->m_DestinationFilename]
+							g_Dispatch(BlockingActorCheckout) / [=, Destination = _pRSyncState->m_DestinationFilename]
 							{
 								auto &Config = *pConfig;
 

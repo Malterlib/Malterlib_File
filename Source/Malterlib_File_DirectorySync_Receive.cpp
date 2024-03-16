@@ -17,7 +17,6 @@ namespace NMib::NFile
 		: m_pThis(_pThis)
 		, m_pConfig(fg_Construct(fg_Move(_Config)))
 		, m_Client(fg_Move(_Client))
-		, m_FileActor(fg_Construct(), "Directory sync receive file access")
 	{
 		if (m_pConfig->m_TempDirectory.f_IsEmpty())
 			DMibError("You need to specify a valid temp directory");
@@ -45,9 +44,10 @@ namespace NMib::NFile
 		if (!pThis->m_pClient)
 			co_return {};
 
+		auto BlockingActorCheckout = fg_BlockingActor();
 		co_await
 			(
-				g_Dispatch(pThis->m_FileActor) / [pThis]
+				g_Dispatch(BlockingActorCheckout) / [pThis]
 				{
 					pThis->m_pClient.f_Clear();
 					pThis->m_pSourceDestinationStream.f_Clear();
@@ -67,7 +67,6 @@ namespace NMib::NFile
 				}
 			)
 		;
-
 
 		co_return {};
 	}
@@ -96,9 +95,6 @@ namespace NMib::NFile
 
 			co_await RSyncDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
 		}
-
-		if (Internal.m_FileActor)
-			fg_Move(Internal.m_FileActor).f_Destroy() > LogError.f_Warning("Failed to destroy file actor");
 
 		co_return {};
 	}

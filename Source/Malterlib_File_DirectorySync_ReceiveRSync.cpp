@@ -70,9 +70,11 @@ namespace NMib::NFile
 	
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> _pState)
 	{
+		auto BlockingActorCheckout = fg_BlockingActor();
+		
 		CByteStats Stats = co_await
 			(
-				g_Dispatch(m_FileActor) / [_pState]
+				g_Dispatch(BlockingActorCheckout) / [_pState]
 				{
 					TCPromise<CByteStats> RunPromise;
 					fsp_RunRSyncProtocol(_pState, {}, RunPromise);
@@ -99,8 +101,7 @@ namespace NMib::NFile
 
 		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
-		pRSyncState->m_FileActor = m_FileActor;
-		
+
 		auto pCleanup = g_OnScopeExitActor / [this, RSyncID, pRSyncState]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
@@ -108,15 +109,19 @@ namespace NMib::NFile
 			}
 		;
 
-		g_Dispatch(m_FileActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
+		auto BlockingActorCheckout = fg_BlockingActor();
+		auto BlockingActor = BlockingActorCheckout.f_Actor();
+
+		g_Dispatch(BlockingActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
 				return fInitRSync(&*pRSyncState);
 			}
-			> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync)](bool _bAlreadySynced) mutable
+			> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
+			(bool _bAlreadySynced) mutable
 			{
 				if (_bAlreadySynced)
 				{
-					fOnDone(&*pRSyncState) > Promise / [=]()
+					fOnDone(&*pRSyncState) > Promise / [=, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]()
 						{
 							pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 								{
@@ -135,13 +140,14 @@ namespace NMib::NFile
 								Promise.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));
 						}
 					)
-					> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone)](CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
+					> Promise / [=, this, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
+					(CDirectorySyncClient::FRunRSync &&_fRunRSync) mutable
 					{
 						auto &RSyncState = *pRSyncState;
 						RSyncState.m_fRunProtocol = fg_Move(_fRunRSync);
-						f_RunRSyncProtocol(pRSyncState) > Promise / [=, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone)]() mutable
+						f_RunRSyncProtocol(pRSyncState) > Promise / [=, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() mutable
 							{
-								fOnDone(&*pRSyncState) > Promise / [=, pCleanup = pCleanup]()
+								fOnDone(&*pRSyncState) > Promise / [=, pCleanup = pCleanup, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]()
 									{
 										pRSyncState->f_Destroy() > Promise / [=, pCleanup = pCleanup]()
 											{
