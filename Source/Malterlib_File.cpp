@@ -1202,10 +1202,7 @@ namespace NMib::NFile
 				File.f_SetWriteTime(_FileTime);
 			}
 
-			if (CFile::fs_FileExists(_ToFileName))
-				CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
-			else
-				CFile::fs_RenameFile(TempFileName, _ToFileName);
+			CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
 			Cleanup.f_Clear();
 
 			return true;
