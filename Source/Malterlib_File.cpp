@@ -6,6 +6,12 @@
 
 namespace NMib::NFile
 {
+#ifdef DPlatformFamily_Windows
+	constinit NStr::CStr const CFile::mc_ExecutableExtension = NStr::gc_Str<".exe">;
+#else
+	constinit NStr::CStr const CFile::mc_ExecutableExtension = {};
+#endif
+
 	struct CSubSystem_File : public CSubSystem
 	{
 		struct CThreadLocal

@@ -382,6 +382,8 @@ namespace NMib::NFile
 			, EDiffCopyChangeAction_Skip
 		};
 
+		static NStr::CStr const mc_ExecutableExtension;
+
 	private:
 		void *mp_pFile = nullptr;
 		CMibFilePos mp_FilePos = 0;
