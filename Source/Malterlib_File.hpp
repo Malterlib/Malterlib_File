@@ -134,8 +134,6 @@ namespace NMib::NFile
 
 		auto fl_GetType = [](tf_CStr const& _Root, tf_CStr &_ID) -> EPathRootType
 		{
-			enum EPathRootType;
-
 			_ID.f_Clear();
 
 			if (_Root.f_CmpNoCase("//?/UNC/", 8) == 0)
