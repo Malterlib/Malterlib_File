@@ -706,7 +706,7 @@ namespace NMib::NFile
 			{
 				m_Tree.f_Remove(_pEntry);
 				--m_nCached;
-				delete _pEntry;
+				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
 			}
 
 			void f_MakeSpace(mint _Space)
@@ -1026,7 +1026,7 @@ namespace NMib::NFile
 
 				m_Tree.f_Remove(_pEntry);
 				--m_nCached;
-				delete _pEntry;
+				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
 			}
 
 			void f_MakeSpace(mint _Space)
@@ -1099,7 +1099,7 @@ namespace NMib::NFile
 					while (pCluster)
 					{
 						m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-						delete pCluster;
+						fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
 						pCluster = m_CachedClusters.f_GetLast();
 					}
 				}
@@ -1117,7 +1117,7 @@ namespace NMib::NFile
 						{
 							pCluster->m_pClusterCacheEntry->m_bDirty = false;
 							m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-							delete pCluster;
+							fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
 							pCluster = m_CachedClusters.f_GetLast();
 						}
 					}
@@ -1170,12 +1170,12 @@ namespace NMib::NFile
 					--m_nCachedClusters;
 					CClusterCache *pCluster = m_CachedClusters.f_GetLast();
 					m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-					delete pCluster;
+					fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
 				}
 
 				CClusterCacheEntry *pEntry = m_pVirtualFS->mp_ClusterCache.f_GetCluster(ClusterID);
 
-				CClusterCache *pNewEntry = DMibNew CClusterCache(pEntry, OrgPos);
+				CClusterCache *pNewEntry = fg_ConstructObject<CClusterCache>(NMemory::CDefaultAllocator(), pEntry, OrgPos);
 				m_CachedClusters.f_InsertFirst(pNewEntry);
 				++m_nCachedClusters;
 

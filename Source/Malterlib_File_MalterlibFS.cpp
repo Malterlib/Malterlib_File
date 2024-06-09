@@ -196,7 +196,7 @@ namespace NMib::NFile
 
 			if (!pFile)
 			{
-				pFile = DMibNew CVirtualFS_FixFSFileTree::CFile(this);
+				pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
 				pFile->m_FileClusterID = _Cluster;
 				m_FileClusters.f_Insert(pFile);
 			}
@@ -217,7 +217,7 @@ namespace NMib::NFile
 			if (!pFile)
 			{
 				// No directory found, lets create a virtual directory
-				pFile = DMibNew CVirtualFS_FixFSFileTree::CFile(this);
+				pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
 				pFile->m_DirectoryID = _DirID;
 				m_Directories.f_Insert(pFile);
 			}
@@ -254,7 +254,7 @@ namespace NMib::NFile
 					}
 
 					// We can now discard the virtual directory
-					delete pFileDir;
+					fg_DeleteObject(NMemory::CDefaultAllocator(), pFileDir);
 
 					if (pFileCluster->m_DirectoryIDLink.f_IsInTree())
 						m_Directories.f_Remove(pFileCluster);
@@ -286,7 +286,7 @@ namespace NMib::NFile
 				return pFileCluster;
 			}
 
-			CVirtualFS_FixFSFileTree::CFile *pFile = DMibNew CVirtualFS_FixFSFileTree::CFile(this);
+			CVirtualFS_FixFSFileTree::CFile *pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
 			pFile->m_DirectoryID = _DirID;
 			pFile->m_FileClusterID = _Cluster;
 			pFile->m_bIsDir = true;
@@ -342,7 +342,7 @@ namespace NMib::NFile
 
 		pNewFile->m_FileRecord.m_FileAttributes = EFileAttrib_Directory;
 
-		CDirectoryCacheEntry *pEntry = DMibNew CDirectoryCacheEntry;
+		CDirectoryCacheEntry *pEntry = fg_ConstructObject<CDirectoryCacheEntry>(NMemory::CDefaultAllocator());
 		pEntry->m_DirectoryFileClusterID = pNewFile->m_FileDescriptorID;
 		if (_pParent->m_FullPath.f_GetLen())
 			pEntry->m_FullPath = _pParent->m_FullPath + "/" + _Path;
@@ -374,7 +374,7 @@ namespace NMib::NFile
 			return nullptr;
 		}
 
-		CDirectoryCacheEntry *pEntry = DMibNew CDirectoryCacheEntry;
+		CDirectoryCacheEntry *pEntry = fg_ConstructObject<CDirectoryCacheEntry>(NMemory::CDefaultAllocator());
 		pEntry->m_DirectoryFileClusterID = _DirectoryCluster;
 		pEntry->m_FullPath = _Path;
 		m_Tree.f_Insert(pEntry);
@@ -2092,7 +2092,7 @@ namespace NMib::NFile
 		{
 			FileCluster = fp_GetNewCluster();
 //				FileChainCluster = fp_GetNewCluster();
-			pFile = DMibNew CFileInternal;
+			pFile = fg_ConstructObject<CFileInternal>(NMemory::CDefaultAllocator());
 			pFile->f_Create(this, FileCluster, false);
 
 			pFile->m_FileRecord.f_Reset();
@@ -2118,7 +2118,7 @@ namespace NMib::NFile
 				fp_ReturnCluster(FileChainCluster);
 
 			if (pFile)
-				delete pFile;
+				fg_DeleteObject(NMemory::CDefaultAllocator(), pFile);
 
 			throw;
 		}
@@ -2137,7 +2137,7 @@ namespace NMib::NFile
 
 		try
 		{
-			pFile = DMibNew CFileInternal;
+			pFile = fg_ConstructObject<CFileInternal>(NMemory::CDefaultAllocator());
 			pFile->f_Create(this, _ClusterID, true);
 			++pFile->m_RefCount;
 			mp_InternalFiles.f_Insert(pFile);
@@ -2145,7 +2145,7 @@ namespace NMib::NFile
 		catch (NException::CException)
 		{
 			if (pFile)
-				delete pFile;
+				fg_DeleteObject(NMemory::CDefaultAllocator(), pFile);
 
 			throw;
 		}
@@ -2161,7 +2161,7 @@ namespace NMib::NFile
 		{
 			mp_InternalFiles.f_Remove(_pFile);
 			_pFile->f_Destroy();
-			delete _pFile;
+			fg_DeleteObject(NMemory::CDefaultAllocator(), _pFile);
 		}
 
 	}
