@@ -167,6 +167,7 @@ namespace NMib::NSys::NFile
 	void fg_SetCurrentDirectory(const NMib::NStr::CStr &_Directory);
 
 	NMib::NStr::CStr fg_GetProgramPath();
+	NMib::NStr::CStr fg_GetProgramPathForExecutableContents();
 	NMib::NStr::CStr fg_GetProgramDirectory();
 	NMib::NStr::CStr fg_GetCurrentDirectory();
 	NMib::NStr::CStr fg_GetUserProgramDirectory();
@@ -573,6 +574,7 @@ namespace NMib::NFile
 
 		static ch8 const *fs_GetDllExtension();
 
+		static NStr::CStr fs_GetProgramPathForExecutabelContents();
 		static NStr::CStr fs_GetProgramPath();
 		static NStr::CStr fs_GetProgramDirectory();
 		static NStr::CStr fs_GetCurrentDirectory();

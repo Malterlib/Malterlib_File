@@ -1393,6 +1393,11 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetProgramPath();
 	}
 
+	NStr::CStr CFile::fs_GetProgramPathForExecutabelContents()
+	{
+		return NSys::NFile::fg_GetProgramPathForExecutableContents();
+	}
+
 	NStr::CStr CFile::fs_GetProgramDirectory()
 	{
 		return NSys::NFile::fg_GetProgramDirectory();
