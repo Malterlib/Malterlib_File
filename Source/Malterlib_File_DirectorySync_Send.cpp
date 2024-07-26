@@ -52,6 +52,7 @@ namespace NMib::NFile
 		TCMap<CStr, TCSharedPointerSupportWeak<CRunningSyncState>> m_RSyncStates;
 		CClock m_Clock{true};
 		CDirectorySyncStats m_Stats;
+		TCSharedPointer<CCanDestroyTracker> m_pCanDestroyTracker = fg_Construct();
 		bool m_bFinished = false;
 		bool m_bUseOriginalLocation = false;
 	};
@@ -88,7 +89,7 @@ namespace NMib::NFile
 	void CDirectorySyncSend::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
 	{
 		if (*_pDestroyed)
-			DMibError("Directory sync send destroyed");
+			DMibError("Directory sync aborted");
 	}
 	
 	NException::CExceptionPointer CDirectorySyncSend::CInternal::f_CheckFileName(CStr const &_FileName)
@@ -105,8 +106,15 @@ namespace NMib::NFile
 		auto &Internal = *mp_pInternal;
 		
 		*Internal.m_pDestroyed = true;
-		
+
 		CLogError LogError("DirectorySyncSend");
+
+		{
+			auto pCanDestroy = fg_Move(Internal.m_pCanDestroyTracker);
+			auto CanDestroyFuture = pCanDestroy->f_Future();
+			pCanDestroy.f_Clear();
+			co_await fg_Move(CanDestroyFuture).f_Wrap() > LogError.f_Warning("Failed to destroy tracker");
+		}
 
 		TCActorResultVector<CInternal::CByteStats> StateDestroys;
 		
@@ -154,6 +162,11 @@ namespace NMib::NFile
 	{
 		TCPromise<FRunRSync> Promise;
 
+		auto pCanDestroy = m_pCanDestroyTracker;
+
+		if (!pCanDestroy)
+			return Promise <<= DMibErrorInstance("Aborted");
+
 		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
@@ -169,18 +182,26 @@ namespace NMib::NFile
 		auto BlockingActorCheckout = fg_BlockingActor();
 		auto BlockingActor = BlockingActorCheckout.f_Actor();
 		
-		g_Dispatch(BlockingActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync)]() mutable
+		g_Dispatch(BlockingActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync), pCanDestroy]() mutable
 			{
 				fOpenRSync(*pRSyncState);
 			}
-			> Promise / [=, this, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() mutable
+			> Promise / [this, pDestroyed = m_pDestroyed, pCleanup, pRSyncState, Promise, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout), pCanDestroy]() mutable
 			{
+				if (m_pThis->f_IsDestroyed())
+				{
+					Promise.f_SetException(DMibErrorInstance("Aborted"));
+					pCleanup.f_Clear();
+
+					return;
+				}
+
 				auto BlockingActor = BlockingActorCheckout.f_Actor();
 				Promise.f_SetResult
 					(
 						g_ActorFunctor(BlockingActor)
 						(
-							g_ActorSubscription / [=, this, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() -> TCFuture<void>
+							g_ActorSubscription / [this, pRSyncState, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout)]() -> TCFuture<void>
 							{
 								m_RSyncStates.f_Remove(RSyncID);
 
@@ -193,15 +214,28 @@ namespace NMib::NFile
 								co_return {};
 							}
 						)
-						/ [=](CSecureByteVector &&_Packet) -> TCFuture<CSecureByteVector>
+						/ [this, pCanDestroy, pDestroyed, pRSyncState](CSecureByteVector &&_Packet) -> TCFuture<CSecureByteVector>
 						{
-							return TCFuture<CSecureByteVector>::fs_RunProtected() / [=, Packet = fg_Move(_Packet)]() -> CSecureByteVector
+
+							return TCFuture<CSecureByteVector>::fs_RunProtected() / [=, this, Packet = fg_Move(_Packet)]() -> CSecureByteVector
 								{
+									if (m_pThis->f_IsDestroyed())
+										DMibError("Aborted");
+
 									if (!pRSyncState->m_pRSyncServer)
 										DMibError("RSync server destroyed");
 
 									CSecureByteVector ToSendToClient;
-									pRSyncState->m_pRSyncServer->f_ProcessPacket(Packet, ToSendToClient);
+									pRSyncState->m_pRSyncServer->f_ProcessPacket
+										(
+											Packet
+											, ToSendToClient
+											, [pDestroyed]
+											{
+												fs_CheckDestroy(pDestroyed);
+											}
+										)
+									;
 
 									pRSyncState->m_ByteStats.m_nIncoming += Packet.f_GetLen();
 									pRSyncState->m_ByteStats.m_nOutgoing += ToSendToClient.f_GetLen();
@@ -282,7 +316,7 @@ namespace NMib::NFile
 					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
 						ServerFlags |= ERSyncFlag_UseSHA256;
 
-					_RSyncState.m_pRSyncServer = fg_Construct(*pBinaryStream, 8*1024*1024, ServerFlags);
+					_RSyncState.m_pRSyncServer = fg_Construct(*pBinaryStream, 8 * 1024 * 1024, ServerFlags);
 				}
 			)
 		;
@@ -327,7 +361,7 @@ namespace NMib::NFile
 					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
 						ServerFlags |= ERSyncFlag_UseSHA256;
 
-					_RSyncState.m_pRSyncServer = fg_Construct(*_RSyncState.m_pFile, 8*1024*1024, ServerFlags);
+					_RSyncState.m_pRSyncServer = fg_Construct(*_RSyncState.m_pFile, 8 * 1024 * 1024, ServerFlags);
 				}
 			)
 		;

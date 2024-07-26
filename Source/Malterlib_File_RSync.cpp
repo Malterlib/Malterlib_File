@@ -333,7 +333,7 @@ namespace NMib::NFile
 		return NStorage::TCUniquePointer<CPacket>();
 	}
 
-	static const uint32 gc_Offset = 31;
+	static constexpr uint32 gc_Offset = 31;
 
 	typedef uint32 CRunningType;
 
@@ -517,7 +517,7 @@ namespace NMib::NFile
 			mp_pFileToSend = _pFileToSend;
 		}
 
-		void f_GetChecksums(TCVector<CChecksum> &_Destination, TCVector<COutstandingRange> const &_Outstanding, uint32 _ChunkSize)
+		void f_GetChecksums(TCVector<CChecksum> &_Destination, TCVector<COutstandingRange> const &_Outstanding, uint32 _ChunkSize, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			//DMibTrace("RSync: Checksums" DMibNewLine, 0);
 			CHash_MD5 HashMD5;
@@ -541,11 +541,14 @@ namespace NMib::NFile
 					else
 						Checksum.m_Digest = fg_GetMD5Checksum(HashMD5, TempBuffer.f_GetArray(), nBytesToRead);
 					Checksum.m_Running = fg_GetRunningSum(TempBuffer.f_GetArray(), nBytesToRead);
+
+					if (_fCheckAbort)
+						_fCheckAbort();
 				}
 			}
 		}
 
-		bool f_ProcessPacket(CSecureByteVector const &_ClientData, CSecureByteVector &_ToSendToClient)
+		bool f_ProcessPacket(CSecureByteVector const &_ClientData, CSecureByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			switch (mp_ServerMode)
 			{
@@ -566,7 +569,7 @@ namespace NMib::NFile
 						Range.m_Length = mp_pFileToSend->f_GetLength();
 						ServerInit.m_FileSize = Range.m_Length;
 						if (pTypedPacket->m_InitialChecksumSize)
-							f_GetChecksums(ServerInit.m_InitialChecksums.m_Checksums, Outstanding, pTypedPacket->m_InitialChecksumSize);
+							f_GetChecksums(ServerInit.m_InitialChecksums.m_Checksums, Outstanding, pTypedPacket->m_InitialChecksumSize, _fCheckAbort);
 						_ToSendToClient
 							= ServerInit.f_GetVector
 							(
@@ -596,7 +599,7 @@ namespace NMib::NFile
 					{
 						CPacket_ClientChecksums *pTypedPacket = (CPacket_ClientChecksums *)pPacket.f_Get();
 						CPacket_ServerChecksums Checksums;
-						f_GetChecksums(Checksums.m_Checksums, pTypedPacket->m_Outstanding, pTypedPacket->m_ChunkSize);
+						f_GetChecksums(Checksums.m_Checksums, pTypedPacket->m_Outstanding, pTypedPacket->m_ChunkSize, _fCheckAbort);
 						_ToSendToClient = Checksums.f_GetVector
 							(
 #ifdef DPacketOrderDebug
@@ -613,9 +616,15 @@ namespace NMib::NFile
 
 						for (COutstandingRange const &Range : pTypedPacket->m_Outstanding)
 						{
+							if (Outstanding.m_Data.f_GetLen() + Range.m_Length > mp_MaxPacketSize)
+								DMibError("Client asking for outstanding range would exceed max packet size");
+
 							mp_pFileToSend->f_SetPosition(Range.m_Start);
 							uint8 *pData = Outstanding.m_Data.f_AddArrayAtEnd(Range.m_Length);
 							mp_pFileToSend->f_ConsumeBytes(pData, Range.m_Length);
+
+							if (_fCheckAbort)
+								_fCheckAbort();
 						}
 						_ToSendToClient
 							= Outstanding.f_GetVector
@@ -662,9 +671,10 @@ namespace NMib::NFile
 	(
 		CSecureByteVector const &_ClientData	// Data returned from rsync client.
 		, CSecureByteVector &_ToSendToClient	// New packet to send to client. If the function returns true this array should still be sent to the client.
+		, NFunction::TCFunction<void ()> const &_fCheckAbort
 	)
 	{
-		return mp_pImpl->f_ProcessPacket(_ClientData, _ToSendToClient);
+		return mp_pImpl->f_ProcessPacket(_ClientData, _ToSendToClient, _fCheckAbort);
 	}
 
 	///////////////////////////////////
@@ -702,19 +712,12 @@ namespace NMib::NFile
 
 	struct CFileMap
 	{
-		TCMap<uint64, CChunk> m_Chunks;
-		uint64 m_nNotFound;
 		CFileMap()
 			: m_nNotFound(0)
 		{
 		}
 
-		void f_RemoveChunk(uint64 _Start)
-		{
-			m_Chunks.f_Remove(_Start);
-		}
-
-		void f_WriteOut(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_InStream)
+		void f_WriteOut(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_InStream, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			while (!m_Chunks.f_IsEmpty())
 			{
@@ -727,12 +730,13 @@ namespace NMib::NFile
 					DMibError("Invalid rsync stream");
 
 				_InStream.f_SetPosition(Chunk.f_OldFileStart());
-				_OutStream.f_FeedFromStream(_InStream, Chunk.f_Length());
+				fp_FeedFromStreamWithAbort(_OutStream, _InStream, Chunk.f_Length(), _fCheckAbort);
+
 				m_Chunks.f_Remove(m_Chunks.fs_GetKey(Chunk));
 			}
 		}
 
-		void f_WriteOutFromTemporary(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_TemporaryStream)
+		void f_WriteOutFromTemporary(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_TemporaryStream, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			while (!m_Chunks.f_IsEmpty())
 			{
@@ -744,12 +748,13 @@ namespace NMib::NFile
 				if (Chunk.f_Start() != _OutStream.f_GetPosition())
 					DMibError("Invalid rsync stream");
 
-				_OutStream.f_FeedFromStream(_TemporaryStream, Chunk.f_Length());
+				fp_FeedFromStreamWithAbort(_OutStream, _TemporaryStream, Chunk.f_Length(), _fCheckAbort);
+
 				m_Chunks.f_Remove(m_Chunks.fs_GetKey(Chunk));
 			}
 		}
 
-		void f_WriteOutToTemporary(NStream::CBinaryStream &_InStream, NStream::CBinaryStream &_TemporaryStream)
+		void f_WriteOutToTemporary(NStream::CBinaryStream &_InStream, NStream::CBinaryStream &_TemporaryStream, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			_TemporaryStream.f_SetPosition(0);
 			for (auto &Chunk : m_Chunks)
@@ -757,7 +762,8 @@ namespace NMib::NFile
 				if (Chunk.f_OldFileStart() >= 0)
 				{
 					_InStream.f_SetPosition(Chunk.f_OldFileStart());
-					_TemporaryStream.f_FeedFromStream(_InStream, Chunk.f_Length());
+
+					fp_FeedFromStreamWithAbort(_TemporaryStream, _InStream, Chunk.f_Length(), _fCheckAbort);
 				}
 			}
 			_TemporaryStream.f_SetPosition(0);
@@ -971,6 +977,23 @@ namespace NMib::NFile
 
 			return m_nNotFound == 0;
 		}
+
+		TCMap<uint64, CChunk> m_Chunks;
+		uint64 m_nNotFound;
+
+	private:
+		void fp_FeedFromStreamWithAbort(NStream::CBinaryStream &_OutStream, NStream::CBinaryStream &_InStream, uint64 _Length, NFunction::TCFunction<void ()> const &_fCheckAbort)
+		{
+			auto Length = _Length;
+			while (Length)
+			{
+				auto ThisTime = fg_Min(Length, gc_IdealIoSize);
+				_OutStream.f_FeedFromStream(_InStream, ThisTime);
+				Length -= ThisTime;
+				if (_fCheckAbort)
+					_fCheckAbort();
+			}
+		}
 	};
 
 	class CRSyncClient::CImplementation
@@ -982,6 +1005,7 @@ namespace NMib::NFile
 		uint32 mp_MaxChunkSize = 0;
 		uint32 mp_CurrentChunkSize = 0;
 		uint32 mp_MaxPacketSize = 0;
+		uint32 mp_MaxInFlightPackets = 0;
 
 		uint64 mp_FileSize = 0;
 		uint64 mp_RawBytes = 0;
@@ -1018,8 +1042,9 @@ namespace NMib::NFile
 		TCVector<COutstandingRange> mp_Outstanding;
 		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
 
-		const static mint mc_HashSize = 65536;
-		const static uint32 mc_HashMask = uint32(mc_HashSize) - 1;
+		constexpr static mint mc_HashSize = 65536;
+		constexpr static uint32 mc_HashMask = uint32(mc_HashSize) - 1;
+		constexpr static uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
 
 		struct CInnerHash
 		{
@@ -1084,6 +1109,7 @@ namespace NMib::NFile
 				, uint32 _MinChunkSize
 				, uint32 _MaxChunkSize
 				, uint32 _MaxPacketSize
+				, uint32 _MaxQueue
 				, NStream::CBinaryStream *_pTempStream
 				, ERSyncFlag _Flags
 			)
@@ -1093,6 +1119,7 @@ namespace NMib::NFile
 			, mp_MinChunkSize(_MinChunkSize)
 			, mp_MaxChunkSize(_MaxChunkSize)
 			, mp_CurrentChunkSize(_MaxChunkSize)
+			, mp_MaxInFlightPackets(fg_Max(_MaxQueue / mc_OutstandingPerPacket, 1u))
 			, mp_MaxPacketSize(_MaxPacketSize)
 			, mp_Flags(_Flags)
 		{
@@ -1127,7 +1154,7 @@ namespace NMib::NFile
 			_BytesTransfered = mp_RawBytes;
 		}
 
-		bool f_FindMatched(CPacket_ServerChecksums const &_CheckSums, uint32 _ChunkSize)
+		bool f_FindMatched(CPacket_ServerChecksums const &_CheckSums, uint32 _ChunkSize, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			auto ClearHash = fg_OnScopeExit
 				(
@@ -1190,7 +1217,10 @@ namespace NMib::NFile
 			History.f_SetLen(ChunkSize);
 			uint8 *pHistory = History.f_GetArray();
 			bool bFound = false;
-			uint8 ByteBuffer[1024];
+			CByteVector ByteBuffer;
+			auto BufferSize = fg_Max(ChunkSize, gc_IdealIoSize);
+			ByteBuffer.f_SetLen(BufferSize);
+			auto pByteBuffer = ByteBuffer.f_GetArray();
 			auto TheseRegions = m_UnfoundRegions;
 
 			CHash_SHA256_16 HashSHA1;
@@ -1287,32 +1317,52 @@ namespace NMib::NFile
 
 				for (CMibFilePos i = Start; i < End && !bFound;)
 				{
-					mint nBuffer = fg_Min(End - i, 1024);
-					mp_OldFile.f_ConsumeBytes(ByteBuffer, nBuffer);
+					mint nBuffer = fg_Min(uint64(End - i), BufferSize);
+					mp_OldFile.f_ConsumeBytes(pByteBuffer, nBuffer);
 					mint k = 0;
+					if (_fCheckAbort)
+						_fCheckAbort();
+					auto *pBuffer = pByteBuffer;
 
-					if (Rollsum.m_Count < ChunkSize)
+					bool bAllSkipped = true;
+					while (bAllSkipped)
 					{
-						mint nBytes = fg_Min(nBuffer, ChunkSize - Rollsum.m_Count);
-						Rollsum.f_RollIn(ByteBuffer, nBytes);
+						bAllSkipped = false;
+						if (_fCheckAbort)
+							_fCheckAbort();
+
+						if (Rollsum.m_Count < ChunkSize)
 						{
-							mint nHistory0 = fg_Min(nBytes, ChunkSize - iCurrentHistory);
-							fg_MemCopy(pHistory + iCurrentHistory, ByteBuffer, nHistory0);
-							mint nHistory1 = fg_Min((ChunkSize - iCurrentHistory) - nHistory0, nBytes - nHistory0);
-							fg_MemCopy(pHistory, ByteBuffer + nHistory0, nHistory1);
-							iCurrentHistory += nBytes;
-							if (iCurrentHistory >= ChunkSize)
-								iCurrentHistory -= ChunkSize;
+							mint nBytes = fg_Min(nBuffer, ChunkSize - Rollsum.m_Count);
+							Rollsum.f_RollIn(pBuffer, nBytes);
+							{
+								mint nHistory0 = fg_Min(nBytes, ChunkSize - iCurrentHistory);
+								fg_MemCopy(pHistory + iCurrentHistory, pBuffer, nHistory0);
+								mint nHistory1 = fg_Min((ChunkSize - iCurrentHistory) - nHistory0, nBytes - nHistory0);
+								fg_MemCopy(pHistory, pBuffer + nHistory0, nHistory1);
+								iCurrentHistory += nBytes;
+								if (iCurrentHistory >= ChunkSize)
+									iCurrentHistory -= ChunkSize;
+							}
+							k += nBytes;
+							i += nBytes;
+
+							fl_CheckBytes(i - Rollsum.m_Count);
+							if (nSkipBytes == ChunkSize - 1 && nBuffer >= ChunkSize)
+							{
+								Rollsum = {};
+								nSkipBytes = 0;
+								bAllSkipped = true;
+								nBuffer -= nBytes;
+								pBuffer += nBytes;
+								k -= nBytes;
+							}
 						}
-						k += nBytes;
-						i += nBytes;
-
-						fl_CheckBytes(i - Rollsum.m_Count);
-
 					}
+
 					for (; k < nBuffer && !bFound; ++k)
 					{
-						uint8 Byte = ByteBuffer[k];
+						uint8 Byte = pBuffer[k];
 						Rollsum.f_Advance(pHistory[iCurrentHistory], Byte);
 
 						pHistory[iCurrentHistory] = Byte;
@@ -1327,10 +1377,10 @@ namespace NMib::NFile
 							continue;
 						}
 						fl_CheckBytes(i - Rollsum.m_Count);
-
 					}
 
 				}
+
 				while (Rollsum.m_Count > 1 && !bFound)
 				{
 					Rollsum.f_RollOut(pHistory[iCurrentHistory]);
@@ -1346,7 +1396,7 @@ namespace NMib::NFile
 			return bFound;
 		}
 
-		bool f_HandleOutstanding(CSecureByteVector &_ToSendToServer, CSecureByteVector const &_Data, bool &_bWantOneMoreProcess)
+		bool f_HandleOutstanding(CSecureByteVector &_ToSendToServer, CSecureByteVector const &_Data, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			mp_ClientMode = EClientMode_SyncOutstanding;
 
@@ -1357,14 +1407,17 @@ namespace NMib::NFile
 				TCVector<COutstandingRange> LastAskedFor = mp_LastAskedFor.f_Pop();
 				for (COutstandingRange const &Chunk : LastAskedFor)
 				{
+					if (_fCheckAbort)
+						_fCheckAbort();
+
 					if (nData < Chunk.m_Length)
 						DMibError("Invalid rsync stream");
 					if (mp_NewFile.f_GetPosition() != Chunk.m_Start)
 					{
 						if (mp_pTempStream)
-							mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+							mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
 						else
-							mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+							mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile, _fCheckAbort);
 					}
 					if (mp_NewFile.f_GetPosition() != Chunk.m_Start)
 						DMibError("Invalid rsync stream");
@@ -1380,9 +1433,9 @@ namespace NMib::NFile
 				}
 
 				if (mp_pTempStream)
-					mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+					mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
 				else
-					mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+					mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile, _fCheckAbort);
 
 			}
 
@@ -1397,7 +1450,7 @@ namespace NMib::NFile
 			if (mp_Outstanding.f_IsEmpty() && mp_bSentDoneMessage)
 				return false;
 
-			mint MaxPerPacket = 128*1024;
+			mint MaxPerPacket = mc_OutstandingPerPacket;
 			CPacket_ClientOutstandingRanges ServerPacket;
 
 			mint nOutstanding = mp_Outstanding.f_GetLen();
@@ -1417,7 +1470,7 @@ namespace NMib::NFile
 				if (!Outstanding.m_Length)
 					++iRemove;
 			}
-			mp_RawBytes += 128*1024 - MaxPerPacket;
+			mp_RawBytes += mc_OutstandingPerPacket - MaxPerPacket;
 			mp_Outstanding.f_Remove(0, iRemove);
 
 			if (ServerPacket.m_Outstanding.f_IsEmpty())
@@ -1428,7 +1481,7 @@ namespace NMib::NFile
 			else
 				mp_LastAskedFor.f_Insert(ServerPacket.m_Outstanding);
 
-			if (mp_LastAskedFor.f_GetLen() < 4)
+			if (mp_LastAskedFor.f_GetLen() < mp_MaxInFlightPackets)
 				_bWantOneMoreProcess = true;
 
 			_ToSendToServer
@@ -1443,11 +1496,11 @@ namespace NMib::NFile
 			return false;
 		}
 
-		void f_HandleChecksums(CSecureByteVector &_ToSendToServer, CPacket_ServerChecksums const &_Checksums, bool &_bWantOneMoreProcess)
+		void f_HandleChecksums(CSecureByteVector &_ToSendToServer, CPacket_ServerChecksums const &_Checksums, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			bool bAllFound = false;
 			if (mp_CurrentChunkSize >= mp_MinChunkSize)
-				bAllFound = f_FindMatched(_Checksums, mp_CurrentChunkSize);
+				bAllFound = f_FindMatched(_Checksums, mp_CurrentChunkSize, _fCheckAbort);
 			else
 				mp_LastAskedFor.f_Pop();
 #if DFileMapDebug > 0
@@ -1456,14 +1509,14 @@ namespace NMib::NFile
 			if (bAllFound)
 			{
 				// Finished
-				f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess);
+				f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort);
 				if (mp_pTempStream)
 				{
-					mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream);
-					mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream);
+					mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
+					mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
 				}
 				else
-					mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile);
+					mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile, _fCheckAbort);
 				mp_ClientMode = EClientMode_SyncOutstanding;
 			}
 			else
@@ -1472,12 +1525,12 @@ namespace NMib::NFile
 				if (mp_CurrentChunkSize <= mp_MinChunkSize)
 				{
 					if (mp_pTempStream)
-						mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream);
+						mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
 
 					mp_RawBytesTotal = 0;
 					uint64 ChecksumSizes = 0;
 					mp_ServerFile.f_GetOutstanding(mp_Outstanding, mp_RawBytesTotal, ChecksumSizes, mp_CurrentChunkSize);
-					f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess);
+					f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort);
 				}
 				else
 				{
@@ -1514,7 +1567,7 @@ namespace NMib::NFile
 			}
 		}
 
-		bool f_ProcessPacket(CSecureByteVector const &_ServerData, CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess)
+		bool f_ProcessPacket(CSecureByteVector const &_ServerData, CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			_bWantOneMoreProcess = false;
 			switch (mp_ClientMode)
@@ -1571,13 +1624,13 @@ namespace NMib::NFile
 								m_UnfoundRegions.f_MakeRegion(0, mp_OldFile.f_GetLength());
 						}
 
-						f_HandleChecksums(_ToSendToServer, pTypedPacket->m_InitialChecksums, _bWantOneMoreProcess);
+						f_HandleChecksums(_ToSendToServer, pTypedPacket->m_InitialChecksums, _bWantOneMoreProcess, _fCheckAbort);
 						return false;
 					}
 					else if (pPacket->m_PacketType == EPacketType_ServerChecksums)
 					{
 						CPacket_ServerChecksums *pTypedPacket = (CPacket_ServerChecksums *)pPacket.f_Get();
-						f_HandleChecksums(_ToSendToServer, *pTypedPacket, _bWantOneMoreProcess);
+						f_HandleChecksums(_ToSendToServer, *pTypedPacket, _bWantOneMoreProcess, _fCheckAbort);
 						return false;
 					}
 					// Invalid packet, lets give up
@@ -1600,7 +1653,7 @@ namespace NMib::NFile
 							CPacket_ServerOutstandingRanges *pTypedPacket = (CPacket_ServerOutstandingRanges *)pPacket.f_Get();
 							if (pTypedPacket->m_Data.f_IsEmpty())
 								mp_bReceivedDoneMessage = true;
-							if (f_HandleOutstanding(_ToSendToServer, pTypedPacket->m_Data, _bWantOneMoreProcess))
+							if (f_HandleOutstanding(_ToSendToServer, pTypedPacket->m_Data, _bWantOneMoreProcess, _fCheckAbort))
 								return true;
 							return false;
 						}
@@ -1610,7 +1663,7 @@ namespace NMib::NFile
 					}
 					else
 					{
-						if (f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess))
+						if (f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort))
 							return true;
 						return false;
 					}
@@ -1632,11 +1685,12 @@ namespace NMib::NFile
 			, uint32 _MinChunkSize
 			, uint32 _MaxChunkSize
 			, uint32 _MaxPacketSize
+			, uint32 _MaxQueue
 			, NStream::CBinaryStream *_pTempStream
 			, ERSyncFlag _Flags
 		)
 	{
-		mp_pImpl = fg_Construct<CImplementation>(_OldFile, _NewFile, _MinChunkSize, _MaxChunkSize, _MaxPacketSize, _pTempStream, _Flags);
+		mp_pImpl = fg_Construct<CImplementation>(_OldFile, _NewFile, _MinChunkSize, _MaxChunkSize, _MaxPacketSize, _MaxQueue, _pTempStream, _Flags);
 	}
 
 	CRSyncClient::~CRSyncClient()
@@ -1647,11 +1701,12 @@ namespace NMib::NFile
 	CRSyncClient::f_ProcessPacket
 	(
 		CSecureByteVector const &_ServerData	// Data returned from rsync server, send in empty for the first packet (client initiates process)
-		,CSecureByteVector &_ToSendToServer	// New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
+		, CSecureByteVector &_ToSendToServer	// New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
 		, bool &_bWantOneMoreProcess		// Set to true when returning if the rsync server needs to send one more packet
+		, NFunction::TCFunction<void ()> const &_fCheckAbort
 	)
 	{
-		return mp_pImpl->f_ProcessPacket(_ServerData, _ToSendToServer, _bWantOneMoreProcess);
+		return mp_pImpl->f_ProcessPacket(_ServerData, _ToSendToServer, _bWantOneMoreProcess, _fCheckAbort);
 	}
 
 	uint64 CRSyncClient::f_GetRawBytes()

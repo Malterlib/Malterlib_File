@@ -108,9 +108,20 @@ namespace
 					}
 				}
 
-				CRSyncServer RSyncServer(ServerStream, 32*1024*1024, ERSyncFlag_UseSHA256);
-				CRSyncClient RSyncClient(*pClientOld, *pClientNewStream, _MinChunk, _MaxChunk, 32*1024*1024, pTemporaryStream, ERSyncFlag_ClientTruncateOutput | ERSyncFlag_UseSHA256);
-				
+				CRSyncServer RSyncServer(ServerStream, 32 * 1024 * 1024, ERSyncFlag_UseSHA256);
+				CRSyncClient RSyncClient
+					(
+						*pClientOld
+						, *pClientNewStream
+						, _MinChunk
+						, _MaxChunk
+						, 32 * 1024 * 1024
+						, 32 * 1024 * 1024
+						, pTemporaryStream
+						, ERSyncFlag_ClientTruncateOutput | ERSyncFlag_UseSHA256
+					)
+				;
+
 				TCVector<CSecureByteVector> ServerData;
 				TCVector<CSecureByteVector> ClientData;
 				while (1)
@@ -123,7 +134,7 @@ namespace
 						if (!ServerData.f_IsEmpty())
 							Vector = ServerData.f_Pop();
 						CSecureByteVector Temp;
-						bDone = RSyncClient.f_ProcessPacket(Vector, Temp, bDoOneProcess);
+						bDone = RSyncClient.f_ProcessPacket(Vector, Temp, bDoOneProcess, nullptr);
 						TotalSizeClient += Temp.f_GetLen();
 						if (!Temp.f_IsEmpty())
 							ClientData.f_Insert(fg_Move(Temp));
@@ -137,7 +148,7 @@ namespace
 						if (!ClientData.f_IsEmpty())
 							Vector = ClientData.f_Pop();
 						CSecureByteVector Temp;
-						bServerDone = RSyncServer.f_ProcessPacket(Vector, Temp);
+						bServerDone = RSyncServer.f_ProcessPacket(Vector, Temp, nullptr);
 						TotalSizeServer += Temp.f_GetLen();
 						if (!Temp.f_IsEmpty())
 							ServerData.f_Insert(fg_Move(Temp));

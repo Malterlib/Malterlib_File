@@ -189,7 +189,7 @@ namespace NMib::NFile
 			EExcessFilesAction m_ExcessFilesAction = EExcessFilesAction_Ignore;
 			ESyncFlag m_SyncFlags = ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes;
 			
-			uint32 m_QueueSize = 8*1024*1024;
+			uint32 m_QueueSize = NFile::gc_IdealNetworkQueueSize;
 			uint32 m_RSyncConcurrency = 8; ///< Number of simultaneous rsyncs to run.
 		};
 		

@@ -74,7 +74,7 @@ namespace NMib::NFile
 	void CDirectorySyncReceive::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
 	{
 		if (_pDestroyed->f_Load(NAtomic::EMemoryOrder_Relaxed))
-			DMibError("Directory sync receive destroyed");
+			DMibError("Directory sync aborted");
 	}
 	
 	TCFuture<void> CDirectorySyncReceive::fp_Destroy()
@@ -84,8 +84,16 @@ namespace NMib::NFile
 
 		CLogError LogError("DirectorySyncReceive");
 
+		TCFuture<void> CanDestroyFuture;
+		{
+			auto pCanDestroy = fg_Move(Internal.m_pCanDestroyTracker);
+			CanDestroyFuture = pCanDestroy->f_Future();
+		}
+
 		if (Internal.m_Client)
 			co_await Internal.m_Client.f_Destroy().f_Wrap() > LogError.f_Warning("Failed to destroy client");
+
+		co_await fg_Move(CanDestroyFuture).f_Wrap() > LogError.f_Warning("Failed to destroy tracker");
 
 		{
 			TCActorResultVector<void> RSyncDestroys;

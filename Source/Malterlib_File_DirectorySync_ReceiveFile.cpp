@@ -163,8 +163,17 @@ namespace NMib::NFile
 							}
 						}
 
-						RSyncState.m_pClient
-							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ClientFlags)
+						RSyncState.m_pClient = fg_Construct
+							(
+								*RSyncState.m_pSourceStream
+								, *RSyncState.m_pSourceDestinationStream
+								, 256
+								, 4 * 1024 * 1024
+								, 8 * 1024 * 1024
+								, pConfig->m_QueueSize / pConfig->m_RSyncConcurrency
+								, nullptr
+								, ClientFlags
+							)
 						;
 					}
 					else
@@ -195,8 +204,9 @@ namespace NMib::NFile
 								*RSyncState.m_pSourceDestinationStream
 								, *RSyncState.m_pSourceDestinationStream
 								, 256
-								, 4*1024*1024
-								, 8*1024*1024
+								, 4 * 1024 * 1024
+								, 8 * 1024 * 1024
+								, pConfig->m_QueueSize / pConfig->m_RSyncConcurrency
 								, &*RSyncState.m_pTempStream
 								, ClientFlags
 							)

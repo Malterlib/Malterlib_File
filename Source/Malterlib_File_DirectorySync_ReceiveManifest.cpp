@@ -107,8 +107,17 @@ namespace NMib::NFile
 								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
 							)
 						;
-						RSyncState.m_pClient
-							= fg_Construct(*RSyncState.m_pSourceStream, *RSyncState.m_pSourceDestinationStream, 256, 4*1024*1024, 8*1024*1024, nullptr, ClientFlags)
+						RSyncState.m_pClient = fg_Construct
+							(
+								*RSyncState.m_pSourceStream
+								, *RSyncState.m_pSourceDestinationStream
+								, 256
+								, 4 * 1024 * 1024
+								, 8 * 1024 * 1024
+								, Config.m_QueueSize
+								, nullptr
+								, ClientFlags
+							)
 						;
 					}
 					else
@@ -144,8 +153,9 @@ namespace NMib::NFile
 								*RSyncState.m_pSourceDestinationStream
 								, *RSyncState.m_pSourceDestinationStream
 								, 256
-								, 4*1024*1024
-								, 8*1024*1024
+								, 4 * 1024 * 1024
+								, 8 * 1024 * 1024
+								, Config.m_QueueSize
 								, &*RSyncState.m_pTempStream
 								, ClientFlags
 							)

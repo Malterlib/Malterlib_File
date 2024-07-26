@@ -47,6 +47,7 @@ namespace NMib::NFile
 			CStr m_DestinationFilename;
 			
 			CByteStats m_ByteStats;
+			TCSharedPointer<TCAtomic<bool>> m_pDestroyed;
 			bool m_bFinished = false;
 		};
 		
@@ -81,6 +82,7 @@ namespace NMib::NFile
 		CDirectorySyncStats m_Stats;
 		CStr m_SyncErrors;
 		TCSharedPointer<TCAtomic<bool>> m_pDestroyed = fg_Construct(false);
+		TCSharedPointer<CCanDestroyTracker> m_pCanDestroyTracker = fg_Construct();
 		bool m_bStartedSync = false;
 		mint m_nRunningSyncs = 0;
 		

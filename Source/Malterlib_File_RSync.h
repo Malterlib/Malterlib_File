@@ -23,7 +23,7 @@ namespace NMib::NFile
 
 		void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
 
-		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient);
+		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort);
 	};
 
 	class CRSyncClient
@@ -39,13 +39,21 @@ namespace NMib::NFile
 				, uint32 _MinChunkSize
 				, uint32 _MaxChunkSize
 				, uint32 _MaxPacketSize
+				, uint32 _MaxQueue
 				, NStream::CBinaryStream *_pTempStream = nullptr
 				, ERSyncFlag _Flags = ERSyncFlag_ClientTruncateOutput
 			)
 		;
 		~CRSyncClient();
 
-		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ServerData, NContainer::CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess);
+		bool f_ProcessPacket
+			(
+				NContainer::CSecureByteVector const &_ServerData
+				, NContainer::CSecureByteVector &_ToSendToServer
+				, bool &_bWantOneMoreProcess
+				, NFunction::TCFunction<void ()> const &_fCheckAbort
+			)
+		;
 		uint64 f_GetRawBytes();
 		void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
 	};
