@@ -54,6 +54,9 @@ namespace NMib::NFile
 
 		auto operator <=> (CUniqueFileIdentifier const &_Right) const = default;
 	};
+
+	static constexpr mint gc_IdealNetworkQueueSize = 128 * 1024 * 1024;
+	static constexpr mint gc_IdealIoSize = 1024 * 1024;
 }
 
 namespace NMib::NSys::NFile
