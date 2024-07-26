@@ -33,7 +33,7 @@ namespace NMib::NFile
 		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(NEncoding::CEJSONSorted const &_JSON);
 		static NEncoding::CEJSONSorted fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags);
 
-		NCryptography::CHashDigest_SHA256 m_Digest;
+		NStorage::TCOptional<NCryptography::CHashDigest_SHA256> m_Digest;
 		uint64 m_Length = 0;
 		NTime::CTime m_WriteTime;
 		NStr::CStr m_OriginalPath;
@@ -44,13 +44,21 @@ namespace NMib::NFile
 		EDirectoryManifestSyncFlag m_Flags = EDirectoryManifestSyncFlag_None;
 	};
 
+	enum class EDirectoryManifestConfigFlag : uint32
+	{
+		mc_None = 0
+		, mc_DisableDigest = DMibBit(0)
+	};
+
 	struct CDirectoryManifestConfig
 	{
 		using CDestination = NStorage::TCOptional<NStr::CStr>;
 
-		enum
+		enum EManifestConfigStreamVersion
 		{
-			EManifestConfigStreamVersion = 0x101
+			EManifestConfigStreamVersion_Min = 0x101
+			, EManifestConfigStreamVersion_SupportFlagsAndMaxDigestSize = 0x102
+			, EManifestConfigStreamVersion_Current = 0x102
 		};
 		
 		static NStr::CStr fs_ParseWildcard(NStr::CStr const &_Wildcard, bool &o_bRecursive);
@@ -58,8 +66,8 @@ namespace NMib::NFile
 		void f_AppendConfig(CDirectoryManifestConfig const &_Config);
 
 		template <typename tf_CStream>
-		void f_Stream(tf_CStream &_Stream);
-		
+		void f_Stream(tf_CStream &_Stream, uint32 _Version);
+
 		NStr::CStr m_Root;																		///< The root directory of the backup.
 		NContainer::TCMap<NStr::CStr, CDestination> m_IncludeWildcards = {{"^*", {}}};				///< \brief Relative to m_Root. This is a file search. Only file name can have wildcards.
 																								///		Use ^ in the beginning of the file path to create a recursive search. Value is used
@@ -69,19 +77,23 @@ namespace NMib::NFile
 																								///		destination path. In remapped space.
 		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_AddSyncFlagsWildcards;		///< Relative to m_Root. In remapped space.
 		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_RemoveSyncFlagsWildcards;	///< Relative to m_Root. Evaluated after m_AddSyncFlagsWildcards. In remapped space.
+		uint64 m_MaxDigestSize = TCLimitsInt<uint64>::mc_Max;									///< Maximum file size to calculate digests for.
+		EDirectoryManifestConfigFlag m_Flags = EDirectoryManifestConfigFlag::mc_None;			///< Flag options.
 	};
 	
 	struct CDirectoryManifest
 	{
 		template <typename tf_CStream>
-		void f_Stream(tf_CStream &_Stream);
-		
+		void f_Stream(tf_CStream &_Stream, uint32 _Version);
+
 		NEncoding::CEJSONSorted f_ToJson() const;
 		static CDirectoryManifest fs_FromJson(NEncoding::CEJSONSorted const &_JSON);
 		
-		enum
+		enum EManifestStreamVersion : uint32
 		{
-			EManifestStreamVersion = 0x102
+			EManifestStreamVersion_Min = 0x102
+			, EManifestStreamVersion_OptionalDigest = 0x103
+			, EManifestStreamVersion_Current = 0x103
 		};
 		
 		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
@@ -108,6 +120,12 @@ namespace NMib::NFile
 				, CDirectoryManifest const *_pPreviousManifest = nullptr
 			)
 		;
+	};
+
+	struct CDirectoryManifestLatestVersion : CDirectoryManifest
+	{
+		template <typename tf_CStream>
+		void f_Stream(tf_CStream &_Stream);
 	};
 }
 

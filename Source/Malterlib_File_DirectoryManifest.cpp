@@ -92,8 +92,9 @@ namespace NMib::NFile
 		{
 			auto &FileName = m_Files.fs_GetKey(File);
 			auto &Entry = JSON[FileName];
-			
-			Entry["Digest"] = NContainer::CByteVector{File.m_Digest.f_GetData(), File.m_Digest.mc_Size};
+
+			if (File.m_Digest)
+				Entry["Digest"] = NContainer::CByteVector{File.m_Digest->f_GetData(), File.m_Digest->mc_Size};
 			Entry["Length"] = File.m_Length;
 			Entry["WriteTime"] = File.m_WriteTime;
 			Entry["SymlinkData"] = File.m_SymlinkData;
@@ -114,12 +115,19 @@ namespace NMib::NFile
 		{
 			auto &OutFile = Manifest.m_Files[File.f_Name()];
 			auto &ManifestJSON = File.f_Value();
-			
+
+			if (auto *pDigest = ManifestJSON.f_GetMember("Digest"))
 			{
-				auto Digest = ManifestJSON["Digest"].f_Binary();
-				if (Digest.f_GetLen() != OutFile.m_Digest.mc_Size)
+				auto Digest = pDigest->f_Binary();
+
+				NCryptography::CHashDigest_SHA256 OutDigest;
+
+				if (OutFile.m_Digest && Digest.f_GetLen() != OutDigest.mc_Size)
 					DMibError("Digest is wrong size");
-				NMemory::fg_MemCopy(OutFile.m_Digest.f_GetData(), Digest.f_GetArray(), OutFile.m_Digest.mc_Size);
+
+				NMemory::fg_MemCopy(OutDigest.f_GetData(), Digest.f_GetArray(), OutDigest.mc_Size);
+
+				OutFile.m_Digest = fg_Move(OutDigest);
 			}
 			OutFile.m_Length = ManifestJSON["Length"].f_Integer();
 			OutFile.m_WriteTime = ManifestJSON["WriteTime"].f_Date();
@@ -222,13 +230,40 @@ namespace NMib::NFile
 					else
 						DMibFastCheck(pState);
 
-					o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
-						(
-							OriginalFileName
-							, pState
-						)
-					;
-					o_ManifestFile.m_Length = pState->m_Length;
+					{
+						CFile *pFile = nullptr;
+						CFile LocalFile;
+
+						if (pState)
+							pFile = &(*pState->m_pFile);
+						else
+							pFile = &LocalFile;
+
+						auto &File = *pFile;
+
+						if (!File.f_IsValid())
+							File.f_Open(OriginalFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
+
+						CMibFilePos Length;
+						Length = File.f_GetLength();
+
+						if (pState)
+							pState->m_Length = Length;
+
+						o_ManifestFile.m_Length = Length;
+					}
+
+
+					if (!fg_IsSet(_Config.m_Flags, EDirectoryManifestConfigFlag::mc_DisableDigest) && o_ManifestFile.m_Length <= _Config.m_MaxDigestSize)
+					{
+						o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
+							(
+								OriginalFileName
+								, pState
+							)
+						;
+						o_ManifestFile.m_Length = pState->m_Length;
+					}
 				}
 			}
 		}

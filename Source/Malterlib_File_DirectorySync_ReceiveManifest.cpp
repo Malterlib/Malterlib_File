@@ -8,13 +8,20 @@ namespace NMib::NFile
 {
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncManifest()
 	{
+		auto InterfaceVersion = m_Client->f_InterfaceVersion();
+
 		auto ClientFlags = ERSyncFlag_ClientTruncateOutput;
-		if (m_Client->f_InterfaceVersion() >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
+		if (InterfaceVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
 			ClientFlags |= ERSyncFlag_UseSHA256;
+
+		CDirectoryManifest::EManifestStreamVersion ManifestVersion = CDirectoryManifest::EManifestStreamVersion_Min;
+
+		if (InterfaceVersion >= CDirectorySyncClient::EProtocolVersion_OptionalDigest)
+			ManifestVersion = CDirectoryManifest::EManifestStreamVersion_OptionalDigest;
 
 		return f_RSync
 			(
-				[pConfig = m_pConfig, ClientFlags](CRunningSyncState *_pRSyncState)
+				[pConfig = m_pConfig, ClientFlags, ManifestVersion](CRunningSyncState *_pRSyncState)
 				{
 					auto &Config = *pConfig;
 					auto &RSyncState = *_pRSyncState;
@@ -50,7 +57,7 @@ namespace NMib::NFile
 								)
 							;
 
-							*pStream << Manifest;
+							Manifest.f_Stream(fg_FeedStream(*pStream), ManifestVersion);
 
 							break;
 						}
@@ -147,7 +154,7 @@ namespace NMib::NFile
 
 					return false;
 				}
-				, [pThisUnsafe = this](CRunningSyncState *_pRSyncState) -> TCFuture<void>
+				, [pThisUnsafe = this, ManifestVersion](CRunningSyncState *_pRSyncState) -> TCFuture<void>
 				{
 					co_await NConcurrency::ECoroutineFlag_AllowReferences;
 					auto pThis = pThisUnsafe;
@@ -155,11 +162,11 @@ namespace NMib::NFile
 					auto BlockingActorCheckout = fg_BlockingActor();
 					CDirectoryManifest Manifest = co_await
 						(
-							g_Dispatch(BlockingActorCheckout) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream)]() mutable
+							g_Dispatch(BlockingActorCheckout) / [pSourceDestinationStream = fg_Move(_pRSyncState->m_pSourceDestinationStream), ManifestVersion]() mutable
 							{
 								CDirectoryManifest Manifest;
 								pSourceDestinationStream->f_SetPosition(0);
-								*pSourceDestinationStream >> Manifest;
+								Manifest.f_Stream(fg_ConsumeStream(*pSourceDestinationStream), ManifestVersion);
 								pSourceDestinationStream.f_Clear();
 								return Manifest;
 							}

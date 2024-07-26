@@ -223,6 +223,7 @@ namespace NMib::NFile
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
 		auto &Internal = *mp_pInternal;
+
 		return fg_CallSafe
 			(
 				Internal
@@ -231,14 +232,20 @@ namespace NMib::NFile
 				, [ProtocolVersion, pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
 				{
 					auto &Config = *pConfig;
-					
+
+					CDirectoryManifest::EManifestStreamVersion ManifestVersion = CDirectoryManifest::EManifestStreamVersion_Min;
+
+					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_OptionalDigest)
+						ManifestVersion = CDirectoryManifest::EManifestStreamVersion_OptionalDigest;
+
 					CBinaryStream *pBinaryStream = nullptr;
 					switch (Config.m_Manifest.f_GetTypeID())
 					{
 					case 0:
 						{
 							auto &Manifest = Config.m_Manifest.f_Get<0>();
-							_RSyncState.m_FileMemory << Manifest;
+							Manifest.f_Stream(fg_FeedStream(_RSyncState.m_FileMemory), ManifestVersion);
+
 							pBinaryStream = &_RSyncState.m_FileMemory;
 							*pManifest = Manifest;
 							break;
@@ -247,7 +254,7 @@ namespace NMib::NFile
 						{
 							auto &ManifestConfig = Config.m_Manifest.f_Get<1>();
 							auto Manifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, [&]{ CInternal::fs_CheckDestroy(pDestroyed); });
-							_RSyncState.m_FileMemory << Manifest;
+							Manifest.f_Stream(fg_FeedStream(_RSyncState.m_FileMemory), ManifestVersion);
 							pBinaryStream = &_RSyncState.m_FileMemory;
 							*pManifest = fg_Move(Manifest);
 							break;
@@ -262,7 +269,7 @@ namespace NMib::NFile
 									, EFileOpen_Read | EFileOpen_ShareAll
 								)
 							;
-							*_RSyncState.m_pFile >> *pManifest;
+							pManifest->f_Stream(fg_ConsumeStream(*_RSyncState.m_pFile), ManifestVersion);
 							_RSyncState.m_pFile->f_SetPosition(0);
 							pBinaryStream = &*_RSyncState.m_pFile;
 							break;

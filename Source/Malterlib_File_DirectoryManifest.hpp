@@ -6,11 +6,11 @@
 namespace NMib::NFile
 {
 	template <typename tf_CStream>
-	void CDirectoryManifestConfig::f_Stream(tf_CStream &_Stream)
+	void CDirectoryManifestConfig::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{
-		uint32 Version = EManifestConfigStreamVersion;
+		uint32 Version = _Version;
 		_Stream % Version;
-		if (Version < 0x101 || Version > EManifestConfigStreamVersion)
+		if (Version < EManifestConfigStreamVersion_Min || Version > EManifestConfigStreamVersion_Current)
 			DMibError("Invalid directory manifest version");
 		DMibBinaryStreamVersion(_Stream, Version);
 		
@@ -19,15 +19,38 @@ namespace NMib::NFile
 		_Stream % m_ExcludeWildcards;
 		_Stream % m_AddSyncFlagsWildcards;
 		_Stream % m_RemoveSyncFlagsWildcards;
+		if (Version >= EManifestConfigStreamVersion_SupportFlagsAndMaxDigestSize)
+		{
+			_Stream % m_MaxDigestSize;
+			_Stream % m_Flags;
+		}
 	}
 	
 	template <typename tf_CStream>
 	void CDirectoryManifestFile::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{
-		if (_Version < 0x102 || _Version > CDirectoryManifest::EManifestStreamVersion)
+		if (_Version < CDirectoryManifest::EManifestStreamVersion_Min || _Version > CDirectoryManifest::EManifestStreamVersion_Current)
 			DMibError("Invalid directory manifest version");
-		
-		_Stream % m_Digest;
+
+		if (_Version >= CDirectoryManifest::EManifestStreamVersion_OptionalDigest)
+			_Stream % m_Digest;
+		else
+		{
+			if constexpr (tf_CStream::mc_bFeed)
+			{
+				NCryptography::CHashDigest_SHA256 Digest;
+				if (m_Digest)
+					Digest = *m_Digest;
+				_Stream << Digest;
+			}
+			else
+			{
+				NCryptography::CHashDigest_SHA256 Digest;
+				_Stream >> Digest;
+				m_Digest = Digest;
+			}
+		}
+
 		_Stream % m_Length;
 		_Stream % m_WriteTime;
 		_Stream % m_OriginalPath;
@@ -39,11 +62,11 @@ namespace NMib::NFile
 	}
 	
 	template <typename tf_CStream>
-	void CDirectoryManifest::f_Stream(tf_CStream &_Stream)
+	void CDirectoryManifest::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{
-		uint32 Version = EManifestStreamVersion;
+		uint32 Version = _Version;
 		_Stream % Version;
-		if (Version < 0x102 || Version > EManifestStreamVersion)
+		if (Version < EManifestStreamVersion_Min || Version > EManifestStreamVersion_Current)
 			DMibError("Invalid directory manifest version");
 		DMibBinaryStreamVersion(_Stream, Version);
 
@@ -69,5 +92,11 @@ namespace NMib::NFile
 				File.f_Stream(_Stream, Version);
 			}
 		}
+	}
+
+	template <typename tf_CStream>
+	void CDirectoryManifestLatestVersion::f_Stream(tf_CStream &_Stream)
+	{
+		CDirectoryManifest::f_Stream(_Stream, EManifestStreamVersion_Current);
 	}
 }

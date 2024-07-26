@@ -123,7 +123,7 @@ namespace NMib::NFile
 					if (CFile::fs_FileExists(Destination))
 					{
 						auto Stream = Config.m_FileOptions.f_OpenFile(Destination, EDirectorySyncStreamType_Destination, EFileOpen_Read | EFileOpen_ShareAll);
-						if (NCryptography::CHash_SHA256::fs_DigestFromStream(*Stream) == ManifestFile.m_Digest)
+						if (ManifestFile.m_Digest && NCryptography::CHash_SHA256::fs_DigestFromStream(*Stream) == *ManifestFile.m_Digest)
 							return true;
 						Source = Config.m_FileOptions.f_TransformFileName(Config.m_BasePath, _FileName, EDirectorySyncStreamType_Source);
 					}
