@@ -1399,6 +1399,21 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetProgramPath();
 	}
 
+	NStr::CStr CFile::fs_GetOriginalProgramPath()
+	{
+		auto CanonicalPath = CFile::fs_GetProgramPath();
+		auto CommandLineArgs = fg_GetSys()->f_GetCommandLineArgs();
+		if (CommandLineArgs.f_IsEmpty())
+			return CanonicalPath;
+
+		auto OriginalPath = CFile::fs_GetFullPath(CFile::fs_GetFile(CommandLineArgs[0]), CFile::fs_GetPath(CanonicalPath));
+
+		if (CFile::fs_FileExists(OriginalPath))
+			return OriginalPath;
+		else
+			return CanonicalPath;
+	}
+
 	NStr::CStr CFile::fs_GetProgramPathForExecutabelContents()
 	{
 		return NSys::NFile::fg_GetProgramPathForExecutableContents();

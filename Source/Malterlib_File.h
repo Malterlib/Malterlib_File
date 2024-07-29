@@ -578,6 +578,7 @@ namespace NMib::NFile
 
 		static NStr::CStr fs_GetProgramPathForExecutabelContents();
 		static NStr::CStr fs_GetProgramPath();
+		static NStr::CStr fs_GetOriginalProgramPath();
 		static NStr::CStr fs_GetProgramDirectory();
 		static NStr::CStr fs_GetCurrentDirectory();
 		static NStr::CStr fs_GetUserProgramDirectory();
