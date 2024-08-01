@@ -96,7 +96,7 @@ namespace NMib::NFile
 								(
 									PreviousManifestFileName
 									, EDirectorySyncStreamType_ManifestSource
-									, EFileOpen_Read | EFileOpen_ShareAll
+									, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 								)
 							;
 						}
@@ -104,7 +104,7 @@ namespace NMib::NFile
 							(
 								ManifestDestination
 								, EDirectorySyncStreamType_ManifestDestination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 							)
 						;
 						RSyncState.m_pClient = fg_Construct
@@ -126,7 +126,7 @@ namespace NMib::NFile
 							(
 								ManifestDestination
 								, EDirectorySyncStreamType_ManifestSourceDestination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 							)
 						;
 						CStr TempFileName = Config.m_FileOptions.f_TransformFileName
@@ -145,7 +145,7 @@ namespace NMib::NFile
 							(
 								TempFileName
 								, EDirectorySyncStreamType_TempManifestSourceDestination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 							)
 						;
 						RSyncState.m_pClient = fg_Construct

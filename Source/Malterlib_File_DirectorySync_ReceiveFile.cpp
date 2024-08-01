@@ -122,7 +122,7 @@ namespace NMib::NFile
 					CStr Source;
 					if (CFile::fs_FileExists(Destination))
 					{
-						auto Stream = Config.m_FileOptions.f_OpenFile(Destination, EDirectorySyncStreamType_Destination, EFileOpen_Read | EFileOpen_ShareAll);
+						auto Stream = Config.m_FileOptions.f_OpenFile(Destination, EDirectorySyncStreamType_Destination, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 						if (ManifestFile.m_Digest && NCryptography::CHash_SHA256::fs_DigestFromStream(*Stream) == *ManifestFile.m_Digest)
 							return true;
 						Source = Config.m_FileOptions.f_TransformFileName(Config.m_BasePath, _FileName, EDirectorySyncStreamType_Source);
@@ -140,7 +140,7 @@ namespace NMib::NFile
 							(
 								Destination
 								, EDirectorySyncStreamType_Destination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 								, Attributes
 							)
 						;
@@ -153,7 +153,13 @@ namespace NMib::NFile
 #endif
 							try
 							{
-								RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile(Source, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+								RSyncState.m_pSourceStream = Config.m_FileOptions.f_OpenFile
+									(
+										Source
+										, EDirectorySyncStreamType_Source
+										, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache
+									)
+								;
 							}
 							catch (CExceptionFile const &)
 							{
@@ -182,7 +188,7 @@ namespace NMib::NFile
 							(
 								Destination
 								, EDirectorySyncStreamType_SourceDestination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 								, Attributes
 							)
 						;
@@ -195,7 +201,7 @@ namespace NMib::NFile
 							(
 								TempFileName
 								, EDirectorySyncStreamType_TempSourceDestination
-								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll
+								, EFileOpen_Read | EFileOpen_Write | EFileOpen_DontTruncate | EFileOpen_ShareAll | EFileOpen_NoLocalCache
 								, Attributes
 							)
 						;

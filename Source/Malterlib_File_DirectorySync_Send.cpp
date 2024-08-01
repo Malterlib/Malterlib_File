@@ -300,7 +300,7 @@ namespace NMib::NFile
 								(
 									ManifestFileName
 									, EDirectorySyncStreamType_ManifestSource
-									, EFileOpen_Read | EFileOpen_ShareAll
+									, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache | EFileOpen_NoLocalCache
 								)
 							;
 							pManifest->f_Stream(fg_ConsumeStream(*_RSyncState.m_pFile), ManifestVersion);
@@ -355,7 +355,7 @@ namespace NMib::NFile
 				, fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{
-					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll);
+					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 
 					auto ServerFlags = ERSyncFlag_None;
 					if (ProtocolVersion >= CDirectorySyncClient::EProtocolVersion_UseSHA256)
