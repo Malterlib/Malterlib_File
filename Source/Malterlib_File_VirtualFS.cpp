@@ -130,14 +130,16 @@ namespace NMib::NFile
 	{
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pInFile = f_OpenStream(_FileFrom, EFileOpen_Read | EFileOpen_ShareAll);
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pOutFile = f_OpenStream(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
+
+		CFileIoTempBuffer Buffer;
+
 		NStream::CFilePos Len = pInFile->f_GetLength();
 		while (Len)
 		{
-			mint ThisTime = fg_Min(Len, 32768);
-			ch8 Temp[32768];
-			pInFile->f_ConsumeBytes(Temp, ThisTime);
-			pOutFile->f_FeedBytes(Temp, ThisTime);
-			Len -= ThisTime;
+			auto BufferResult = Buffer.f_UseBuffer(Len);
+			pInFile->f_ConsumeBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			pOutFile->f_FeedBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Len -= BufferResult.m_nBytes;
 		}
 
 	}
@@ -146,13 +148,15 @@ namespace NMib::NFile
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pInFile = f_OpenStream(_FileFrom, EFileOpen_Read | EFileOpen_ShareAll);
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pOutFile = _ToFS.f_OpenStream(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		NStream::CFilePos Len = pInFile->f_GetLength();
+
+		CFileIoTempBuffer Buffer;
+
 		while (Len)
 		{
-			mint ThisTime = fg_Min(Len, 32768);
-			ch8 Temp[32768];
-			pInFile->f_ConsumeBytes(Temp, ThisTime);
-			pOutFile->f_FeedBytes(Temp, ThisTime);
-			Len -= ThisTime;
+			auto BufferResult = Buffer.f_UseBuffer(Len);
+			pInFile->f_ConsumeBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			pOutFile->f_FeedBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Len -= BufferResult.m_nBytes;
 		}
 
 	}
@@ -334,14 +338,15 @@ namespace NMib::NFile
 		NCryptography::CHash_MD5 Checksum;
 		CMibFilePos Length = pInFile->f_GetLength();
 
+		CFileIoTempBuffer Buffer;
+
 		while (Length)
 		{
-			mint ThisTime = mint(fg_Min(Length, CMibFilePos(32768)));
-			uint8 Temp[32768];
-			pInFile->f_ConsumeBytes(Temp, ThisTime);
-			Checksum.f_AddData(Temp, ThisTime);
+			auto BufferResult = Buffer.f_UseBuffer(Length);
+			pInFile->f_ConsumeBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Checksum.f_AddData(BufferResult.m_pBuffer, BufferResult.m_nBytes);
 
-			Length -= ThisTime;
+			Length -= BufferResult.m_nBytes;
 		}
 
 		return Checksum;
@@ -502,20 +507,20 @@ namespace NMib::NFile
 							_DestFS.f_CreateDirectory(PathToCreate);
 
 						{
-							enum {ECopySize = 16384};
-							uint8 TempBuffer[ECopySize];
+							CFileIoTempBuffer Buffer;
+
 							auto pSource = _SourceFS.f_OpenStream(FileName, EFileOpen_Read);
 							auto & Source = *pSource;
 							auto pDestStream = _DestFS.f_OpenStream(FileName, EFileOpen_Write);
 							CMibFilePos Size = Source.f_GetLength();
 							while (Size)
 							{
-								mint ThisTime = fg_Convert<mint>(fg_Min(Size, CMibFilePos(ECopySize)));
-								Source.f_ConsumeBytes(TempBuffer, ThisTime);
-								pDestStream->f_FeedBytes(TempBuffer, ThisTime);
-								Size -= ThisTime;
+								auto BufferResult = Buffer.f_UseBuffer(Size);
+								Source.f_ConsumeBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+								pDestStream->f_FeedBytes(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+								Size -= BufferResult.m_nBytes;
 
-								if (_pProgress && !_pProgress->f_IncreaseProgress(ThisTime))
+								if (_pProgress && !_pProgress->f_IncreaseProgress(BufferResult.m_nBytes))
 									return false;
 							}
 						}

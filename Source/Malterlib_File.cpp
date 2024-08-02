@@ -953,13 +953,14 @@ namespace NMib::NFile
 	void CFile::fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo)
 	{
 		NStream::CFilePos Len = _FileFrom.f_GetLength() - _FileFrom.f_GetPosition();
+		CFileIoTempBuffer Buffer;
+
 		while (Len)
 		{
-			mint ThisTime = fg_Min(Len, 32768);
-			ch8 Temp[32768];
-			_FileFrom.f_Read(Temp, ThisTime);
-			_FileTo.f_Write(Temp, ThisTime);
-			Len -= ThisTime;
+			auto BufferResult = Buffer.f_UseBuffer(Len);
+			_FileFrom.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			_FileTo.f_Write(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Len -= BufferResult.m_nBytes;
 		}
 	}
 
@@ -2138,14 +2139,15 @@ namespace NMib::NFile
 			o_pState->m_Length = Length;
 		tf_CHash Hash;
 
+		CFileIoTempBuffer Buffer;
+
 		while (Length)
 		{
-			mint ThisTime = mint(fg_Min(Length, CMibFilePos(32768)));
-			uint8 Temp[32768];
-			File.f_Read(Temp, ThisTime);
-			Hash.f_AddData(Temp, ThisTime);
+			auto BufferResult = Buffer.f_UseBuffer(Length);
+			File.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Hash.f_AddData(BufferResult.m_pBuffer, BufferResult.m_nBytes);
 
-			Length -= ThisTime;
+			Length -= BufferResult.m_nBytes;
 		}
 
 		if (o_pState)

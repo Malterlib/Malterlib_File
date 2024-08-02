@@ -2269,14 +2269,15 @@ namespace NMib::NFile
 		NCryptography::CHash_MD5 Checksum;
 		CMibFilePos Length = File.f_GetLength();
 
+		NFile::CFileIoTempBuffer Buffer;
+
 		while (Length)
 		{
-			mint ThisTime = mint(fg_Min(Length, CMibFilePos(32768)));
-			uint8 Temp[32768];
-			File.f_Read(Temp, ThisTime);
-			Checksum.f_AddData(Temp, ThisTime);
+			auto BufferResult = Buffer.f_UseBuffer(Length);
+			File.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			Checksum.f_AddData(BufferResult.m_pBuffer, BufferResult.m_nBytes);
 
-			Length -= ThisTime;
+			Length -= BufferResult.m_nBytes;
 		}
 
 		return Checksum;
@@ -2824,15 +2825,16 @@ namespace NMib::NFile
 			CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
 			FromFile.f_Open(_FromFile, EFileOpen_Read|EFileOpen_ShareAll);
 
+			CFileIoTempBuffer Buffer;
+
 			CMibFilePos ToCopy = FromFile.f_GetLength();
 			while (ToCopy)
 			{
-				mint ThisTime = fg_Min(ToCopy, 16384);
-				uint8 Temp[16384];
+				auto BufferResult = Buffer.f_UseBuffer(ToCopy);
 
-				FromFile.f_Read(Temp, ThisTime);
-				ToFile.f_Write(Temp, ThisTime);
-				ToCopy -= ThisTime;
+				FromFile.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+				ToFile.f_Write(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+				ToCopy -= BufferResult.m_nBytes;
 			}
 		}
 
@@ -2845,15 +2847,16 @@ namespace NMib::NFile
 		CFile FromFile(*this, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
 		ToFile.f_Open(_ToFile, EFileOpen_Write|EFileOpen_ShareAll);
 
+		CFileIoTempBuffer Buffer;
+
 		CMibFilePos ToCopy = FromFile.f_GetLength();
 		while (ToCopy)
 		{
-			mint ThisTime = fg_Min(ToCopy, 16384);
-			uint8 Temp[16384];
+			auto BufferResult = Buffer.f_UseBuffer(ToCopy);
 
-			FromFile.f_Read(Temp, ThisTime);
-			ToFile.f_Write(Temp, ThisTime);
-			ToCopy -= ThisTime;
+			FromFile.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToFile.f_Write(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToCopy -= BufferResult.m_nBytes;
 		}
 	}
 
@@ -2862,15 +2865,16 @@ namespace NMib::NFile
 		CFile FromFile(_OtherFS, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
 		CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
 
+		CFileIoTempBuffer Buffer;
+
 		CMibFilePos ToCopy = FromFile.f_GetLength();
 		while (ToCopy)
 		{
-			mint ThisTime = fg_Min(ToCopy, 16384);
-			uint8 Temp[16384];
+			auto BufferResult = Buffer.f_UseBuffer(ToCopy);
 
-			FromFile.f_Read(Temp, ThisTime);
-			ToFile.f_Write(Temp, ThisTime);
-			ToCopy -= ThisTime;
+			FromFile.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToFile.f_Write(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToCopy -= BufferResult.m_nBytes;
 		}
 	}
 
@@ -2879,15 +2883,16 @@ namespace NMib::NFile
 		CFile FromFile(*this, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
 		CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
 
+		CFileIoTempBuffer Buffer;
+
 		CMibFilePos ToCopy = FromFile.f_GetLength();
 		while (ToCopy)
 		{
-			mint ThisTime = fg_Min(ToCopy, 16384);
-			uint8 Temp[16384];
+			auto BufferResult = Buffer.f_UseBuffer(ToCopy);
 
-			FromFile.f_Read(Temp, ThisTime);
-			ToFile.f_Write(Temp, ThisTime);
-			ToCopy -= ThisTime;
+			FromFile.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToFile.f_Write(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			ToCopy -= BufferResult.m_nBytes;
 		}
 	}
 
