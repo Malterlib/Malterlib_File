@@ -730,6 +730,32 @@ namespace NMib::NFile
 		tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
 		return Ret;
 	}
+
+	template <typename tf_CLength>
+	inline_small CFileIoTempBuffer::CUseBufferResult CFileIoTempBuffer::f_UseBuffer(tf_CLength _Length)
+	{
+		mint ThisTime = fg_Min(typename NTraits::TCUnsigned<tf_CLength>::CType(_Length), gc_IdealIoSize);
+		mp_nUsedBytes = fg_Max(mp_nUsedBytes, ThisTime);
+		if (ThisTime)
+		{
+			if (mp_Data.f_IsEmpty())
+				fp_CreateBuffer();
+
+			return
+				{
+					.m_pBuffer = mp_Data.f_GetArray()
+					, .m_nBytes = ThisTime
+				}
+			;
+		}
+
+		return
+			{
+				.m_pBuffer = nullptr
+				, .m_nBytes = ThisTime
+			}
+		;
+	}
 }
 
 namespace NMib::NStr

@@ -3330,4 +3330,17 @@ namespace NMib::NFile
 
 		return Attribs;
 	}
+
+	CFileIoTempBuffer::CFileIoTempBuffer() = default;
+
+	CFileIoTempBuffer::~CFileIoTempBuffer()
+	{
+		if (mp_nUsedBytes && !mp_Data.f_IsEmpty())
+			NMemory::fg_SecureMemClear(mp_Data.f_GetArray(), mp_nUsedBytes);
+	}
+
+	inline_never void CFileIoTempBuffer::fp_CreateBuffer()
+	{
+		mp_Data.f_SetLen(gc_IdealIoSize);
+	}
 }

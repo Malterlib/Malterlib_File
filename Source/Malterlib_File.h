@@ -54,6 +54,27 @@ namespace NMib::NFile
 
 		auto operator <=> (CUniqueFileIdentifier const &_Right) const = default;
 	};
+
+	struct CFileIoTempBuffer
+	{
+		CFileIoTempBuffer();
+		~CFileIoTempBuffer();
+
+		struct CUseBufferResult
+		{
+			uint8 *m_pBuffer;
+			mint m_nBytes;
+		};
+
+		template <typename tf_CLength>
+		inline_small CUseBufferResult f_UseBuffer(tf_CLength _Length);
+
+	private:
+		inline_never void fp_CreateBuffer();
+
+		NContainer::CByteVector mp_Data;
+		mint mp_nUsedBytes = 0;
+	};
 }
 
 namespace NMib::NSys::NFile
