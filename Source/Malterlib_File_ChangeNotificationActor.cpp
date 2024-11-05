@@ -22,9 +22,9 @@ namespace NMib::NFile
 				uint64 m_Sequence = 0;
 			};
 			
-			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings const &_CoalesceSettings)
+			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings &&_CoalesceSettings)
 				: m_pDestroyed(fg_Construct(false))
-				, m_CoalesceSettings(_CoalesceSettings)
+				, m_CoalesceSettings(fg_Move(_CoalesceSettings))
 			{
 			}
 			
@@ -40,7 +40,7 @@ namespace NMib::NFile
 			TCVector<CSavedChange> m_Changes;
 			TCMap<CStr, EFileChangeNotification> m_LastChange;
 			CCoalesceSettings m_CoalesceSettings;
-			TCActorFunctor<TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> m_fOnChange;
+			TCActorFunctor<TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> m_fOnChange;
 			uint64 m_Sequence = 0;
 			mint m_nOutstanding = 0;
 			bool m_bScheduledTimeout = false;
@@ -63,10 +63,10 @@ namespace NMib::NFile
 		
 	NConcurrency::TCFuture<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
 		(
-			NMib::NStr::CStr const &_Path
+			NMib::NStr::CStr _Path
 			, NMib::NFile::EFileChange _OpenFlags
-			, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
-			, CCoalesceSettings const &_CoalesceSettings
+			, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> _fOnChange
+			, CCoalesceSettings _CoalesceSettings
 		)
 	{
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
@@ -76,7 +76,7 @@ namespace NMib::NFile
 		
 		auto CaptureScope = co_await g_CaptureExceptions;
 
-		auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, _CoalesceSettings)));
+		auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, fg_Move(_CoalesceSettings))));
 		pNotification->m_fOnChange = fg_Move(_fOnChange);
 
 		auto Callback = g_ActorSubscription / [this, pNotification, pDestroyed = pNotification->m_pDestroyed]() -> TCFuture<void>
@@ -120,7 +120,7 @@ namespace NMib::NFile
 
 							Internal.fp_HandleNotification(pNotification, _Change);
 						}
-						> NConcurrency::fg_DiscardResult()
+						> NConcurrency::g_DiscardResult
 					;
 				}
 			)
@@ -160,14 +160,16 @@ namespace NMib::NFile
 			if (Notification.m_bScheduledTimeout)
 				return;
 			Notification.m_bScheduledTimeout = true;
-			fg_Timeout(Notification.m_CoalesceSettings.m_Delay) > [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
+			fg_Timeout(Notification.m_CoalesceSettings.m_Delay) > [this, _pNotification, pDestroyed = Notification.m_pDestroyed]() -> TCFuture<void>
 				{
 					if (*pDestroyed)
-						return;
-			
+						co_return {};
+
 					_pNotification->m_bScheduledTimeout = false;
 					
 					fp_SendNotifications(_pNotification, false);
+
+					co_return {};
 				}
 			;
 		}

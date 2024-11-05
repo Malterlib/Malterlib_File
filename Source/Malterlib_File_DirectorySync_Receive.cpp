@@ -32,10 +32,8 @@ namespace NMib::NFile
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
 	
-	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<void>
+	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCUnsafeFuture<void>
 	{
-		co_await NConcurrency::ECoroutineFlag_AllowReferences;
-
 		CLogError LogError("DirectorySyncReceive");
 
 		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this);
@@ -96,12 +94,12 @@ namespace NMib::NFile
 		co_await fg_Move(CanDestroyFuture).f_Wrap() > LogError.f_Warning("Failed to destroy tracker");
 
 		{
-			TCActorResultVector<void> RSyncDestroys;
+			TCFutureVector<void> RSyncDestroys;
 
 			for (auto &pRSync : Internal.m_RSyncStates)
-				pRSync->f_Destroy() > RSyncDestroys.f_AddResult();
+				pRSync->f_Destroy() > RSyncDestroys;
 
-			co_await RSyncDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
+			co_await fg_AllDone(RSyncDestroys).f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
 		}
 
 		co_return {};

@@ -22,10 +22,10 @@ namespace NMib::NFile
 
 		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_RegisterForChanges
 			(
-				NMib::NStr::CStr const &_Path
+				NMib::NStr::CStr _Path
 				, NMib::NFile::EFileChange _OpenFlags
-				, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> const &_Changes)> &&_fOnChange
-				, CCoalesceSettings const &_CoalesceSettings
+				, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> _fOnChange
+				, CCoalesceSettings _CoalesceSettings
 			)
 		;
 	private:

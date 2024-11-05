@@ -96,11 +96,12 @@ namespace NMib::NFile
 		
 		CByteStats Stats = co_await
 			(
-				g_Dispatch(BlockingActorCheckout) / [_pState]
+				g_Dispatch(BlockingActorCheckout) / [_pState]() -> TCFuture<CByteStats>
 				{
 					TCPromise<CByteStats> RunPromise;
 					fsp_RunRSyncProtocol(_pState, {}, RunPromise);
-					return RunPromise.f_MoveFuture();
+					
+					co_return co_await RunPromise.f_MoveFuture();
 				}
 			)
 		;
@@ -119,8 +120,6 @@ namespace NMib::NFile
 			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 		)
 	{
-		TCPromise<void> Promise;
-
 		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 
@@ -128,23 +127,33 @@ namespace NMib::NFile
 
 		auto pCanDestroy = m_pCanDestroyTracker;
 		if (!pCanDestroy)
-			return Promise <<= DMibErrorInstance("Aborted");
+			co_return DMibErrorInstance("Aborted");
 		
 		auto pCleanup = g_OnScopeExitActor / [this, RSyncID, pRSyncState, pCanDestroy]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
-				pRSyncState->f_Destroy() > fg_DiscardResult();
+				pRSyncState->f_Destroy().f_DiscardResult();
 			}
 		;
 
 		auto BlockingActorCheckout = fg_BlockingActor();
 		auto BlockingActor = BlockingActorCheckout.f_Actor();
 
+		TCPromiseFuturePair<void> Promise;
 		g_Dispatch(BlockingActor) / [=, fInitRSync = fg_Move(_fInitRSync)]() mutable
 			{
 				return fInitRSync(&*pRSyncState);
 			}
-			> [=, this, pCleanup = pCleanup, fOnDone = fg_Move(_fOnDone), fStartRSync = fg_Move(_fStartRSync), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
+			>
+			[
+				=
+				, this
+				, Promise = fg_Move(Promise.m_Promise)
+				, pCleanup = pCleanup
+				, fOnDone = fg_Move(_fOnDone)
+				, fStartRSync = fg_Move(_fStartRSync)
+				, BlockingActorCheckout = fg_Move(BlockingActorCheckout)
+			]
 			(TCAsyncResult<bool> _bAlreadySynced) mutable
 			{
 				if (!_bAlreadySynced)
@@ -242,6 +251,7 @@ namespace NMib::NFile
 				;
 			}
 		;
-		return Promise.f_MoveFuture();
+
+		co_return co_await fg_Move(Promise.m_Future);
 	}
 }

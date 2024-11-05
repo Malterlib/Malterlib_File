@@ -164,9 +164,8 @@ namespace NMib::NFile
 
 					return false;
 				}
-				, [pThisUnsafe = this, ManifestVersion](CRunningSyncState *_pRSyncState) -> TCFuture<void>
+				, [pThisUnsafe = this, ManifestVersion](CRunningSyncState *_pRSyncState) -> TCUnsafeFuture<void>
 				{
-					co_await NConcurrency::ECoroutineFlag_AllowReferences;
 					auto pThis = pThisUnsafe;
 
 					auto BlockingActorCheckout = fg_BlockingActor();
@@ -188,7 +187,7 @@ namespace NMib::NFile
 				}
 				, [this](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
-					return g_Future <<= m_Client.f_CallActor(&CDirectorySyncClient::f_StartManifestRSync)(fg_Move(_Subscription));
+					return m_Client.f_CallActor(&CDirectorySyncClient::f_StartManifestRSync)(fg_Move(_Subscription));
 				}
 			)
 		;

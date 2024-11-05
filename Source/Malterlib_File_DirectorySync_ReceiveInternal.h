@@ -30,7 +30,7 @@ namespace NMib::NFile
 		{
 			CRunningSyncState();
 			~CRunningSyncState();
-			TCFuture<void> f_Destroy();
+			TCUnsafeFuture<void> f_Destroy();
 
 			CIntrusiveRefCountWithWeak m_RefCount;
 

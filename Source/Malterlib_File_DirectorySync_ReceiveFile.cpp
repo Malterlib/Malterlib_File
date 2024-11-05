@@ -221,10 +221,8 @@ namespace NMib::NFile
 					
 					return false;
 				}
-				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCFuture<void>
+				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCUnsafeFuture<void>
 				{
-					co_await NConcurrency::ECoroutineFlag_AllowReferences;
-
 					auto pConfig = pConfigUnsafe;
 					auto pManifest = pManifestUnsafe;
 					auto &Config = *pConfig;
@@ -284,7 +282,7 @@ namespace NMib::NFile
 				}
 				, [this, _FileName](CActorSubscription &&_Subscription) -> TCFuture<CDirectorySyncClient::FRunRSync>
 				{
-					return g_Future <<= m_Client.f_CallActor(&CDirectorySyncClient::f_StartRSync)(_FileName, fg_Move(_Subscription));
+					return m_Client.f_CallActor(&CDirectorySyncClient::f_StartRSync)(_FileName, fg_Move(_Subscription));
 				}
 			)
 		;

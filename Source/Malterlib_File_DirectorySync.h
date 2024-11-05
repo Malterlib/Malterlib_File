@@ -40,12 +40,12 @@ namespace NMib::NFile
 			, EProtocolVersion_Current = 0x103
 		};
 
-		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CSecureByteVector> (NContainer::CSecureByteVector &&_Packet)>;
+		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CSecureByteVector> (NContainer::CSecureByteVector _Packet)>;
 		
 		CDirectorySyncClient();
 		
-		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
-		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) = 0;
+		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
+		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
 		virtual NConcurrency::TCFuture<void> f_Finished() = 0;
 	};
 	
@@ -133,8 +133,8 @@ namespace NMib::NFile
 	private:
 		struct CInternal;
 
-		NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
-		NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr const &_FileName, NConcurrency::TCActorSubscriptionWithID<> &&_Subscription) override;
+		NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
+		NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
 		NConcurrency::TCFuture<void> f_Finished() override;
 
 		NConcurrency::TCFuture<void> fp_Destroy() override;

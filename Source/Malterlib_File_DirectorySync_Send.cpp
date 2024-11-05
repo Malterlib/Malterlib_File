@@ -30,7 +30,7 @@ namespace NMib::NFile
 		
 		struct CRunningSyncState
 		{
-			TCFuture<CByteStats> f_Destroy();
+			TCUnsafeFuture<CByteStats> f_Destroy();
 
 			CIntrusiveRefCountWithWeak m_RefCount;
 			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
@@ -43,7 +43,7 @@ namespace NMib::NFile
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 		NException::CExceptionPointer f_CheckFileName(CStr const &_FileName);
-		auto f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync) -> TCFuture<FRunRSync>;
+		auto f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>;
 
 		CDirectorySyncSend *m_pThis = nullptr;
 		TCSharedPointer<CConfig> m_pConfig;
@@ -116,21 +116,19 @@ namespace NMib::NFile
 			co_await fg_Move(CanDestroyFuture).f_Wrap() > LogError.f_Warning("Failed to destroy tracker");
 		}
 
-		TCActorResultVector<CInternal::CByteStats> StateDestroys;
+		TCFutureVector<CInternal::CByteStats> StateDestroys;
 		
 		for (auto &pState : Internal.m_RSyncStates)
-			pState->f_Destroy() > StateDestroys.f_AddResult();
+			pState->f_Destroy() > StateDestroys;
 
-		co_await StateDestroys.f_GetUnwrappedResults().f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
+		co_await fg_AllDone(StateDestroys).f_Wrap() > LogError.f_Warning("Failed to destroy rsync states");
 
 		co_return {};
 	}
 
-	auto CDirectorySyncSend::CInternal::CRunningSyncState::f_Destroy() -> TCFuture<CByteStats>
+	auto CDirectorySyncSend::CInternal::CRunningSyncState::f_Destroy() -> TCUnsafeFuture<CByteStats>
 	{
 		auto pThis = TCSharedPointerSupportWeak<CRunningSyncState>(this); // Keep this alive
-
-		co_await NConcurrency::ECoroutineFlag_AllowReferences;
 
 		CLogError LogError("DirectorySyncSend");
 
@@ -157,15 +155,13 @@ namespace NMib::NFile
 		co_return fg_Move(ByteStats);
 	}
 	
-	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> &&_Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> &&_fOpenRSync)
+	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync)
 		-> TCFuture<FRunRSync>
 	{
-		TCPromise<FRunRSync> Promise;
-
 		auto pCanDestroy = m_pCanDestroyTracker;
 
 		if (!pCanDestroy)
-			return Promise <<= DMibErrorInstance("Aborted");
+			co_return DMibErrorInstance("Aborted");
 
 		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
@@ -181,12 +177,15 @@ namespace NMib::NFile
 
 		auto BlockingActorCheckout = fg_BlockingActor();
 		auto BlockingActor = BlockingActorCheckout.f_Actor();
-		
+
+		TCPromiseFuturePair<FRunRSync> Promise;
+
 		g_Dispatch(BlockingActor) / [pRSyncState, fOpenRSync = fg_Move(_fOpenRSync), pCanDestroy]() mutable
 			{
 				fOpenRSync(*pRSyncState);
 			}
-			> Promise / [this, pDestroyed = m_pDestroyed, pCleanup, pRSyncState, Promise, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout), pCanDestroy]() mutable
+			> fg_Move(Promise.m_Promise)
+			/ [this, pDestroyed = m_pDestroyed, pCleanup, pRSyncState, Promise = Promise.m_Promise, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout), pCanDestroy]() mutable
 			{
 				if (m_pThis->f_IsDestroyed())
 				{
@@ -214,35 +213,32 @@ namespace NMib::NFile
 								co_return {};
 							}
 						)
-						/ [this, pCanDestroy, pDestroyed, pRSyncState](CSecureByteVector &&_Packet) -> TCFuture<CSecureByteVector>
+						/ [this, pCanDestroy, pDestroyed, pRSyncState](CSecureByteVector _Packet) -> TCFuture<CSecureByteVector>
 						{
+							auto CaptureScope = co_await g_CaptureExceptions;
 
-							return TCFuture<CSecureByteVector>::fs_RunProtected() / [=, this, Packet = fg_Move(_Packet)]() -> CSecureByteVector
-								{
-									if (m_pThis->f_IsDestroyed())
-										DMibError("Aborted");
+							if (m_pThis->f_IsDestroyed())
+								DMibError("Aborted");
 
-									if (!pRSyncState->m_pRSyncServer)
-										DMibError("RSync server destroyed");
+							if (!pRSyncState->m_pRSyncServer)
+								DMibError("RSync server destroyed");
 
-									CSecureByteVector ToSendToClient;
-									pRSyncState->m_pRSyncServer->f_ProcessPacket
-										(
-											Packet
-											, ToSendToClient
-											, [pDestroyed]
-											{
-												fs_CheckDestroy(pDestroyed);
-											}
-										)
-									;
-
-									pRSyncState->m_ByteStats.m_nIncoming += Packet.f_GetLen();
-									pRSyncState->m_ByteStats.m_nOutgoing += ToSendToClient.f_GetLen();
-									
-									return ToSendToClient;
-								}
+							CSecureByteVector ToSendToClient;
+							pRSyncState->m_pRSyncServer->f_ProcessPacket
+								(
+									_Packet
+									, ToSendToClient
+									, [pDestroyed]
+									{
+										fs_CheckDestroy(pDestroyed);
+									}
+								)
 							;
+
+							pRSyncState->m_ByteStats.m_nIncoming += _Packet.f_GetLen();
+							pRSyncState->m_ByteStats.m_nOutgoing += ToSendToClient.f_GetLen();
+
+							co_return fg_Move(ToSendToClient);
 						}
 					)
 				;
@@ -250,19 +246,17 @@ namespace NMib::NFile
 			}
 		;
 		
-		return Promise.f_MoveFuture();
+		co_return co_await fg_Move(Promise.m_Future);
 	}
 
-	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
+	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
 		auto &Internal = *mp_pInternal;
 
-		return fg_CallSafe
+		return Internal.f_StartRSync
 			(
-				Internal
-				, &CInternal::f_StartRSync
-				, fg_Move(_Subscription)
+				fg_Move(_Subscription)
 				, [ProtocolVersion, pManifest = Internal.m_pManifest, pConfig = Internal.m_pConfig, pDestroyed = Internal.m_pDestroyed](CInternal::CRunningSyncState &_RSyncState)
 				{
 					auto &Config = *pConfig;
@@ -322,7 +316,7 @@ namespace NMib::NFile
 		;
 	}
 	
-	auto CDirectorySyncSend::f_StartRSync(NStr::CStr const &_FileName, TCActorSubscriptionWithID<> &&_Subscription) -> TCFuture<FRunRSync>
+	auto CDirectorySyncSend::f_StartRSync(NStr::CStr _FileName, TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
 
@@ -348,11 +342,9 @@ namespace NMib::NFile
 
 		FilePath = Internal.m_pConfig->m_FileOptions.f_TransformFileName(Internal.m_pConfig->m_BasePath, FilePath, EDirectorySyncStreamType_Source);
 
-		co_return co_await fg_CallSafe
+		co_return co_await Internal.f_StartRSync
 			(
-				Internal
-				, &CInternal::f_StartRSync
-				, fg_Move(_Subscription)
+				fg_Move(_Subscription)
 				, [=, pConfig = Internal.m_pConfig](CInternal::CRunningSyncState &_RSyncState)
 				{
 					_RSyncState.m_pFile = pConfig->m_FileOptions.f_OpenFile(FilePath, EDirectorySyncStreamType_Source, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
