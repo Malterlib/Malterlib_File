@@ -651,6 +651,12 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetAttributes(mp_pFile);
 	}
 
+	CUniqueFileIdentifier CFile::f_GetUniqueIdentifier() const
+	{
+		fp_CheckOpen();
+		return NSys::NFile::fg_GetUniqueIdentifier(mp_pFile);
+	}
+
 	void CFile::f_SetAttributes(EFileAttrib _Attribs)
 	{
 		fp_CheckOpen();

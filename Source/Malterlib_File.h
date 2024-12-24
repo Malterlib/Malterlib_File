@@ -107,6 +107,7 @@ namespace NMib::NSys::NFile
 	NMib::NFile::EFileAttrib fg_GetAttributesOnLink(NMib::NStr::CStr const& _FileName);
 	void fg_SetAttributesOnLink(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
 
+	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(void *_pFile);
 	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName);
 	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName);
 
@@ -532,6 +533,8 @@ namespace NMib::NFile
 		NStream::CFilePos f_GetPosition() const;
 		void f_SetOwner(NStr::CStr const & _Owner);
 		void f_SetGroup(NStr::CStr const & _Group);
+
+		CUniqueFileIdentifier f_GetUniqueIdentifier() const;
 
 		static mint fs_MaximumPathLength();
 
