@@ -2120,6 +2120,23 @@ namespace NMib::NFile
 	}
 
 	template <typename tf_CHash>
+	static typename tf_CHash::CMessageDigest fg_GetFileChecksum(tf_CHash &_Hash, CFile &_File, NStream::CFilePos _FileLength)
+	{
+		CFileIoTempBuffer Buffer;
+
+		while (_FileLength)
+		{
+			auto BufferResult = Buffer.f_UseBuffer(_FileLength);
+			_File.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+			_Hash.f_AddData(BufferResult.m_pBuffer, BufferResult.m_nBytes);
+
+			_FileLength -= BufferResult.m_nBytes;
+		}
+
+		return _Hash;
+	}
+
+	template <typename tf_CHash>
 	static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CFile::TCFileChecksumState<tf_CHash> *o_pState, NStream::CFilePos _FileLength)
 	{
 		CFile *pFile = nullptr;
@@ -2143,18 +2160,10 @@ namespace NMib::NFile
 
 		if (o_pState)
 			o_pState->m_Length = Length;
+
 		tf_CHash Hash;
 
-		CFileIoTempBuffer Buffer;
-
-		while (Length)
-		{
-			auto BufferResult = Buffer.f_UseBuffer(Length);
-			File.f_Read(BufferResult.m_pBuffer, BufferResult.m_nBytes);
-			Hash.f_AddData(BufferResult.m_pBuffer, BufferResult.m_nBytes);
-
-			Length -= BufferResult.m_nBytes;
-		}
+		fg_GetFileChecksum(Hash, File, Length);
 
 		if (o_pState)
 			o_pState->m_Hash = Hash;
@@ -2175,6 +2184,30 @@ namespace NMib::NFile
 	NCryptography::CHashDigest_SHA512 CFile::fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState, NStream::CFilePos _FileLength)
 	{
 		return fg_GetFileChecksum<NCryptography::CHash_SHA512>(_Path, o_pState, _FileLength);
+	}
+
+	NCryptography::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(CFile &_File, NStream::CFilePos _FileLength)
+	{
+		CMibFilePos Length;
+		if (_FileLength >= 0)
+			Length = _FileLength;
+		else
+			Length = _File.f_GetLength();
+
+		NCryptography::CHash_SHA256 Hash;
+		return fg_GetFileChecksum(Hash, _File, Length);
+	}
+
+	NCryptography::CHashDigest_SHA512 CFile::fs_GetFileChecksum_SHA512(CFile &_File, NStream::CFilePos _FileLength)
+	{
+		CMibFilePos Length;
+		if (_FileLength >= 0)
+			Length = _FileLength;
+		else
+			Length = _File.f_GetLength();
+
+		NCryptography::CHash_SHA512 Hash;
+		return fg_GetFileChecksum(Hash, _File, Length);
 	}
 
 	NCryptography::CHashDigest_MD5 CFile::fs_GetDirectoryChecksum

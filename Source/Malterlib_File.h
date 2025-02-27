@@ -744,6 +744,8 @@ namespace NMib::NFile
 		static NCryptography::CHashDigest_MD5 fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+		static NCryptography::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(CFile &_File, NStream::CFilePos _FileLength = -1);
+		static NCryptography::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(CFile &_File, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_MD5 fs_GetDirectoryChecksum
 			(
 				const NStr::CStr &_Path
