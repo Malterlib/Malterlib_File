@@ -3399,15 +3399,18 @@ namespace NMib::NFile
 	}
 
 	CFileIoTempBuffer::CFileIoTempBuffer() = default;
-
-	CFileIoTempBuffer::~CFileIoTempBuffer()
-	{
-		if (mp_nUsedBytes && !mp_Data.f_IsEmpty())
-			NMemory::fg_SecureMemClear(mp_Data.f_GetArray(), mp_nUsedBytes);
-	}
+	CFileIoTempBuffer::~CFileIoTempBuffer() = default;
 
 	inline_never void CFileIoTempBuffer::fp_CreateBuffer()
 	{
 		mp_Data.f_SetLen(gc_IdealIoSize);
+	}
+
+	CFileIoTempBufferSecure::CFileIoTempBufferSecure() = default;
+
+	CFileIoTempBufferSecure::~CFileIoTempBufferSecure()
+	{
+		if (this->mp_nUsedBytes && !this->mp_Data.f_IsEmpty())
+			NMemory::fg_SecureMemClear(this->mp_Data.f_GetArray(), this->mp_nUsedBytes);
 	}
 }

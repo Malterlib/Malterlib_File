@@ -69,11 +69,17 @@ namespace NMib::NFile
 		template <typename tf_CLength>
 		inline_small CUseBufferResult f_UseBuffer(tf_CLength _Length);
 
-	private:
+	protected:
 		inline_never void fp_CreateBuffer();
 
 		NContainer::CByteVector mp_Data;
 		mint mp_nUsedBytes = 0;
+	};
+
+	struct CFileIoTempBufferSecure : public CFileIoTempBuffer
+	{
+		CFileIoTempBufferSecure();
+		~CFileIoTempBufferSecure();
 	};
 }
 
