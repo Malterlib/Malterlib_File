@@ -500,7 +500,9 @@ namespace NMib::NFile
 
 
 		void f_Read(void *_pDest, mint _nBytes);
+		void f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, mint _nBytes);
 		void f_Write(const void *_pSrc, mint _nBytes);
+		void f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, mint _nBytes);
 
 		void f_FileEnumOtherHandles(NContainer::TCVector<CFileHandle> &_HandleInfo);
 

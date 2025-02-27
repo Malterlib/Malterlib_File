@@ -323,6 +323,19 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetOSFile(mp_pFile);
 	}
 
+	void CFile::f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, mint _nBytes)
+	{
+		fp_CheckOpen();
+
+		if (!(mp_OpenFlags & EFileOpen_Read))
+			DMibErrorFile("Cannot perform read, file not opened for read");
+
+		mint nBytes = NSys::NFile::fg_Read(mp_pFile, _pDest, _Position, _nBytes);
+
+		if (nBytes != _nBytes)
+			DMibErrorFile("Not all bytes were read");
+	}
+
 	void CFile::f_Read(void *_pDest, mint _nBytes)
 	{
 		fp_CheckOpen();
@@ -363,6 +376,19 @@ namespace NMib::NFile
 
 			mp_FilePos += _nBytes;
 		}
+	}
+
+	void CFile::f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, mint _nBytes)
+	{
+		fp_CheckOpen();
+
+		if (!(mp_OpenFlags & EFileOpen_Write))
+			DMibErrorFile("Cannot perform write, file not opened for write");
+
+		mint nBytes = NSys::NFile::fg_Write(mp_pFile, _pSrc, _Position, _nBytes);
+
+		if (nBytes != _nBytes)
+			DMibErrorFile("Not all bytes were written");
 	}
 
 	void CFile::f_Write(const void *_pSrc, mint _nBytes)
