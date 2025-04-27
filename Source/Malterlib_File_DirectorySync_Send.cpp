@@ -213,7 +213,7 @@ namespace NMib::NFile
 								co_return {};
 							}
 						)
-						/ [this, pCanDestroy, pDestroyed, pRSyncState](CSecureByteVector _Packet) -> TCFuture<CSecureByteVector>
+						/ [this, pCanDestroy, pDestroyed, pRSyncState](CIOByteVector _Packet) -> TCFuture<CIOByteVector>
 						{
 							auto CaptureScope = co_await g_CaptureExceptions;
 
@@ -223,7 +223,7 @@ namespace NMib::NFile
 							if (!pRSyncState->m_pRSyncServer)
 								DMibError("RSync server destroyed");
 
-							CSecureByteVector ToSendToClient;
+							CIOByteVector ToSendToClient;
 							pRSyncState->m_pRSyncServer->f_ProcessPacket
 								(
 									_Packet

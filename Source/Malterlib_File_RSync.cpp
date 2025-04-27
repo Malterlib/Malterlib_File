@@ -52,7 +52,7 @@ namespace NMib::NFile
 			// _Stream >> m_PacketType;
 		}
 
-		CSecureByteVector f_GetVector(
+		CIOByteVector f_GetVector(
 #ifdef DPacketOrderDebug
 			uint32 _PacketID
 #endif
@@ -61,12 +61,12 @@ namespace NMib::NFile
 #ifdef DPacketOrderDebug
 			m_PacketID = _PacketID;
 #endif
-			NStream::CBinaryStreamMemory<NStream::CBinaryStreamDefault, CSecureByteVector> Stream;
+			NStream::CBinaryStreamMemory<NStream::CBinaryStreamDefault, CIOByteVector> Stream;
 			Stream << *this;
 			return Stream.f_MoveVector();
 		}
 
-		static NStorage::TCUniquePointer<CPacket> fs_DecodePacket(CSecureByteVector const &_Data);
+		static NStorage::TCUniquePointer<CPacket> fs_DecodePacket(CIOByteVector const &_Data);
 	};
 
 	struct CPacket_ClientInit : public CPacket
@@ -220,7 +220,7 @@ namespace NMib::NFile
 		{
 		}
 
-		CSecureByteVector m_Data;
+		CIOByteVector m_Data;
 
 		void f_Feed(NStream::CBinaryStreamDefault &_Stream) const
 		{
@@ -271,7 +271,7 @@ namespace NMib::NFile
 
 	}
 
-	NStorage::TCUniquePointer<CPacket> CPacket::fs_DecodePacket(CSecureByteVector const &_Data)
+	NStorage::TCUniquePointer<CPacket> CPacket::fs_DecodePacket(CIOByteVector const &_Data)
 	{
 		NStream::CBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_Data.f_GetArray(), _Data.f_GetLen());
@@ -527,7 +527,7 @@ namespace NMib::NFile
 				//DMibTrace("   {} -> {}" DMibNewLine, (Range.m_Start/_ChunkSize) << ((Range.m_Start + Range.m_Length)/_ChunkSize));
 				mp_pFileToSend->f_SetPosition(Range.m_Start);
 				mint nCheckSums = (Range.m_Length + (_ChunkSize - 1)) / _ChunkSize;
-				CSecureByteVector TempBuffer;
+				CIOByteVector TempBuffer;
 				TempBuffer.f_SetLen(_ChunkSize);
 				mint nBytes = Range.m_Length;
 				for (mint i = 0; i < nCheckSums; ++i)
@@ -548,7 +548,7 @@ namespace NMib::NFile
 			}
 		}
 
-		bool f_ProcessPacket(CSecureByteVector const &_ClientData, CSecureByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort)
+		bool f_ProcessPacket(CIOByteVector const &_ClientData, CIOByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			switch (mp_ServerMode)
 			{
@@ -669,8 +669,8 @@ namespace NMib::NFile
 	bool // Return true when the process is finished and it's safe to delete this object.
 	CRSyncServer::f_ProcessPacket
 	(
-		CSecureByteVector const &_ClientData	// Data returned from rsync client.
-		, CSecureByteVector &_ToSendToClient	// New packet to send to client. If the function returns true this array should still be sent to the client.
+		CIOByteVector const &_ClientData	// Data returned from rsync client.
+		, CIOByteVector &_ToSendToClient	// New packet to send to client. If the function returns true this array should still be sent to the client.
 		, NFunction::TCFunction<void ()> const &_fCheckAbort
 	)
 	{
@@ -1213,7 +1213,7 @@ namespace NMib::NFile
 			if (mp_OldFile.f_IsValid())
 				mp_OldFile.f_SetPosition(0);
 
-			CSecureByteVector History;
+			CIOByteVector History;
 			History.f_SetLen(ChunkSize);
 			uint8 *pHistory = History.f_GetArray();
 			bool bFound = false;
@@ -1396,7 +1396,7 @@ namespace NMib::NFile
 			return bFound;
 		}
 
-		bool f_HandleOutstanding(CSecureByteVector &_ToSendToServer, CSecureByteVector const &_Data, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
+		bool f_HandleOutstanding(CIOByteVector &_ToSendToServer, CIOByteVector const &_Data, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			mp_ClientMode = EClientMode_SyncOutstanding;
 
@@ -1496,7 +1496,7 @@ namespace NMib::NFile
 			return false;
 		}
 
-		void f_HandleChecksums(CSecureByteVector &_ToSendToServer, CPacket_ServerChecksums const &_Checksums, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
+		void f_HandleChecksums(CIOByteVector &_ToSendToServer, CPacket_ServerChecksums const &_Checksums, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			bool bAllFound = false;
 			if (mp_CurrentChunkSize >= mp_MinChunkSize)
@@ -1509,7 +1509,7 @@ namespace NMib::NFile
 			if (bAllFound)
 			{
 				// Finished
-				f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort);
+				f_HandleOutstanding(_ToSendToServer, CIOByteVector(), _bWantOneMoreProcess, _fCheckAbort);
 				if (mp_pTempStream)
 				{
 					mp_ServerFile.f_WriteOutToTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
@@ -1530,7 +1530,7 @@ namespace NMib::NFile
 					mp_RawBytesTotal = 0;
 					uint64 ChecksumSizes = 0;
 					mp_ServerFile.f_GetOutstanding(mp_Outstanding, mp_RawBytesTotal, ChecksumSizes, mp_CurrentChunkSize);
-					f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort);
+					f_HandleOutstanding(_ToSendToServer, CIOByteVector(), _bWantOneMoreProcess, _fCheckAbort);
 				}
 				else
 				{
@@ -1567,7 +1567,7 @@ namespace NMib::NFile
 			}
 		}
 
-		bool f_ProcessPacket(CSecureByteVector const &_ServerData, CSecureByteVector &_ToSendToServer, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
+		bool f_ProcessPacket(CIOByteVector const &_ServerData, CIOByteVector &_ToSendToServer, bool &_bWantOneMoreProcess, NFunction::TCFunction<void ()> const &_fCheckAbort)
 		{
 			_bWantOneMoreProcess = false;
 			switch (mp_ClientMode)
@@ -1663,7 +1663,7 @@ namespace NMib::NFile
 					}
 					else
 					{
-						if (f_HandleOutstanding(_ToSendToServer, CSecureByteVector(), _bWantOneMoreProcess, _fCheckAbort))
+						if (f_HandleOutstanding(_ToSendToServer, CIOByteVector(), _bWantOneMoreProcess, _fCheckAbort))
 							return true;
 						return false;
 					}
@@ -1700,8 +1700,8 @@ namespace NMib::NFile
 	bool // Return true when the new file is fully written
 	CRSyncClient::f_ProcessPacket
 	(
-		CSecureByteVector const &_ServerData	// Data returned from rsync server, send in empty for the first packet (client initiates process)
-		, CSecureByteVector &_ToSendToServer	// New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
+		CIOByteVector const &_ServerData	// Data returned from rsync server, send in empty for the first packet (client initiates process)
+		, CIOByteVector &_ToSendToServer	// New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
 		, bool &_bWantOneMoreProcess		// Set to true when returning if the rsync server needs to send one more packet
 		, NFunction::TCFunction<void ()> const &_fCheckAbort
 	)

@@ -40,7 +40,7 @@ namespace NMib::NFile
 			, EProtocolVersion_Current = 0x103
 		};
 
-		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CSecureByteVector> (NContainer::CSecureByteVector _Packet)>;
+		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CIOByteVector> (NContainer::CIOByteVector _Packet)>;
 		
 		CDirectorySyncClient();
 		

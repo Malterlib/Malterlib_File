@@ -56,7 +56,7 @@ namespace
 	class CRSync_Tests : public NMib::NTest::CTest
 	{
 	public:
-		static void fs_DoRSync(CSecureByteVector const &_Orig, CSecureByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
+		static void fs_DoRSync(CIOByteVector const &_Orig, CIOByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			bool bServerDone = false;
 			[[maybe_unused]] mint TotalSizeClient = 0;
@@ -64,16 +64,16 @@ namespace
 			[[maybe_unused]] mint nRawBytes;
 			NTime::CTimer Timer;
 			Timer.f_Start();
-			CSecureByteVector Synced;
+			CIOByteVector Synced;
 			{
-				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CSecureByteVector> ServerStream(_New);
-				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CSecureByteVector> ClientStream(_Orig);
+				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ServerStream(_New);
+				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ClientStream(_Orig);
 				CBinaryStream *pClientOld = &ClientStream;
 				if (_bInPlace)
 					Synced = _Orig;
 
-				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CSecureByteVector> ClientNewStream;
-				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CSecureByteVector> TemporaryStream;
+				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> ClientNewStream;
+				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> TemporaryStream;
 
 				using CEncrypted = NCryptography::TCBinaryStream_Encrypted<CBinaryStream *>;
 				NStorage::TCUniquePointer<CEncrypted> pClientNewStreamEncrypted;
@@ -122,18 +122,18 @@ namespace
 					)
 				;
 
-				TCVector<CSecureByteVector> ServerData;
-				TCVector<CSecureByteVector> ClientData;
+				TCVector<CIOByteVector> ServerData;
+				TCVector<CIOByteVector> ClientData;
 				while (1)
 				{
 					bool bDone = false;
 					bool bDoOneProcess = true;
 					while (!ServerData.f_IsEmpty() || bDoOneProcess)
 					{
-						CSecureByteVector Vector;
+						CIOByteVector Vector;
 						if (!ServerData.f_IsEmpty())
 							Vector = ServerData.f_Pop();
-						CSecureByteVector Temp;
+						CIOByteVector Temp;
 						bDone = RSyncClient.f_ProcessPacket(Vector, Temp, bDoOneProcess, nullptr);
 						TotalSizeClient += Temp.f_GetLen();
 						if (!Temp.f_IsEmpty())
@@ -144,10 +144,10 @@ namespace
 
 					while (!ClientData.f_IsEmpty())
 					{
-						CSecureByteVector Vector;
+						CIOByteVector Vector;
 						if (!ClientData.f_IsEmpty())
 							Vector = ClientData.f_Pop();
-						CSecureByteVector Temp;
+						CIOByteVector Temp;
 						bServerDone = RSyncServer.f_ProcessPacket(Vector, Temp, nullptr);
 						TotalSizeServer += Temp.f_GetLen();
 						if (!Temp.f_IsEmpty())
@@ -158,9 +158,9 @@ namespace
 				nRawBytes = RSyncClient.f_GetRawBytes();
 				if (_bEncrypt)
 				{
-					CSecureByteVector EncryptedData;
+					CIOByteVector EncryptedData;
 					EncryptedData = ClientNewStream.f_MoveVector();
-					CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CSecureByteVector> DataStream(EncryptedData);
+					CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> DataStream(EncryptedData);
 					NCryptography::TCBinaryStream_Encrypted<CBinaryStream *> DecryptingStream(CEncryptKeyIV{*pKey, *pIV}, EDigestType_SHA256, *pHMACKey);
 					DecryptingStream.f_Open(&DataStream, EFileOpen_Read);
 					auto Length = DecryptingStream.f_GetLength();
@@ -178,10 +178,10 @@ namespace
 				TestFlags |= ETestFlag_NoValues;
 			DMibTest(DMibExpr(Synced) == DMibExpr(_New))(TestFlags);
 		}
-		static CSecureByteVector fs_ToVector(const ch8 *_pStr)
+		static CIOByteVector fs_ToVector(const ch8 *_pStr)
 		{
 			mint Len = NStr::fg_StrLen(_pStr);
-			CSecureByteVector Ret;
+			CIOByteVector Ret;
 			Ret.f_Insert((uint8 const *)_pStr, Len);
 			
 			return Ret;			
@@ -272,7 +272,16 @@ namespace
 			NStr::CStr EndFileName = NFile::CFile::fs_GetProgramDirectory() + "/" + _EndFile;
 			if (NFile::CFile::fs_FileExists(StartFileName) && NFile::CFile::fs_FileExists(EndFileName))
 			{
-				fs_DoRSync(NFile::CFile::fs_ReadFile(StartFileName).f_ToSecure(), NFile::CFile::fs_ReadFile(EndFileName).f_ToSecure(), 128, 1024*1024, false, false);
+				fs_DoRSync
+					(
+						CIOByteVector::fs_AllowInsecureConversion(NFile::CFile::fs_ReadFile(StartFileName))
+						, CIOByteVector::fs_AllowInsecureConversion(NFile::CFile::fs_ReadFile(EndFileName))
+						, 128
+						, 1024*1024
+						, false
+						, false
+					)
+				;
 			}
 		}
 

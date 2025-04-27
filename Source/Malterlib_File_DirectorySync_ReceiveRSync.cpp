@@ -9,7 +9,7 @@ namespace NMib::NFile
 	void CDirectorySyncReceive::CInternal::fsp_RunRSyncProtocol
 		(
 			TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
-			, CSecureByteVector &&_ServerPacket
+			, CIOByteVector &&_ServerPacket
 			, TCPromise<CByteStats> const &_Promise
 		)
 	{
@@ -35,7 +35,7 @@ namespace NMib::NFile
 		bool bDone = false;
 		while (bWantOneMoreProcess)
 		{
-			CSecureByteVector ToSendToServer;
+			CIOByteVector ToSendToServer;
 			try
 			{
 				if
@@ -67,7 +67,7 @@ namespace NMib::NFile
 			{
 				State.m_ByteStats.m_nOutgoing += ToSendToServer.f_GetLen();
 
-				State.m_fRunProtocol(fg_Move(ToSendToServer)) > [_pState, _Promise](TCAsyncResult<CSecureByteVector> &&_ServerPacket)
+				State.m_fRunProtocol(fg_Move(ToSendToServer)) > [_pState, _Promise](TCAsyncResult<CIOByteVector> &&_ServerPacket)
 					{
 						if (!_ServerPacket)
 						{

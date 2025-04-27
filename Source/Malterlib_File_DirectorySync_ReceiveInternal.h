@@ -90,7 +90,7 @@ namespace NMib::NFile
 		static void fsp_RunRSyncProtocol
 			(
 				TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
-				, CSecureByteVector &&_ServerPacket
+				, CIOByteVector &&_ServerPacket
 				, TCPromise<CByteStats> const &_Promise
 			)
 		;

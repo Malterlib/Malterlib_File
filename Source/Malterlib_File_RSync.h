@@ -23,7 +23,7 @@ namespace NMib::NFile
 
 		void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
 
-		bool f_ProcessPacket(NContainer::CSecureByteVector const &_ClientData, NContainer::CSecureByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort);
+		bool f_ProcessPacket(NContainer::CIOByteVector const &_ClientData, NContainer::CIOByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort);
 	};
 
 	class CRSyncClient
@@ -48,8 +48,8 @@ namespace NMib::NFile
 
 		bool f_ProcessPacket
 			(
-				NContainer::CSecureByteVector const &_ServerData
-				, NContainer::CSecureByteVector &_ToSendToServer
+				NContainer::CIOByteVector const &_ServerData
+				, NContainer::CIOByteVector &_ToSendToServer
 				, bool &_bWantOneMoreProcess
 				, NFunction::TCFunction<void ()> const &_fCheckAbort
 			)
