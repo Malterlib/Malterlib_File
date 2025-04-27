@@ -84,6 +84,41 @@ namespace
 			return CFile::fs_GetDrive(CStr(_pFile));
 		}
 
+		static CStr fs_GetCommonPath(ch8 const *_pPath0, ch8 const *_pPath1)
+		{
+			return CFile::fs_GetCommonPath(CStr(_pPath0), CStr(_pPath1));
+		}
+
+		struct CCommonPathResult
+		{
+			auto operator <=> (CCommonPathResult const &) const = default;
+
+			template <typename tf_CStr>
+			void f_Format(tf_CStr &o_String) const
+			{
+				o_String += typename tf_CStr::CFormat("Path0: {} Path1: {} Common: {}") << m_Path0 << m_Path1 << m_Common;
+			}
+
+			CStr m_Common;
+			CStr m_Path0;
+			CStr m_Path1;
+		};
+
+		static CCommonPathResult fs_GetCommonPathAndMakeRelative(ch8 const *_pPath0, ch8 const *_pPath1)
+		{
+			CStr Path0 = _pPath0;
+			CStr Path1 = _pPath1;
+			CStr Common = CFile::fs_GetCommonPathAndMakeRelative(Path0, Path1);
+
+			return CCommonPathResult
+				{
+					.m_Common = fg_Move(Common)
+					, .m_Path0 = fg_Move(Path0)
+					, .m_Path1 = fg_Move(Path1)
+				}
+			;
+		}
+
 		void f_DoTests()
 		{
 			DMibTestSuite("Valid path")
@@ -111,8 +146,6 @@ namespace
 				FileName = CFile::fs_MakeNiceFilename(".com.");
 
 			};
-
-
 			DMibTestSuite("Default paths")
 			{
 				DMibTest(DMibExpr(CFile::fs_GetProgramPath()) == DMibExpr(CFile::fs_GetProgramPathNonTracked()));
@@ -130,7 +163,6 @@ namespace
 				DMibTest(DMibExpr(CFile::fs_GetModulePath((void *)&CFile_Tests::fs_GetFileNoExt)) == DMibExpr(CFile::fs_GetProgramPath()));
 
 			};
-
 			DMibTestSuite("Path utils")
 			{
 				CStr CurrentDir = CFile::fs_GetCurrentDirectory();
@@ -191,6 +223,111 @@ namespace
 				DMibTest(DMibExpr(fs_MakePathRelative("//MyComp/Fred/Wilma/BamBam.txt", "//MyComp/Fred/Barney")) == DMibExpr("../Wilma/BamBam.txt"));
 #endif
 
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Barney"), ==, "/Fred");
+				DMibExpect(fs_GetCommonPath("/Fred/Barney", "/Fred/Wilma/BamBam.txt"), ==, "/Fred");
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Barney/"), ==, "/Fred");
+				DMibExpect(fs_GetCommonPath("/Fred/Barney/", "/Fred/Wilma/BamBam.txt"), ==, "/Fred");
+				DMibExpect(fs_GetCommonPath("/Fred/Barney\\", "/Fred\\Wilma/BamBam.txt"), ==, "/Fred");
+
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Wilma"), ==, "/Fred/Wilma");
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma", "/Fred/Wilma/BamBam.txt"), ==, "/Fred/Wilma");
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Wilma/"), ==, "/Fred/Wilma");
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/", "/Fred/Wilma/BamBam.txt"), ==, "/Fred/Wilma");
+				DMibExpect(fs_GetCommonPath("/Fred\\Wilma/", "/Fred/Wilma\\BamBam.txt"), ==, "/Fred\\Wilma");
+
+				DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Wilma/BamBam.txt"), ==, "/Fred/Wilma/BamBam.txt");
+				DMibExpect(fs_GetCommonPath("/Fred\\Wilma/BamBam.txt", "/Fred/Wilma\\BamBam.txt"), ==, "/Fred\\Wilma/BamBam.txt");
+
+				DMibExpect(fs_GetCommonPath("/Wilma/Wilma/BamBam.txt", "/Fred/Wilma/BamBam.txt"), ==, "");
+				DMibExpect(fs_GetCommonPath("/Wilma\\Wilma/BamBam.txt", "/Fred/Wilma\\BamBam.txt"), ==, "");
+
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/BamBam.txt", "/Fred/Barney")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred", .m_Path0 = "Wilma/BamBam.txt", .m_Path1 = "Barney"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Barney", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred", .m_Path0 = "Barney", .m_Path1 = "Wilma/BamBam.txt"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/BamBam.txt", "/Fred/Barney/")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred", .m_Path0 = "Wilma/BamBam.txt", .m_Path1 = "Barney/"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Barney/", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred", .m_Path0 = "Barney/", .m_Path1 = "Wilma/BamBam.txt"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("\\Fred/Barney/", "/Fred/Wilma\\BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "\\Fred", .m_Path0 = "Barney/", .m_Path1 = "Wilma\\BamBam.txt"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Barney/", "\\Fred/Wilma\\BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred", .m_Path0 = "Barney/", .m_Path1 = "Wilma\\BamBam.txt"})
+					)
+				;
+
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/BamBam.txt", "/Fred/Wilma")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred/Wilma", .m_Path0 = "BamBam.txt", .m_Path1 = ""})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred/Wilma", .m_Path0 = "", .m_Path1 = "BamBam.txt"})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/BamBam.txt", "/Fred/Wilma/")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred/Wilma", .m_Path0 = "BamBam.txt", .m_Path1 = ""})
+					)
+				;
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred/Wilma", .m_Path0 = "", .m_Path1 = "BamBam.txt"})
+					)
+				;
+
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Fred/Wilma/BamBam.txt", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "/Fred/Wilma/BamBam.txt", .m_Path0 = "", .m_Path1 = ""})
+					)
+				;
+
+				DMibExpect
+					(
+						fs_GetCommonPathAndMakeRelative("/Wilma/Wilma/BamBam.txt", "/Fred/Wilma/BamBam.txt")
+						, ==
+						, (CCommonPathResult{.m_Common = "", .m_Path0 = "/Wilma/Wilma/BamBam.txt", .m_Path1 = "/Fred/Wilma/BamBam.txt"})
+					)
+				;
 			};
 
 	#ifdef DPlatformFamily_Windows

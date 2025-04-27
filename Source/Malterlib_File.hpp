@@ -658,76 +658,92 @@ namespace NMib::NFile
 		}
 	}
 
-	template <typename tf_CStr>
-	tf_CStr CFile::fs_GetCommonPathAndMakeRelative(tf_CStr & _oPath0, tf_CStr & _oPath1)
+	namespace NPrivate
 	{
-		mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
-		if (Len == 0)
-			return tf_CStr();
-
-		mint iPath = 0;
-		mint iLastFullPath = 0;
-		while (iPath < Len)
+		template <typename tf_CStr>
+		mint fg_GetCommonPathIndex(tf_CStr const &_Path0, tf_CStr const &_Path1)
 		{
-			auto Char0 = _oPath0.f_GetAt(iPath);
-			auto Char1 = _oPath1.f_GetAt(iPath);
+			mint Path0Len = _Path0.f_GetLen();
+			mint Path1Len = _Path1.f_GetLen();
+			mint Len = fg_Min(Path0Len, Path1Len);
 
-			if (Char0 == '/' && Char1 == '\\')
-				;
-			else if (Char0 == '\\' && Char1 == '/')
-				;
-			else if (Char0 != Char1)
-				break;
-			if (Char0 == '/' || Char0 == '\\')
+			if (Len == 0)
+				return 0;
+
+			mint MaxLen = fg_Max(Path0Len, Path1Len);
+
+			auto fCharIsPathSeparator = [](typename tf_CStr::CChar _Char)
+				{
+					return _Char == '/' || _Char == '\\';
+				}
+			;
+
+			mint iPath = 0;
+			mint iLastFullPath = 0;
+			auto *pPath0 = _Path0.f_GetStr();
+			auto *pPath1 = _Path1.f_GetStr();
+
+			while (iPath < Len)
+			{
+				auto Char0 = pPath0[iPath];
+				auto Char1 = pPath1[iPath];
+
+				if (fCharIsPathSeparator(Char0) && fCharIsPathSeparator(Char1))
+					iLastFullPath = iPath;
+				else if (Char0 != Char1)
+					break;
+
+				++iPath;
+			}
+
+			if (iPath == MaxLen)
+				return TCLimitsInt<mint>::mc_Max;
+
+			if (iPath == Path0Len && Path1Len >= iPath && fCharIsPathSeparator(pPath1[iPath]))
+				iLastFullPath = iPath;
+			else if (iPath == Path1Len && Path0Len >= iPath && fCharIsPathSeparator(pPath0[iPath]))
 				iLastFullPath = iPath;
 
-			++iPath;
+			return iLastFullPath;
 		}
+	}
 
-		if (iPath == Len)
+	template <typename tf_CStr>
+	tf_CStr CFile::fs_GetCommonPathAndMakeRelative(tf_CStr &o_Path0, tf_CStr &o_Path1)
+	{
+		mint iLastFullPath = NPrivate::fg_GetCommonPathIndex(o_Path0, o_Path1);
+
+		if (iLastFullPath == 0)
+			return {};
+		else if (iLastFullPath == TCLimitsInt<mint>::mc_Max)
 		{
-			tf_CStr Ret = _oPath0;
-			_oPath0.f_Clear();
-			_oPath1.f_Clear();
+			tf_CStr Ret = fg_Move(o_Path0);
+			o_Path0.f_Clear();
+			o_Path1.f_Clear();
 			return Ret;
 		}
-		tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
-		_oPath0 = _oPath0.f_Extract(iLastFullPath+1);
-		_oPath1 = _oPath1.f_Extract(iLastFullPath+1);
+
+		tf_CStr Ret = o_Path0.f_Left(iLastFullPath);
+		o_Path0 = o_Path0.f_Extract(iLastFullPath+1);
+		o_Path1 = o_Path1.f_Extract(iLastFullPath+1);
 		return Ret;
 	}
+
 	template <typename tf_CStr>
-	tf_CStr CFile::fs_GetCommonPath(tf_CStr const& _oPath0, tf_CStr const& _oPath1)
+	tf_CStr CFile::fs_GetCommonPath(tf_CStr const &_Path0, tf_CStr const &_Path1)
 	{
-		mint Len = fg_Min(_oPath0.f_GetLen(), _oPath1.f_GetLen());
-		if (Len == 0)
-			return tf_CStr();
+		mint iLastFullPath = NPrivate::fg_GetCommonPathIndex(_Path0, _Path1);
 
-		mint iPath = 0;
-		mint iLastFullPath = 0;
-		while (iPath < Len)
-		{
-			auto Char0 = _oPath0.f_GetAt(iPath);
-			auto Char1 = _oPath1.f_GetAt(iPath);
+		if (iLastFullPath == 0)
+			return {};
+		else if (iLastFullPath == TCLimitsInt<mint>::mc_Max)
+			return _Path0;
+		else if (_Path0.f_GetLen() == iLastFullPath)
+			return _Path0;
+		else if (_Path1.f_GetLen() == iLastFullPath)
+			return _Path1;
 
-			if (Char0 == '/' && Char1 == '\\')
-				;
-			else if (Char0 == '\\' && Char1 == '/')
-				;
-			else if (Char0 != Char1)
-				break;
-			if (Char0 == '/' || Char0 == '\\')
-				iLastFullPath = iPath;
-
-			++iPath;
-		}
-
-		if (iPath == Len)
-		{
-			tf_CStr Ret = _oPath0;
-			return Ret;
-		}
-		tf_CStr Ret = _oPath0.f_Left(iLastFullPath);
+		tf_CStr Ret = _Path0.f_Left(iLastFullPath);
 		return Ret;
 	}
 
