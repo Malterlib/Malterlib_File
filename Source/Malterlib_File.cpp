@@ -2,7 +2,7 @@
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Cryptography/RandomID>
-#include <Mib/Encoding/EJSON>
+#include <Mib/Encoding/EJson>
 
 namespace NMib::NFile
 {
@@ -3296,10 +3296,10 @@ namespace NMib::NFile
 		f_Stop();
 	}
 
-	NEncoding::CEJSONSorted CFile::fs_AttribToJson(EFileAttrib _Attribs)
+	NEncoding::CEJsonSorted CFile::fs_AttribToJson(EFileAttrib _Attribs)
 	{
-		NEncoding::CEJSONSorted JSON;
-		auto &OutArray = JSON.f_Array();
+		NEncoding::CEJsonSorted Json;
+		auto &OutArray = Json.f_Array();
 
 		if (_Attribs & EFileAttrib_Directory)
 			OutArray.f_Insert("Directory");
@@ -3342,14 +3342,14 @@ namespace NMib::NFile
 		if (_Attribs & EFileAttrib_UnixAttributesValid)
 			OutArray.f_Insert("UnixAttributesValid");
 
-		return JSON;
+		return Json;
 	}
 
-	EFileAttrib CFile::fs_AttribFromJson(NEncoding::CEJSONSorted const &_JSON)
+	EFileAttrib CFile::fs_AttribFromJson(NEncoding::CEJsonSorted const &_Json)
 	{
 		EFileAttrib Attribs = EFileAttrib_None;
 
-		for (auto &Attrib : _JSON.f_Array())
+		for (auto &Attrib : _Json.f_Array())
 		{
 			NStr::CStr AttribStr = Attrib.f_String();
 

@@ -1,7 +1,7 @@
 // Copyright © 2015 Hansoft AB 
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/Encoding/EJSON>
+#include <Mib/Encoding/EJson>
 
 #include "Malterlib_File_DirectoryManifest.h"
 
@@ -11,11 +11,11 @@ namespace NMib::NFile
 	using namespace NContainer;
 	using namespace NStr;
 	
-	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJSONSorted const &_JSON) -> EDirectoryManifestSyncFlag
+	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJsonSorted const &_Json) -> EDirectoryManifestSyncFlag
 	{
 		EDirectoryManifestSyncFlag Flags = EDirectoryManifestSyncFlag_None;
 		
-		for (auto &Flag : _JSON.f_Array())
+		for (auto &Flag : _Json.f_Array())
 		{
 			if (Flag.f_String() == "Append")
 				Flags |= EDirectoryManifestSyncFlag_Append;
@@ -28,9 +28,9 @@ namespace NMib::NFile
 		return Flags;
 	}
 	
-	NEncoding::CEJSONSorted CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
+	NEncoding::CEJsonSorted CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
 	{
-		NEncoding::CEJSONSorted Json;
+		NEncoding::CEJsonSorted Json;
 		Json.f_Array();
 		
 		if (_Flags & EDirectoryManifestSyncFlag_Append)
@@ -83,15 +83,15 @@ namespace NMib::NFile
 		return NContainer::TCMap<NStr::CStr, CDirectoryManifestFile>::fs_GetKey(*this);
 	}
 	
-	NEncoding::CEJSONSorted CDirectoryManifest::f_ToJson() const
+	NEncoding::CEJsonSorted CDirectoryManifest::f_ToJson() const
 	{
-		NEncoding::CEJSONSorted JSON;
-		JSON.f_Object();
+		NEncoding::CEJsonSorted Json;
+		Json.f_Object();
 
 		for (auto &File : m_Files)
 		{
 			auto &FileName = m_Files.fs_GetKey(File);
-			auto &Entry = JSON[FileName];
+			auto &Entry = Json[FileName];
 
 			if (File.m_Digest)
 				Entry["Digest"] = NContainer::CByteVector{File.m_Digest->f_GetData(), File.m_Digest->mc_Size};
@@ -104,19 +104,19 @@ namespace NMib::NFile
 			Entry["Flags"] = CDirectoryManifestFile::fs_GenerateSyncFlags(File.m_Flags);
 		}
 		
-		return JSON;
+		return Json;
 	}
 
-	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJSONSorted const &_JSON)
+	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJsonSorted const &_Json)
 	{
 		CDirectoryManifest Manifest;
 		
-		for (auto &File : _JSON.f_Object())
+		for (auto &File : _Json.f_Object())
 		{
 			auto &OutFile = Manifest.m_Files[File.f_Name()];
-			auto &ManifestJSON = File.f_Value();
+			auto &ManifestJson = File.f_Value();
 
-			if (auto *pDigest = ManifestJSON.f_GetMember("Digest"))
+			if (auto *pDigest = ManifestJson.f_GetMember("Digest"))
 			{
 				auto Digest = pDigest->f_Binary();
 
@@ -129,13 +129,13 @@ namespace NMib::NFile
 
 				OutFile.m_Digest = fg_Move(OutDigest);
 			}
-			OutFile.m_Length = ManifestJSON["Length"].f_Integer();
-			OutFile.m_WriteTime = ManifestJSON["WriteTime"].f_Date();
-			OutFile.m_SymlinkData = ManifestJSON["SymlinkData"].f_String();
-			OutFile.m_Attributes = NFile::CFile::fs_AttribFromJson(ManifestJSON["Attributes"]);
-			OutFile.m_Owner = ManifestJSON["Owner"].f_String();
-			OutFile.m_Group = ManifestJSON["Group"].f_String();
-			OutFile.m_Flags = CDirectoryManifestFile::fs_ParseSyncFlags(ManifestJSON["Flags"]);
+			OutFile.m_Length = ManifestJson["Length"].f_Integer();
+			OutFile.m_WriteTime = ManifestJson["WriteTime"].f_Date();
+			OutFile.m_SymlinkData = ManifestJson["SymlinkData"].f_String();
+			OutFile.m_Attributes = NFile::CFile::fs_AttribFromJson(ManifestJson["Attributes"]);
+			OutFile.m_Owner = ManifestJson["Owner"].f_String();
+			OutFile.m_Group = ManifestJson["Group"].f_String();
+			OutFile.m_Flags = CDirectoryManifestFile::fs_ParseSyncFlags(ManifestJson["Flags"]);
 		}
 		
 		return Manifest;

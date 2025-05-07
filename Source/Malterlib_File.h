@@ -17,17 +17,17 @@ namespace NMib::NEncoding
 	namespace NPrivate
 	{
 		template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
-		struct TCJSONValueBase;
-		struct CEJSONExtraTypesSorted;
+		struct TCJsonValueBase;
+		struct CEJsonExtraTypesSorted;
 	}
 
 	template <typename t_CParent>
-	struct TCEJSONValue;
+	struct TCEJsonValue;
 
 	template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
-	using TCJSON = t_TCValue<NPrivate::TCJSONValueBase<t_TCValue, t_CTypes, t_bOrdered>>;
+	using TCJson = t_TCValue<NPrivate::TCJsonValueBase<t_TCValue, t_CTypes, t_bOrdered>>;
 
-	using CEJSONSorted = TCJSON<TCEJSONValue, NPrivate::CEJSONExtraTypesSorted, false>;
+	using CEJsonSorted = TCJson<TCEJsonValue, NPrivate::CEJsonExtraTypesSorted, false>;
 }
 
 namespace NMib::NFile
@@ -860,8 +860,8 @@ namespace NMib::NFile
 		template <typename tf_CStr>
 		static tf_CStr fs_GetFileNoExt(const tf_CStr &_File);
 
-		static EFileAttrib fs_AttribFromJson(NEncoding::CEJSONSorted const &_JSON);
-		static NEncoding::CEJSONSorted fs_AttribToJson(EFileAttrib _Attribs);
+		static EFileAttrib fs_AttribFromJson(NEncoding::CEJsonSorted const &_Json);
+		static NEncoding::CEJsonSorted fs_AttribToJson(EFileAttrib _Attribs);
 
 	private:
 		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
