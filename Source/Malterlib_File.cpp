@@ -2771,7 +2771,7 @@ namespace NMib::NFile
 
 		if (fs_HasRelativeComponents(_String))
 		{
-			o_Error = "hanve relative path components '..' or '.'";
+			o_Error = "have relative path components '..' or '.'";
 			return false;
 		}
 

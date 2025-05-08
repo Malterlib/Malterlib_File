@@ -220,8 +220,15 @@ namespace NMib::NFile
 
 		auto fCheckPath = [&]
 			{
-				if (NStr::fg_StrCmp(pDirStart, "..", pParse - pDirStart) == 0 || NStr::fg_StrCmp(pDirStart, ".", pParse - pDirStart) == 0)
+				if
+				(
+					((pParse - pDirStart) >= 2 && NStr::fg_StrCmp(pDirStart, "..", pParse - pDirStart) == 0)
+					|| ((pParse - pDirStart) >= 1 && NStr::fg_StrCmp(pDirStart, ".", pParse - pDirStart) == 0)
+				)
+				{
 					return true;
+				}
+
 				return false;
 			}
 		;
