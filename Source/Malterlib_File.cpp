@@ -88,7 +88,7 @@ namespace NMib::NFile
 					const NStr::CStr *pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 					while (pPath)
 					{
-						if (Attribs & EFileAttrib_Directory)
+						if ((Attribs & EFileAttrib_Directory) && !(Attribs & EFileAttrib_Link))
 						{
 							 _fFoundFile(*pPath, Attribs, true);
 							 _fFoundFile(*pPath, Attribs, false);
@@ -141,7 +141,7 @@ namespace NMib::NFile
 
 						while (pPath)
 						{
-							if (Attribs & EFileAttrib_Directory)
+							if ((Attribs & EFileAttrib_Directory) && !(Attribs & EFileAttrib_Link))
 							{
 								if (_fFoundFile(*pPath, Attribs, true))
 								{
@@ -1611,8 +1611,7 @@ namespace NMib::NFile
 			)
 		{
 			NStr::CStr Pattern = CFile::fs_GetFile(_pOptions->m_Path);
-			return
-				[=](NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse) -> bool
+			return [=](NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse) -> bool
 				{
 					if (!_pOptions->m_ExcludePatterns.f_IsEmpty())
 					{
@@ -1622,7 +1621,7 @@ namespace NMib::NFile
 								return false;
 						}
 					}
-					if (_Attribs & EFileAttrib_Directory)
+					if ((_Attribs & EFileAttrib_Directory) && !(_Attribs & EFileAttrib_Link))
 					{
 						if ((_Attribs & _pOptions->m_AttribMask) || ((_pOptions->m_AttribMask & EFileAttrib_File) && !(_Attribs & EFileAttrib_Directory)))
 						{
