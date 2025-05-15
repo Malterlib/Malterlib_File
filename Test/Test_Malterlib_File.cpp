@@ -2287,6 +2287,34 @@ namespace
 
 				CFile::fs_DeleteDirectoryRecursive(CurrentDir);
 			};
+#ifdef DPlatformFamily_Windows
+			DMibTestSuite("Windows Deletion")
+			{
+				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestWindowsDeletion";
+				fg_TestAddCleanupPath(RootPath);
+				CFile::fs_CreateDirectory(RootPath);
+
+				CStr TestFile = RootPath / "Test.file";
+
+				CFile::fs_WriteStringToFile(TestFile, "Empty", true);
+
+				CFile File;
+				File.f_Open(TestFile, EFileOpen_Read);
+
+				DMibExpectException
+					(
+						CFile::fs_DeleteFile(TestFile)
+						, DMibImpExceptionInstance
+						(
+							NFile::CExceptionFile
+							, "Windows returned an error from CreateFileW(Delete)({0}): 32 The process cannot access the file because it is being used by another process.\n"
+							"Windows returned an error from DeleteFile({0}): 32 The process cannot access the file because it is being used by another process."_f 
+							<< TestFile
+						)
+					)
+				;
+			};
+#endif
 		}
 	};
 
