@@ -2383,12 +2383,12 @@ namespace NMib::NFile
 
 	NStr::CStr CFile::fs_MakeNiceFilename(const NStr::CStr &_CurrentName)
 	{
-		const ch8 *InvalidChars = fs_GetInvalidFileNameChars(false);
+		ch8 const *InvalidChars = fs_GetInvalidFileNameChars(false);
 
 		NStr::CUStr Output;
 		Output = _CurrentName;
-		NTraits::TCUnsigned<ch32>::CType *pStr = (NTraits::TCUnsigned<ch32>::CType *)Output.f_GetStrUniqueWritable();
-		const NTraits::TCUnsigned<ch8>::CType *pInvalidChars = (const NTraits::TCUnsigned<ch8>::CType *)InvalidChars;
+		NTraits::TCUnsigned<ch32> *pStr = (NTraits::TCUnsigned<ch32> *)Output.f_GetStrUniqueWritable();
+		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)InvalidChars;
 		while (*pStr)
 		{
 			if (*pStr >= 1 && *pStr <= 31)
@@ -2397,7 +2397,7 @@ namespace NMib::NFile
 			}
 			else
 			{
-				const NTraits::TCUnsigned<ch8>::CType *pInv = pInvalidChars;
+				NTraits::TCUnsigned<ch8> const *pInv = pInvalidChars;
 				while (*pInv)
 				{
 					if (*pStr == *pInv)
@@ -2412,13 +2412,13 @@ namespace NMib::NFile
 			++pStr;
 		}
 
-		const ch8 **pInvalidNames = fs_GetInvalidFileNameNames();
+		ch8 const **pInvalidNames = fs_GetInvalidFileNameNames();
 
-		pStr = (NTraits::TCUnsigned<ch32>::CType *)Output.f_GetStrUniqueWritable();
+		pStr = (NTraits::TCUnsigned<ch32> *)Output.f_GetStrUniqueWritable();
 		NStr::CUStr Output2;
 		while (*pStr)
 		{
-			const NTraits::TCUnsigned<ch32>::CType *pParseStart = pStr;
+			NTraits::TCUnsigned<ch32> const *pParseStart = pStr;
 
 			while (*pStr && *pStr != '.' && *pStr != '/')
 			{
@@ -2488,8 +2488,8 @@ namespace NMib::NFile
 
 		NStr::CUStr Input = _CurrentName;
 		NStr::CUStr Output;
-		NTraits::TCUnsigned<ch32>::CType const *pStr = (NTraits::TCUnsigned<ch32>::CType const *)Input.f_GetStr();
-		const NTraits::TCUnsigned<ch8>::CType *pInvalidChars = (const NTraits::TCUnsigned<ch8>::CType *)InvalidChars;
+		NTraits::TCUnsigned<ch32> const *pStr = (NTraits::TCUnsigned<ch32> const *)Input.f_GetStr();
+		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)InvalidChars;
 		while (*pStr)
 		{
 			if ((*pStr >= 1 && *pStr <= 31) || *pStr == '$')
@@ -2499,7 +2499,7 @@ namespace NMib::NFile
 			else
 			{
 				bool bFound = false;
-				const NTraits::TCUnsigned<ch8>::CType *pInv = pInvalidChars;
+				NTraits::TCUnsigned<ch8> const *pInv = pInvalidChars;
 				while (*pInv)
 				{
 					if (*pStr == *pInv)
@@ -2519,11 +2519,11 @@ namespace NMib::NFile
 
 		const ch8 **pInvalidNames = fs_GetInvalidFileNameNames();
 
-		pStr = (NTraits::TCUnsigned<ch32>::CType const *)Output.f_GetStr();
+		pStr = (NTraits::TCUnsigned<ch32> const *)Output.f_GetStr();
 		NStr::CUStr Output2;
 		while (*pStr)
 		{
-			const NTraits::TCUnsigned<ch32>::CType *pParseStart = pStr;
+			NTraits::TCUnsigned<ch32> const *pParseStart = pStr;
 
 			while (*pStr && *pStr != '.' && *pStr != '/')
 			{

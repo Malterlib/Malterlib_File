@@ -637,92 +637,92 @@ namespace NMib::NFile
 		static NStr::CStrNonTracked fs_GetLogDirectoryNonTracked();
 
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramPath()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramPath()
 		{
 			return fs_GetProgramPathNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramPath()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramPath()
 		{
 			return fs_GetProgramPath();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramDirectory()
 		{
 			return fs_GetProgramDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramDirectory()
 		{
 			return fs_GetProgramDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetCurrentDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetCurrentDirectory()
 		{
 			return fs_GetCurrentDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetCurrentDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetCurrentDirectory()
 		{
 			return fs_GetCurrentDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetUserProgramDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserProgramDirectory()
 		{
 			return fs_GetUserProgramDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetUserProgramDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserProgramDirectory()
 		{
 			return fs_GetUserProgramDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetUserLocalProgramDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserLocalProgramDirectory()
 		{
 			return fs_GetUserLocalProgramDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetUserLocalProgramDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserLocalProgramDirectory()
 		{
 			return fs_GetUserLocalProgramDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetTemporaryDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetTemporaryDirectory()
 		{
 			return fs_GetTemporaryDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetRawTemporaryDirectory()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetRawTemporaryDirectory()
 		{
 			return fs_GetRawTemporaryDirectoryNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetTemporaryDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetTemporaryDirectory()
 		{
 			return fs_GetTemporaryDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetRawTemporaryDirectory()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetRawTemporaryDirectory()
 		{
 			return fs_GetRawTemporaryDirectory();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetModulePath(void *_pCode)
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetModulePath(void *_pCode)
 		{
 			return fs_GetModulePathNonTracked(_pCode);
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetModulePath(void *_pCode)
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetModulePath(void *_pCode)
 		{
 			return fs_GetModulePath(_pCode);
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramRoot()
+		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramRoot()
 		{
 			return fs_GetProgramRootNonTracked();
 		}
 		template <typename tf_CStr>
-		static typename TCEnableIf<!NTraits::TCIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>::mc_Value, tf_CStr>::CType fs_GetProgramRoot()
+		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramRoot()
 		{
 			return fs_GetProgramRoot();
 		}

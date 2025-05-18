@@ -757,7 +757,7 @@ namespace NMib::NFile
 	template <typename tf_CLength>
 	inline_small CFileIoTempBuffer::CUseBufferResult CFileIoTempBuffer::f_UseBuffer(tf_CLength _Length)
 	{
-		mint ThisTime = fg_Min(typename NTraits::TCUnsigned<tf_CLength>::CType(_Length), gc_IdealIoSize);
+		mint ThisTime = fg_Min(NTraits::TCUnsigned<tf_CLength>(_Length), gc_IdealIoSize);
 		mp_nUsedBytes = fg_Max(mp_nUsedBytes, ThisTime);
 		if (ThisTime)
 		{
