@@ -12,15 +12,13 @@ namespace NMib::NFile
 	public:
 
 		class CFile;
-		typedef uint64 CClusterID;
-		typedef uint64 CDirectoryID;
-		typedef uint64 CFilePos;
+		using CClusterID = uint64;
+		using CDirectoryID = uint64;
+		using CFilePos = uint64;
+
 	private:
-
 		friend class CVirtualFS_FixFSFileTree;
-
 		friend class CFile;
-
 
 		class CRootData
 		{
@@ -1753,9 +1751,9 @@ namespace NMib::NFile
 
 	private:
 		DMibListLinkDS_List(CFile, m_Link) m_OpenFiles;
-		typedef DMibListLinkDS_Iter(CFile, m_Link) COpenFilesIter;
-	public:
+		using COpenFilesIter = DMibListLinkDS_Iter(CFile, m_Link);
 
+	public:
 		void f_CloseOpenFiles();
 
 		void f_CopyFileToFS(NStr::CStr const &_FromFile, NStr::CStr const &_ToFile);
@@ -1764,7 +1762,7 @@ namespace NMib::NFile
 		void f_CopyFileInFS(NStr::CStr const &_FromFile, NStr::CStr const &_ToFile);
 	};
 
-	typedef CVirtualFS::CFile CVirtualFSFile;
+	using CVirtualFSFile = CVirtualFS::CFile;
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
 	class TCBinaryStream_VirtualFSFilePtr : public t_CStreamType

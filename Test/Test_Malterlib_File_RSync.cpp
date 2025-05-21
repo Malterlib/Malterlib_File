@@ -17,14 +17,14 @@ namespace
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::CByteVector>
 	class CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
 	{
-		typedef CBinaryStreamMemory<t_CStreamType, t_CVector> CParent;
+		using CParent = CBinaryStreamMemory<t_CStreamType, t_CVector>;
 
 	private:
 		CBinaryStreamMemorySequential(CBinaryStreamMemorySequential const &) = delete;
 		CBinaryStreamMemorySequential &operator = (CBinaryStreamMemorySequential const &) = delete;
 
 	public:
-		typedef t_CVector CStorage;
+		using CStorage = t_CVector;
 
 		DMibStreamImplementProtected(CBinaryStreamMemorySequential);
 	public:

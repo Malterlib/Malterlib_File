@@ -335,7 +335,7 @@ namespace NMib::NFile
 
 	static constexpr uint32 gc_Offset = 31;
 
-	typedef uint32 CRunningType;
+	using CRunningType = uint32;
 
 	uint32 fg_GetRunningSum(void const *_pData, aint _nBytes)
 	{

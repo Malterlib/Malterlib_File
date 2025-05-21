@@ -96,7 +96,8 @@ namespace NMib::NFile
 			NIntrusive::TCAVLLinkAggregate<> m_TreeLink;
 			DMibListLinkSA_List(CMappedPos, m_Link) m_MappedPositions;
 		};
-		typedef DMibListLinkS_Iter(CMappedPos, m_Link) CMappedPosIter;
+
+		using CMappedPosIter = DMibListLinkS_Iter(CMappedPos, m_Link);
 
 		NIntrusive::TCAVLTree<&CMappedChunk::m_TreeLink, CMappedChunk::CCompare> m_MappedTree;
 
