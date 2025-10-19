@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
@@ -18,15 +18,16 @@ namespace NMib::NFile
 		, EDirectoryManifestSyncFlag_TransactionLog = DMibBit(1)	///< Should be used together with ESyncFlag_Append. This tells the backup manager to sync
 																	///		writes to disk as quickly as possible.
 	};
-	
+
 	struct CDirectoryManifestFile
 	{
 		bool operator == (CDirectoryManifestFile const &_Right) const;
-		
+
 		NStr::CStr const &f_GetFileName() const;
 		bool f_IsDirectory() const;
 		bool f_IsFile() const;
-		
+		bool f_IsLink() const;
+
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream, uint32 _Version);
 
@@ -60,7 +61,7 @@ namespace NMib::NFile
 			, EManifestConfigStreamVersion_SupportFlagsAndMaxDigestSize = 0x102
 			, EManifestConfigStreamVersion_Current = 0x102
 		};
-		
+
 		static NStr::CStr fs_ParseWildcard(NStr::CStr const &_Wildcard, bool &o_bRecursive);
 		CDirectoryManifestConfig const &f_Validate() const;
 		void f_AppendConfig(CDirectoryManifestConfig const &_Config);
@@ -80,7 +81,7 @@ namespace NMib::NFile
 		uint64 m_MaxDigestSize = TCLimitsInt<uint64>::mc_Max;									///< Maximum file size to calculate digests for.
 		EDirectoryManifestConfigFlag m_Flags = EDirectoryManifestConfigFlag::mc_None;			///< Flag options.
 	};
-	
+
 	struct CDirectoryManifest
 	{
 		template <typename tf_CStream>
@@ -88,18 +89,18 @@ namespace NMib::NFile
 
 		NEncoding::CEJsonSorted f_ToJson() const;
 		static CDirectoryManifest fs_FromJson(NEncoding::CEJsonSorted const &_Json);
-		
+
 		enum EManifestStreamVersion : uint32
 		{
 			EManifestStreamVersion_Min = 0x102
 			, EManifestStreamVersion_OptionalDigest = 0x103
 			, EManifestStreamVersion_Current = 0x103
 		};
-		
+
 		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
-		
+
 		static EDirectoryManifestSyncFlag fs_GetSyncFlags(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName);
-		
+
 		static void fs_UpdateManifestFile
 			(
 				CDirectoryManifestConfig const &_Config

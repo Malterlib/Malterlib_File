@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Encoding/EJson>
@@ -10,11 +10,11 @@ namespace NMib::NFile
 	using namespace NFile;
 	using namespace NContainer;
 	using namespace NStr;
-	
+
 	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJsonSorted const &_Json) -> EDirectoryManifestSyncFlag
 	{
 		EDirectoryManifestSyncFlag Flags = EDirectoryManifestSyncFlag_None;
-		
+
 		for (auto &Flag : _Json.f_Array())
 		{
 			if (Flag.f_String() == "Append")
@@ -24,23 +24,23 @@ namespace NMib::NFile
 			else
 				DMibError(NStr::fg_Format("Unknown sync flag: {}", Flag.f_String()));
 		}
-		
+
 		return Flags;
 	}
-	
+
 	NEncoding::CEJsonSorted CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
 	{
 		NEncoding::CEJsonSorted Json;
 		Json.f_Array();
-		
+
 		if (_Flags & EDirectoryManifestSyncFlag_Append)
 			Json.f_Insert("Append");
 		if (_Flags & EDirectoryManifestSyncFlag_TransactionLog)
 			Json.f_Insert("TransactionLog");
-		
+
 		return Json;
 	}
-	
+
 	bool CDirectoryManifestFile::operator == (CDirectoryManifestFile const &_Right) const
 	{
 		return NStorage::fg_TupleReferences
@@ -67,22 +67,27 @@ namespace NMib::NFile
 			)
 		;
 	}
-	
+
 	bool CDirectoryManifestFile::f_IsDirectory() const
 	{
 		return (m_Attributes & (NFile::EFileAttrib_Directory | NFile::EFileAttrib_Link)) == NFile::EFileAttrib_Directory;
 	}
-	
+
 	bool CDirectoryManifestFile::f_IsFile() const
 	{
 		return (m_Attributes & (NFile::EFileAttrib_Directory | NFile::EFileAttrib_Link)) == NFile::EFileAttrib_None;
 	}
-	
+
+	bool CDirectoryManifestFile::f_IsLink() const
+	{
+		return (m_Attributes & NFile::EFileAttrib_Link) != NFile::EFileAttrib_None;
+	}
+
 	NStr::CStr const &CDirectoryManifestFile::f_GetFileName() const
 	{
 		return NContainer::TCMap<NStr::CStr, CDirectoryManifestFile>::fs_GetKey(*this);
 	}
-	
+
 	NEncoding::CEJsonSorted CDirectoryManifest::f_ToJson() const
 	{
 		NEncoding::CEJsonSorted Json;
@@ -103,14 +108,14 @@ namespace NMib::NFile
 			Entry["Group"] = File.m_Group;
 			Entry["Flags"] = CDirectoryManifestFile::fs_GenerateSyncFlags(File.m_Flags);
 		}
-		
+
 		return Json;
 	}
 
 	CDirectoryManifest CDirectoryManifest::fs_FromJson(NEncoding::CEJsonSorted const &_Json)
 	{
 		CDirectoryManifest Manifest;
-		
+
 		for (auto &File : _Json.f_Object())
 		{
 			auto &OutFile = Manifest.m_Files[File.f_Name()];
@@ -137,10 +142,10 @@ namespace NMib::NFile
 			OutFile.m_Group = ManifestJson["Group"].f_String();
 			OutFile.m_Flags = CDirectoryManifestFile::fs_ParseSyncFlags(ManifestJson["Flags"]);
 		}
-		
+
 		return Manifest;
 	}
-	
+
 	EDirectoryManifestSyncFlag CDirectoryManifest::fs_GetSyncFlags(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName)
 	{
 		EDirectoryManifestSyncFlag OutFlags = EDirectoryManifestSyncFlag_None;
@@ -157,7 +162,7 @@ namespace NMib::NFile
 			if (fg_StrMatchWildcard(_FileName.f_GetStr(), Wildcard.f_GetStr()) == EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
 				OutFlags &= ~Flags;
 		}
-		
+
 		return OutFlags;
 	}
 
@@ -195,7 +200,7 @@ namespace NMib::NFile
 		auto OriginalFileName = CFile::fs_AppendPath(_Config.m_Root, _OriginalPath);
 		o_ManifestFile.m_OriginalPath = _OriginalPath;
 		o_ManifestFile.m_Flags = fs_GetSyncFlags(_Config, _FileName);
-		
+
 		if (o_ManifestFile.m_Attributes & EFileAttrib_Link)
 		{
 			o_ManifestFile.m_SymlinkData = CFile::fs_ResolveSymbolicLink(OriginalFileName);
@@ -268,7 +273,7 @@ namespace NMib::NFile
 			}
 		}
 	}
-	
+
 	NStr::CStr CDirectoryManifestConfig::fs_ParseWildcard(NStr::CStr const &_Wildcard, bool &o_bRecursive)
 	{
 		auto WildcardFile = CFile::fs_GetFile(_Wildcard);
@@ -276,25 +281,25 @@ namespace NMib::NFile
 		if (WildcardFile.f_StartsWith("^"))
 		{
 			o_bRecursive = true;
-			return CFile::fs_AppendPath(CFile::fs_GetPath(_Wildcard), WildcardFile.f_Extract(1)); 
+			return CFile::fs_AppendPath(CFile::fs_GetPath(_Wildcard), WildcardFile.f_Extract(1));
 		}
 		else
 			return _Wildcard;
 	}
-	
+
 	namespace
 	{
 		void fg_ValidateWildcard(NStr::CStr const &_Wildcard, bool _bIsFileSearch)
 		{
 			if (CFile::fs_IsPathAbsolute(_Wildcard))
 				DMibError("Wildcards cannot be absolute paths. They need to be relative to root.");
-			
+
 			if (_bIsFileSearch)
 			{
 				if (CFile::fs_GetPath(_Wildcard).f_FindChars("%*") >= 0)
 					DMibError("Wildcards can only appear for file part of files searches. Directories cannot be wildcarded.");
 			}
-			
+
 			if (CFile::fs_HasRelativeComponents(_Wildcard))
 				DMibError("Wildcards cannot contain relative path components '..' or '.'");
 		}
@@ -315,7 +320,7 @@ namespace NMib::NFile
 			if (!CFile::fs_IsSafeRelativePath(*_Destination, Error))
 				DMibError("Destinations cannot {}."_f << Error);
 		}
-		
+
 		template <typename tf_CContainer>
 		void fg_ValidateDestinations(tf_CContainer const &_Container)
 		{
@@ -323,7 +328,7 @@ namespace NMib::NFile
 				fg_ValidateDestination(Destination);
 		}
 	}
-	
+
 	CDirectoryManifest CDirectoryManifest::fs_GetManifest
 		(
 			CDirectoryManifestConfig const &_Config
@@ -337,19 +342,19 @@ namespace NMib::NFile
 
 		TCMap<CStr, CStr> DestinationMapping;
 		TCMap<CStr, CStr> DestinationMappingReverse;
-		
+
 		for (auto &Destination : _Config.m_IncludeWildcards)
 		{
 			auto &Wildcard = _Config.m_IncludeWildcards.fs_GetKey(Destination);
-			
+
 			bool bRecursive = false;
 			auto WildcardParsed = CDirectoryManifestConfig::fs_ParseWildcard(Wildcard, bRecursive);
-			
+
 			CFile::CFindFilesOptions Options{CFile::fs_AppendPath(_Config.m_Root, WildcardParsed), bRecursive};
 			CStr FindPath = CFile::fs_GetPath(Options.m_Path);
 			Options.m_AttribMask = EFileAttrib_File | EFileAttrib_Directory | EFileAttrib_Link;
 			Options.m_fCheckAbort = _fCheckAbort;
-			
+
 			for (auto &FoundFile : CFile::fs_FindFiles(Options))
 			{
 				CStr OriginalPath = CFile::fs_MakePathRelative(FoundFile.m_Path, _Config.m_Root);
@@ -358,23 +363,23 @@ namespace NMib::NFile
 					RelativePath = CFile::fs_AppendPath(*Destination, CFile::fs_MakePathRelative(FoundFile.m_Path, FindPath));
 				else
 					RelativePath = OriginalPath;
-				
+
 				if (*DestinationMapping(RelativePath, FoundFile.m_Path) != FoundFile.m_Path)
 					DMibError("Manifest config maps different files to the same destination");
-				
+
 				if (*DestinationMappingReverse(FoundFile.m_Path, RelativePath) != RelativePath)
 					DMibError("Manifest config maps same file to different destinations");
-				
+
 				auto Mapping = BackupManifest.m_Files(RelativePath);
 				if (!Mapping.f_WasCreated())
 					continue;
-				
+
 				auto &ManifestFile = *Mapping;
 				ManifestFile.m_Attributes = FoundFile.m_Attribs;
 				ManifestFile.m_OriginalPath = OriginalPath;
 			}
 		}
-		
+
 		TCSet<CStr> ToRemove;
 		TCMap<CStr, CDirectoryManifestConfig::CDestination> ImplicitDirectories;
 
@@ -386,7 +391,7 @@ namespace NMib::NFile
 				ToRemove[RelativePath];
 				continue;
 			}
-			
+
 			try
 			{
 				CFile::CFileChecksumState_SHA256 ChecksumState;
@@ -396,7 +401,7 @@ namespace NMib::NFile
 					pPreviousManifestFile = _pPreviousManifest->m_Files.f_FindEqual(RelativePath);
 
 				fs_UpdateManifestFile(_Config, RelativePath, ManifestFile, ManifestFile.m_OriginalPath, &ChecksumState, _FileOpenFlags, pPreviousManifestFile);
-				
+
 				if (o_pAppendStates && (ManifestFile.m_Flags & EDirectoryManifestSyncFlag_Append))
 					(*o_pAppendStates)[RelativePath] = fg_Move(ChecksumState);
 			}
@@ -421,10 +426,10 @@ namespace NMib::NFile
 				Directory = CFile::fs_GetPath(Directory);
 			}
 		}
-		
+
 		for (auto &File : ToRemove)
 			BackupManifest.m_Files.f_Remove(File);
-		
+
 		for (auto &Destination : ImplicitDirectories)
 		{
 			auto &File = ImplicitDirectories.fs_GetKey(Destination);
@@ -442,13 +447,13 @@ namespace NMib::NFile
 			auto Mapping = BackupManifest.m_Files(File);
 			if (!Mapping.f_WasCreated())
 				continue;
-			
+
 			auto &ManifestFile = *Mapping;
 
 			ManifestFile.m_Attributes = Attributes;
 			fs_UpdateManifestFile(_Config, File, ManifestFile, OriginalPath);
 		}
-		
+
 		return BackupManifest;
 	}
 
@@ -456,13 +461,13 @@ namespace NMib::NFile
 	{
 		if (!NFile::CFile::fs_IsPathAbsolute(m_Root))
 			DMibError("Root path is not absolute");
-		
+
 		fg_ValidateWildcards(m_IncludeWildcards, true);
 		fg_ValidateDestinations(m_IncludeWildcards);
 		fg_ValidateWildcards(m_ExcludeWildcards, false);
 		fg_ValidateWildcards(m_AddSyncFlagsWildcards, false);
 		fg_ValidateWildcards(m_RemoveSyncFlagsWildcards, false);
-		
+
 		return *this;
 	}
 }
