@@ -1213,7 +1213,7 @@ namespace NMib::NFile
 
 			NStream::CFilePos SourceLen = _SourceData.f_GetLen();
 
-			NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_RandomID() + ".tmp");
+			NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_FastRandomID() + ".tmp");
 
 			auto Cleanup = g_OnScopeExit / [&]
 				{

@@ -193,7 +193,7 @@ namespace NMib::NFile
 							)
 						;
 
-						CStr TempFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.rsynctemp", fg_RandomID()));
+						CStr TempFileName = CFile::fs_AppendPath(Config.m_TempDirectory, fg_Format("{}.rsynctemp", fg_FastRandomID()));
 						RSyncState.m_TempFiles.f_Insert(TempFileName);
 						CFile::fs_CreateDirectory(Config.m_TempDirectory);
 

@@ -40,7 +40,7 @@ namespace NMib::NFile
 							PreviousManifestFileName = Config.m_FileOptions.f_TransformFileName
 								(
 									Config.m_TempDirectory
-									, fg_Format("{}.manifest", fg_RandomID())
+									, fg_Format("{}.manifest", fg_FastRandomID())
 									, EDirectorySyncStreamType_ManifestSource
 								)
 							;
@@ -77,7 +77,7 @@ namespace NMib::NFile
 						ManifestDestination = Config.m_FileOptions.f_TransformFileName
 							(
 								Config.m_TempDirectory
-								, fg_Format("{}.manifest", fg_RandomID())
+								, fg_Format("{}.manifest", fg_FastRandomID())
 								, EDirectorySyncStreamType_ManifestDestination
 							)
 						;
@@ -132,7 +132,7 @@ namespace NMib::NFile
 						CStr TempFileName = Config.m_FileOptions.f_TransformFileName
 							(
 								Config.m_TempDirectory
-								, fg_Format("{}.rsynctemp", fg_RandomID())
+								, fg_Format("{}.rsynctemp", fg_FastRandomID())
 								, EDirectorySyncStreamType_TempManifestSourceDestination
 							)
 						;
