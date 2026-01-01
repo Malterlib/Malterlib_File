@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Cryptography/Hashes/MD5>
@@ -732,7 +732,7 @@ namespace NMib::NFile
 		static NMib::NStream::CFilePos fs_GetUsedSpace(const NMib::NStr::CStr &_Path);
 		static NMib::NStream::CFilePos fs_GetTotalSpace(const NMib::NStr::CStr &_Path);
 		static NContainer::TCVector<NStr::CStr> fs_GetMounts(EFileMountType _Types);
-		
+
 		static void fs_FindFilesGeneral
 			(
 				const NStr::CStr &_FindPath

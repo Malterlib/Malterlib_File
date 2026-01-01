@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_ChangeNotificationActor.h"
@@ -10,7 +10,7 @@ namespace NMib::NFile
 	using namespace NConcurrency;
 	using namespace NStorage;
 	using namespace NStr;
-	
+
 	class CFileChangeNotificationActor::CInternal
 	{
 	public:
@@ -21,13 +21,13 @@ namespace NMib::NFile
 				CFileChangeNotification::CNotification m_Notification;
 				uint64 m_Sequence = 0;
 			};
-			
+
 			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings &&_CoalesceSettings)
 				: m_pDestroyed(fg_Construct(false))
 				, m_CoalesceSettings(fg_Move(_CoalesceSettings))
 			{
 			}
-			
+
 			~CNotification()
 			{
 				if (m_pDestroyed)
@@ -45,13 +45,13 @@ namespace NMib::NFile
 			mint m_nOutstanding = 0;
 			bool m_bScheduledTimeout = false;
 		};
-		
+
 		void fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change);
 		void fp_SendNotifications(CNotification *_pNotification, bool _bForce);
-		
+
 		NContainer::TCLinkedList<CNotification> m_Notifications;
 	};
-	
+
 	CFileChangeNotificationActor::CFileChangeNotificationActor()
 		: mp_pInternal(fg_Construct())
 	{
@@ -60,7 +60,7 @@ namespace NMib::NFile
 	CFileChangeNotificationActor::~CFileChangeNotificationActor()
 	{
 	}
-		
+
 	NConcurrency::TCFuture<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
 		(
 			NMib::NStr::CStr _Path
@@ -71,9 +71,9 @@ namespace NMib::NFile
 	{
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
 			co_return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
-		
+
 		auto &Internal = *mp_pInternal;
-		
+
 		auto CaptureScope = co_await g_CaptureExceptions;
 
 		auto *pNotification = &(Internal.m_Notifications.f_Insert(fg_Construct(this, fg_Move(_CoalesceSettings))));
@@ -128,15 +128,15 @@ namespace NMib::NFile
 
 		co_return fg_Move(Callback);
 	}
-	
+
 	void CFileChangeNotificationActor::CInternal::fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)
 	{
 		auto &Notification = *_pNotification;
 		auto &LastChange = *Notification.m_LastChange(_Change.m_Path, EFileChangeNotification_Undefined);
-		
+
 		if (LastChange == EFileChangeNotification_Modified && _Change.m_Notification == EFileChangeNotification_Modified)
 			return;
-		
+
 		LastChange = _Change.m_Notification;
 
 		auto Sequence = ++Notification.m_Sequence;
@@ -154,7 +154,7 @@ namespace NMib::NFile
 #endif
 
 		Notification.m_Changes.f_Insert({_Change, Sequence});
-		
+
 		if (Notification.m_CoalesceSettings.m_Delay > 0.0)
 		{
 			if (Notification.m_bScheduledTimeout)
@@ -166,7 +166,7 @@ namespace NMib::NFile
 						co_return {};
 
 					_pNotification->m_bScheduledTimeout = false;
-					
+
 					fp_SendNotifications(_pNotification, false);
 
 					co_return {};
@@ -176,7 +176,7 @@ namespace NMib::NFile
 		else
 			fp_SendNotifications(_pNotification, false);
 	}
-	
+
 	void CFileChangeNotificationActor::CInternal::fp_SendNotifications(CNotification *_pNotification, bool _bForce)
 	{
 		auto &Notification = *_pNotification;
@@ -185,16 +185,16 @@ namespace NMib::NFile
 
 		auto Changes = fg_Move(Notification.m_Changes);
 		Notification.m_LastChange.f_Clear();
-		
+
 		if (Changes.f_IsEmpty())
 			return;
-		
+
 		++Notification.m_nOutstanding;
 		auto pCleanup = g_OnScopeExitActor / [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
 			{
 				if (*pDestroyed)
 					return;
-				
+
 				--_pNotification->m_nOutstanding;
 				fp_SendNotifications(_pNotification, false);
 			}

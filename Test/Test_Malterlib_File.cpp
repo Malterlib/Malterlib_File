@@ -1214,6 +1214,180 @@ namespace
 								fSleep();
 								DMibExpectFalse(fHasChange() && "After");
 							}
+							// Test for inotify edge case: when a directory is moved from one location to another
+							// within the watched tree, and the destination structure is created first (triggering
+							// recursive watching), inotify_add_watch returns the same descriptor for the moved
+							// directory because it's the same inode. This tests that notifications still work
+							// correctly at the new location.
+							if (bRecursive)
+							{
+								fSleep();
+								{
+									DMibTestPath("Move directory from SyncTemp to nested destination (inotify edge case)");
+
+									// Create a source directory in a sibling location (like SyncTemp)
+									CStr SyncTempDir = TestDir + "/SyncTemp";
+									CFile::fs_CreateDirectory(SyncTempDir);
+									CStr SourceDir = SyncTempDir + "/SourceDir";
+									CFile::fs_CreateDirectory(SourceDir);
+
+									// Create a file inside the source directory
+									CStr SourceFile = SourceDir + "/TestFile.txt";
+									CFile::fs_WriteStringToFile(SourceFile, "Initial content");
+
+									// Drain notifications from setup
+									while (true)
+									{
+										auto Notification = fWaitForChange("Setup");
+										if (Notification.m_Notification == EFileChangeNotification_Added && Notification.m_Path == "SyncTemp/SourceDir/TestFile.txt")
+											break;
+									}
+
+									while (fHasChange())
+										; // The rest of modified
+
+									DMibExpectFalse(fHasChange() && "Before");
+
+									// Write to the source file to create notification backlog
+									for (int i = 0; i < 10; ++i)
+										CFile::fs_WriteStringToFile(SourceFile, CStr::CFormat("Content {}") << i);
+
+									// Quickly move source directory into nested destination
+									// This triggers the "Watch tree mismatch" scenario in inotify
+									// Create nested destination structure inside watched tree
+									// This will trigger recursive watching BEFORE the move completes
+									CStr DestParent = TestDir + "/Dest/Nested/Path";
+									CFile::fs_CreateDirectory(DestParent);
+
+									CStr DestDir = DestParent + "/SourceDir";
+									CFile::fs_RenameFile(SourceDir, DestDir);
+
+									// Drain all notifications from the move
+									// We need to wait for both file notifications AND directory notifications
+									TCSet<CFileChangeNotification::CNotification> MoveNotifications;
+
+									mint nFileFound = 0;
+									mint nDirFound = 0;
+									while (nFileFound < 2 || nDirFound < 2)
+									{
+										auto Notification = fWaitForChange("MoveFromSyncTemp");
+										MoveNotifications[Notification];
+
+										// File notification: need both Removed AND Added, or a single Renamed
+										if (Notification.m_Notification == EFileChangeNotification_Removed && Notification.m_Path == "SyncTemp/SourceDir/TestFile.txt")
+											++nFileFound;
+										if (Notification.m_Notification == EFileChangeNotification_Added && Notification.m_Path == "Dest/Nested/Path/SourceDir/TestFile.txt")
+											++nFileFound;
+										if (Notification.m_Notification == EFileChangeNotification_Renamed && Notification.m_PathFrom == "SyncTemp/SourceDir/TestFile.txt")
+											nFileFound += 2;
+
+										// Directory notification: need both Removed AND Added, or a single Renamed
+										if (Notification.m_Notification == EFileChangeNotification_Removed && Notification.m_Path == "SyncTemp/SourceDir")
+											++nDirFound;
+										if (Notification.m_Notification == EFileChangeNotification_Added && Notification.m_Path == "Dest/Nested/Path/SourceDir")
+											++nDirFound;
+										if (Notification.m_Notification == EFileChangeNotification_Renamed && Notification.m_PathFrom == "SyncTemp/SourceDir")
+											nDirFound += 2;
+									}
+
+									while (fHasChange())
+										; // The rest of modified
+
+									// Verify we got Added notification for the destination path
+									bool bFoundAdded = false;
+									for (auto const &Notification : MoveNotifications)
+									{
+										if (Notification.m_Notification == EFileChangeNotification_Added &&
+											Notification.m_Path.f_EndsWith("SourceDir"))
+										{
+											bFoundAdded = true;
+											break;
+										}
+										if (Notification.m_Notification == EFileChangeNotification_Renamed &&
+											Notification.m_Path.f_EndsWith("SourceDir"))
+										{
+											bFoundAdded = true;
+											break;
+										}
+									}
+									DMibExpectTrue(bFoundAdded);
+
+									// Verify we got Removed notification for the source directory
+									bool bFoundRemovedDir = false;
+									for (auto const &Notification : MoveNotifications)
+									{
+										if (Notification.m_Notification == EFileChangeNotification_Removed &&
+											Notification.m_Path == "SyncTemp/SourceDir")
+										{
+											bFoundRemovedDir = true;
+											break;
+										}
+										if (Notification.m_Notification == EFileChangeNotification_Renamed &&
+											Notification.m_PathFrom == "SyncTemp/SourceDir")
+										{
+											bFoundRemovedDir = true;
+											break;
+										}
+									}
+									DMibExpectTrue(bFoundRemovedDir);
+
+									// Verify we got Removed notification for the child file (recursive)
+									bool bFoundRemovedFile = false;
+									for (auto const &Notification : MoveNotifications)
+									{
+										if (Notification.m_Notification == EFileChangeNotification_Removed &&
+											Notification.m_Path == "SyncTemp/SourceDir/TestFile.txt")
+										{
+											bFoundRemovedFile = true;
+											break;
+										}
+										if (Notification.m_Notification == EFileChangeNotification_Renamed &&
+											Notification.m_PathFrom == "SyncTemp/SourceDir/TestFile.txt")
+										{
+											bFoundRemovedFile = true;
+											break;
+										}
+									}
+									DMibExpectTrue(bFoundRemovedFile);
+
+									// Critical test: write to file at NEW location
+									// Verify we receive modification notification
+									fSleep();
+									while (fHasChange()) {} // Drain any remaining notifications
+									DMibExpectFalse(fHasChange() && "Before new location write");
+
+									CStr NewFile = DestDir + "/TestFile.txt";
+									CFile::fs_WriteStringToFile(NewFile, "Modified at new location");
+
+									// Wait for the correct modification notification (skip root directory modifications)
+									while (true)
+									{
+										auto ModifyChange = fWaitForChange("Modify at new location");
+										if
+										(	ModifyChange.m_Notification == EFileChangeNotification_Modified
+											&& ModifyChange.m_Path == "Dest/Nested/Path/SourceDir/TestFile.txt"
+										)
+										{
+											break;
+										}
+									}
+
+									// Cleanup
+									CFile::fs_DeleteDirectoryRecursive(TestDir + "/Dest");
+									CFile::fs_DeleteDirectoryRecursive(SyncTempDir);
+
+									// Drain cleanup notifications
+									while (true)
+									{
+										auto Notification = fWaitForChange("Cleanup");
+										if (Notification.m_Notification == EFileChangeNotification_Removed && Notification.m_Path == "SyncTemp")
+											break;
+									}
+									while (fHasChange())
+										; // The rest of modified
+									DMibExpectFalse(fHasChange() && "AfterCleanup");
+								}
+							}
 	#ifndef DPlatformFamily_Windows
 							fSleep();
 							{
@@ -1226,11 +1400,15 @@ namespace
 								{
 									Notifications[fWaitForChange("Delete self: Change1")];
 
+#ifndef DPlatformFamily_macOS
 									CFileChangeNotification::CNotification Notification;
 									if (fTryWaitForChange("Delete self: Change2", Notification))
 										Notifications[Notification];
 
 									DMibAssert(Notifications.f_GetLen(), >=, 2);
+#else
+									DMibAssert(Notifications.f_GetLen(), ==, 2);
+#endif
 								}
 								else
 									DMibAssert(Notifications.f_GetLen(), ==, 1);
@@ -2308,7 +2486,7 @@ namespace
 						(
 							NFile::CExceptionFile
 							, "Windows returned an error from CreateFileW(Delete)({0}): 32 The process cannot access the file because it is being used by another process.\n"
-							"Windows returned an error from DeleteFile({0}): 32 The process cannot access the file because it is being used by another process."_f 
+							"Windows returned an error from DeleteFile({0}): 32 The process cannot access the file because it is being used by another process."_f
 							<< TestFile
 						)
 					)
