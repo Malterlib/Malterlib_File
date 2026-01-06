@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 // contents of fsplugin.h  version 2.0 (30.Jan.2009)
