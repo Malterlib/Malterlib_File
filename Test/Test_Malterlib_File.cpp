@@ -616,9 +616,13 @@ namespace
 							CFileChangeNotification FileChangeNotification;
 							FileChangeNotification.f_Open(TestDir, bRecursive ? EFileChange_All : EFileChange_All & ~EFileChange_Recursive, &Event);
 
+							bool bEnableLogs = (fg_TestReportFlags() & ETestReportFlag_EnableLogs) != 0;
+
 							auto fTrace = [&](CStr const &_Change, CFileChangeNotification::CNotification const &_Notification)
 								{
-	#if 0
+									if (!bEnableLogs)
+										return;
+
 									CStr NotName;
 									switch (_Notification.m_Notification)
 									{
@@ -631,7 +635,6 @@ namespace
 									}
 
 									DMibConErrOut2("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
-	#endif
 								}
 							;
 							auto fWaitForChange = [&](CStr const &_Desc) -> CFileChangeNotification::CNotification
