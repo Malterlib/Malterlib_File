@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 namespace NMib::NFile
@@ -186,7 +186,7 @@ namespace NMib::NFile
 			return false;
 
 		return true;
-#endif			
+#endif
 
 		return false;
 	}
@@ -281,7 +281,7 @@ namespace NMib::NFile
 			if (PathSection.f_IsEmpty() && BaseSection.f_IsEmpty())
 				break;
 
-#ifdef DPlatformFamily_Windows			
+#ifdef DPlatformFamily_Windows
 			if (PathSection.f_CmpNoCase(BaseSection) != 0)
 #else
 			if (PathSection.f_Cmp(BaseSection) != 0)

@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
@@ -13,7 +13,7 @@ namespace NMib::NFile
 		if (Version < EManifestConfigStreamVersion_Min || Version > EManifestConfigStreamVersion_Current)
 			DMibError("Invalid directory manifest version");
 		DMibBinaryStreamVersion(_Stream, Version);
-		
+
 		_Stream % m_Root;
 		_Stream % m_IncludeWildcards;
 		_Stream % m_ExcludeWildcards;
@@ -25,7 +25,7 @@ namespace NMib::NFile
 			_Stream % m_Flags;
 		}
 	}
-	
+
 	template <typename tf_CStream>
 	void CDirectoryManifestFile::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{
@@ -60,7 +60,7 @@ namespace NMib::NFile
 		_Stream % m_Attributes;
 		_Stream % m_Flags;
 	}
-	
+
 	template <typename tf_CStream>
 	void CDirectoryManifest::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{

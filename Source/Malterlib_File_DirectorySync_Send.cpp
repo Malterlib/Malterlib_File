@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -19,7 +19,7 @@ namespace NMib::NFile
 	using namespace NStream;
 	using namespace NFunction;
 	using namespace NTime;
-	
+
 	struct CDirectorySyncSend::CInternal : public CActorInternal
 	{
 		struct CByteStats
@@ -27,7 +27,7 @@ namespace NMib::NFile
 			uint64 m_nIncoming = 0;
 			uint64 m_nOutgoing = 0;
 		};
-		
+
 		struct CRunningSyncState
 		{
 			TCUnsafeFuture<CByteStats> f_Destroy();
@@ -39,7 +39,7 @@ namespace NMib::NFile
 			CByteStats m_ByteStats;
 			CActorSubscription m_Subscription;
 		};
-		
+
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 		NException::CExceptionPointer f_CheckFileName(CStr const &_FileName);
@@ -66,32 +66,32 @@ namespace NMib::NFile
 		else if (m_pConfig->m_Manifest.f_IsOfType<CDirectoryManifestConfig>())
 			m_bUseOriginalLocation = true;
 	}
-	
+
 	CDirectorySyncSend::CDirectorySyncSend(CConfig &&_Config)
 		: mp_pInternal(fg_Construct(this, fg_Move(_Config)))
 	{
 	}
-	
+
 	CDirectorySyncSend::~CDirectorySyncSend() = default;
-	
+
 	auto CDirectorySyncSend::f_GetResult() -> TCFuture<CSyncResult>
 	{
 		auto &Internal = *mp_pInternal;
-		
+
 		CSyncResult Result;
 		Result.m_bFinished = Internal.m_bFinished;
 		Result.m_Stats = Internal.m_Stats;
 		Result.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
-		
+
 		co_return Result;
 	}
-	
+
 	void CDirectorySyncSend::CInternal::fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed)
 	{
 		if (*_pDestroyed)
 			DMibError("Directory sync aborted");
 	}
-	
+
 	NException::CExceptionPointer CDirectorySyncSend::CInternal::f_CheckFileName(CStr const &_FileName)
 	{
 		CStr Error;
@@ -100,11 +100,11 @@ namespace NMib::NFile
 
 		return nullptr;
 	}
-	
+
 	TCFuture<void> CDirectorySyncSend::fp_Destroy()
 	{
 		auto &Internal = *mp_pInternal;
-		
+
 		*Internal.m_pDestroyed = true;
 
 		CLogError LogError("DirectorySyncSend");
@@ -117,7 +117,7 @@ namespace NMib::NFile
 		}
 
 		TCFutureVector<CInternal::CByteStats> StateDestroys;
-		
+
 		for (auto &pState : Internal.m_RSyncStates)
 			pState->f_Destroy() > StateDestroys;
 
@@ -139,7 +139,7 @@ namespace NMib::NFile
 			co_return CByteStats{};
 
 		auto BlockingActorCheckout = fg_BlockingActor();
-		
+
 		auto ByteStats = co_await
 			(
 				g_Dispatch(BlockingActorCheckout) / [pThis]
@@ -154,7 +154,7 @@ namespace NMib::NFile
 
 		co_return fg_Move(ByteStats);
 	}
-	
+
 	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync)
 		-> TCFuture<FRunRSync>
 	{
@@ -166,13 +166,13 @@ namespace NMib::NFile
 		CStr RSyncID = fg_FastRandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
-		
+
 		auto pCleanup = g_OnScopeExitActor / [this, RSyncID]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
 			}
 		;
-		
+
 		RSyncState.m_Subscription = fg_Move(_Subscription);
 
 		auto BlockingActorCheckout = fg_BlockingActor();
@@ -209,7 +209,7 @@ namespace NMib::NFile
 								m_Stats.m_OutgoingBytes += Stats.m_nOutgoing;
 								m_Stats.m_IncomingBytes += Stats.m_nIncoming;
 								++m_Stats.m_nSyncedFiles;
-										
+
 								co_return {};
 							}
 						)
@@ -245,7 +245,7 @@ namespace NMib::NFile
 				pCleanup->f_Clear();
 			}
 		;
-		
+
 		co_return co_await fg_Move(Promise.m_Future);
 	}
 
@@ -315,26 +315,26 @@ namespace NMib::NFile
 			)
 		;
 	}
-	
+
 	auto CDirectorySyncSend::f_StartRSync(NStr::CStr _FileName, TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
 
 		auto &Internal = *mp_pInternal;
-		
+
 		if (auto pException = Internal.f_CheckFileName(_FileName))
 			co_return pException;
-		
+
 		auto *pFile = Internal.m_pManifest->m_Files.f_FindEqual(_FileName);
-		
+
 		if (!pFile)
 			co_return DMibErrorInstance("File does not exist in manifest");
 
 		if (!pFile->f_IsFile())
 			co_return DMibErrorInstance("Is not a file in manifest");
-			
+
 		CStr FilePath;
-		
+
 		if (Internal.m_bUseOriginalLocation)
 			FilePath = pFile->m_OriginalPath;
 		else
@@ -363,7 +363,7 @@ namespace NMib::NFile
 	{
 		auto &Internal = *mp_pInternal;
 		Internal.m_bFinished = true;
-		
+
 		co_return {};
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -56,10 +56,10 @@ namespace NMib::NFile
 				}
 			)
 		;
-		
+
 		co_return {};
 	}
-	
+
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_SyncFile(CStr const &_FileName)
 	{
 		auto ClientFlags = ERSyncFlag_ClientTruncateOutput;
@@ -81,7 +81,7 @@ namespace NMib::NFile
 					RSyncState.m_DestinationFilename = Destination;
 
 					auto &ManifestFile = *pManifestFile;
-					
+
 					if (ManifestFile.m_Attributes & EFileAttrib_Link)
 					{
 						if (CFile::fs_FileExists(Destination, EFileAttrib_Link))
@@ -94,14 +94,14 @@ namespace NMib::NFile
 							CFile::fs_DeleteDirectoryRecursive(Destination);
 						else if (CFile::fs_FileExists(Destination))
 							CFile::fs_DeleteFile(Destination);
-						
+
 						ESymbolicLinkFlag Flags = ESymbolicLinkFlag_AllowEmulation;
-						
+
 						if (!CFile::fs_IsPathAbsolute(ManifestFile.m_SymlinkData))
 							Flags |= ESymbolicLinkFlag_Relative;
-						
+
 						CFile::fs_CreateSymbolicLink(ManifestFile.m_SymlinkData, Destination, ManifestFile.m_Attributes, Flags);
-						
+
 						return true;
 					}
 					else if (ManifestFile.m_Attributes & EFileAttrib_Directory)
@@ -113,12 +113,12 @@ namespace NMib::NFile
 
 						return true;
 					}
-					
+
 					if (CFile::fs_FileExists(Destination, EFileAttrib_Link))
 						CFile::fs_DeleteFile(Destination);
 					else if (CFile::fs_FileExists(Destination, EFileAttrib_Directory))
 						CFile::fs_DeleteDirectoryRecursive(Destination);
-					
+
 					CStr Source;
 					if (CFile::fs_FileExists(Destination))
 					{
@@ -131,7 +131,7 @@ namespace NMib::NFile
 						Source = Config.m_FileOptions.f_TransformFileName(Config.m_PreviousBasePath, _FileName, EDirectorySyncStreamType_Source);
 
 					CFile::fs_CreateDirectory(CFile::fs_GetPath(Destination));
-					
+
 					auto Attributes = EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite;
 
 					if (Source != Destination)
@@ -218,7 +218,7 @@ namespace NMib::NFile
 							)
 						;
 					}
-					
+
 					return false;
 				}
 				, [=, pConfigUnsafe = m_pConfig, pManifestUnsafe = m_pManifest](CRunningSyncState *_pRSyncState) -> TCUnsafeFuture<void>
@@ -228,7 +228,7 @@ namespace NMib::NFile
 					auto &Config = *pConfig;
 					if (!(Config.m_SyncFlags & (ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes)))
 						co_return {};
-					
+
 					auto BlockingActorCheckout = fg_BlockingActor();
 					co_await
 						(
@@ -291,14 +291,14 @@ namespace NMib::NFile
 	void CDirectorySyncReceive::CInternal::f_RunFileSyncs(TCPromise<void> const &_Promise)
 	{
 		auto &Config = *m_pConfig;
-	
+
 		while (m_nRunningSyncs < Config.m_RSyncConcurrency && !m_PendingFileSyncs.f_IsEmpty() && !m_pThis->f_IsDestroyed())
 		{
 			auto FileName = *m_PendingFileSyncs.f_FindSmallest();
 			m_PendingFileSyncs.f_Remove(FileName);
-			
+
 			++m_nRunningSyncs;
-			
+
 			f_SyncFile(FileName) > [this, _Promise](TCAsyncResult<void> &&_Result)
 				{
 					if (!_Result)
@@ -308,7 +308,7 @@ namespace NMib::NFile
 				}
 			;
 		}
-		
+
 		if (m_PendingFileSyncs.f_IsEmpty() && m_nRunningSyncs == 0 && !_Promise.f_IsSet())
 		{
 			if (m_SyncErrors.f_IsEmpty())

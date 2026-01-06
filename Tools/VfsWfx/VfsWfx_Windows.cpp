@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+﻿// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "PCH.h"
@@ -19,14 +19,14 @@
 #include "Proj/Msvc/resource.h"
 
 HINSTANCE g_Instance = nullptr;
-BOOL APIENTRY DllMain( HANDLE hModule, 
-                       DWORD  ul_reason_for_call, 
+BOOL APIENTRY DllMain( HANDLE hModule,
+                       DWORD  ul_reason_for_call,
                        LPVOID lpReserved
 					 )
 {
 	if (ul_reason_for_call == DLL_PROCESS_ATTACH)
 	{
-		g_Instance = (HINSTANCE)hModule;		
+		g_Instance = (HINSTANCE)hModule;
 	}
     return TRUE;
 }
@@ -87,7 +87,7 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 				EnableWindow(Temp, false);
 
 			SetWindowPos(hwndDlg, nullptr, MonInfo.rcWork.left + MonWidth / 2 - Width / 2, MonInfo.rcWork.top + MonHeight / 2 - Height / 2, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
-			return 1;	
+			return 1;
 		}
 		break;
 	case WM_COMMAND:

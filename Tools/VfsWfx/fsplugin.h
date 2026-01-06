@@ -1,4 +1,4 @@
-﻿// Copyright © 2015 Hansoft AB 
+﻿// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 // contents of fsplugin.h  version 2.0 (30.Jan.2009)
@@ -25,7 +25,7 @@
 #define FS_COPYFLAGS_MOVE 4
 #define FS_COPYFLAGS_EXISTS_SAMECASE 8
 #define FS_COPYFLAGS_EXISTS_DIFFERENTCASE 16
- 
+
 // flags for tRequestProc
 #define RT_Other 0
 #define RT_UserName 1
@@ -180,7 +180,7 @@ BOOL __stdcall FsGetLocalNameW(WCHAR* RemoteName,int maxlen);
 
 // ************************** content plugin extension ****************************
 
-// 
+//
 #define ft_nomorefields 0
 
 #define ft_numeric_32 1

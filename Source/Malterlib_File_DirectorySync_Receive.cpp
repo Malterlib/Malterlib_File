@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -23,7 +23,7 @@ namespace NMib::NFile
 	}
 
 	CDirectorySyncReceive::CInternal::~CInternal() = default;
-	
+
 	CDirectorySyncReceive::~CDirectorySyncReceive() = default;
 	CDirectorySyncReceive::CInternal::CRunningSyncState::CRunningSyncState()
 	{
@@ -31,7 +31,7 @@ namespace NMib::NFile
 
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
-	
+
 	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCUnsafeFuture<void>
 	{
 		CLogError LogError("DirectorySyncReceive");
@@ -74,7 +74,7 @@ namespace NMib::NFile
 		if (_pDestroyed->f_Load(NAtomic::EMemoryOrder_Relaxed))
 			DMibError("Directory sync aborted");
 	}
-	
+
 	TCFuture<void> CDirectorySyncReceive::fp_Destroy()
 	{
 		auto &Internal = *mp_pInternal;
@@ -104,16 +104,16 @@ namespace NMib::NFile
 
 		co_return {};
 	}
-	
+
 	auto CDirectorySyncReceive::f_PerformSync() -> TCFuture<CSyncResult>
 	{
 		auto &Internal = *mp_pInternal;
-		
+
 		if (Internal.m_bStartedSync)
 			co_return DMibErrorInstance("Sync already perfromed");
-		
+
 		Internal.m_bStartedSync = true;
-		
+
 		co_await Internal.f_SyncManifest();
 		co_await Internal.f_HandleExcessFiles();
 

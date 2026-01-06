@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -11,7 +11,7 @@ namespace NMib::NFile
 		DMibPublishActorFunction(CDirectorySyncClient::f_StartRSync);
 		DMibPublishActorFunction(CDirectorySyncClient::f_Finished);
 	}
-	
+
 	fp64 CDirectorySyncStats::f_IncomingBytesPerSecond() const
 	{
 		if (m_nSeconds == 0.0)
@@ -19,7 +19,7 @@ namespace NMib::NFile
 
 		return fp64(m_IncomingBytes) / m_nSeconds;
 	}
-	
+
 	fp64 CDirectorySyncStats::f_OutgoingBytesPerSecond() const
 	{
 		if (m_nSeconds == 0.0)

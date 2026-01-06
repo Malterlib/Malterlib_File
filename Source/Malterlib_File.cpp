@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/Cryptography/RandomID>
@@ -25,7 +25,7 @@ namespace NMib::NFile
 
 			NAtomic::TCAtomic<bool> m_bEnableAttributesEmulation = true;
 		};
-		
+
 		NThread::TCThreadLocal<CThreadLocal, NMemory::CAllocator_Heap, NThread::EThreadLocalFlag_Inherit> m_ThreadLocal;
 	};
 

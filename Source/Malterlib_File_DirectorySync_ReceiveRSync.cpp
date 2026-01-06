@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -28,9 +28,9 @@ namespace NMib::NFile
 				_Promise.f_SetException(DMibErrorInstance("RSync aborted"));
 			return;
 		}
-		
+
 		State.m_ByteStats.m_nIncoming += _ServerPacket.f_GetLen();
-		
+
 		bool bWantOneMoreProcess = true;
 		bool bDone = false;
 		while (bWantOneMoreProcess)
@@ -61,7 +61,7 @@ namespace NMib::NFile
 					_Promise.f_SetException(DMibErrorInstance(fg_Format("Exception running RSync protocol: {}", _Exception.f_GetErrorStr())));
 				return;
 			}
-			
+
 			_ServerPacket.f_Clear();
 			if (!ToSendToServer.f_IsEmpty())
 			{
@@ -75,13 +75,13 @@ namespace NMib::NFile
 								_Promise.f_SetException(DMibErrorInstance(fg_Format("Failed run RSync protocol: {}", _ServerPacket.f_GetExceptionStr())));
 							return;
 						}
-						
+
 						fsp_RunRSyncProtocol(_pState, fg_Move(*_ServerPacket), _Promise);
 					}
 				;
 			}
 		}
-		
+
 		if (bDone)
 		{
 			State.m_bFinished = true;
@@ -89,18 +89,18 @@ namespace NMib::NFile
 				_Promise.f_SetResult(State.m_ByteStats);
 		}
 	}
-	
+
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> _pState)
 	{
 		auto BlockingActorCheckout = fg_BlockingActor();
-		
+
 		CByteStats Stats = co_await
 			(
 				g_Dispatch(BlockingActorCheckout) / [_pState]() -> TCFuture<CByteStats>
 				{
 					TCPromise<CByteStats> RunPromise;
 					fsp_RunRSyncProtocol(_pState, {}, RunPromise);
-					
+
 					co_return co_await RunPromise.f_MoveFuture();
 				}
 			)
@@ -112,7 +112,7 @@ namespace NMib::NFile
 
 		co_return {};
 	}
-	
+
 	TCFuture<void> CDirectorySyncReceive::CInternal::f_RSync
 		(
 			TCFunctionMutable<bool (CRunningSyncState *_pState)> _fInitRSync
@@ -128,7 +128,7 @@ namespace NMib::NFile
 		auto pCanDestroy = m_pCanDestroyTracker;
 		if (!pCanDestroy)
 			co_return DMibErrorInstance("Aborted");
-		
+
 		auto pCleanup = g_OnScopeExitActor / [this, RSyncID, pRSyncState, pCanDestroy]
 			{
 				m_RSyncStates.f_Remove(RSyncID);

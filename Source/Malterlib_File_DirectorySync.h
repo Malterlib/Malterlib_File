@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #pragma once
@@ -32,7 +32,7 @@ namespace NMib::NFile
 
 	struct CDirectorySyncClient : public NConcurrency::CActor
 	{
-		enum : uint32 
+		enum : uint32
 		{
 			EProtocolVersion_Min = 0x101
 			, EProtocolVersion_UseSHA256 = 0x102
@@ -41,14 +41,14 @@ namespace NMib::NFile
 		};
 
 		using FRunRSync = NConcurrency::TCActorFunctorWithID<NConcurrency::TCFuture<NContainer::CIOByteVector> (NContainer::CIOByteVector _Packet)>;
-		
+
 		CDirectorySyncClient();
-		
+
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
 		virtual NConcurrency::TCFuture<void> f_Finished() = 0;
 	};
-	
+
 	struct CDirectorySyncStats
 	{
 		template <typename tf_CStream>
@@ -98,7 +98,7 @@ namespace NMib::NFile
 		;	///< If set, this functor is called to transform the file name used for file operations. Return a string starting <Internal> to specify that file
 			///	operations should not be performed for manifest files
 	};
-	
+
 	struct CDirectorySyncSend : public CDirectorySyncClient
 	{
 		struct CConfig
@@ -124,10 +124,10 @@ namespace NMib::NFile
 			CDirectorySyncStats m_Stats;
 			bool m_bFinished = false;
 		};
-		
+
 		CDirectorySyncSend(CConfig &&_Config);
 		~CDirectorySyncSend();
-		
+
 		NConcurrency::TCFuture<CSyncResult> f_GetResult();
 
 	private:
@@ -138,7 +138,7 @@ namespace NMib::NFile
 		NConcurrency::TCFuture<void> f_Finished() override;
 
 		NConcurrency::TCFuture<void> fp_Destroy() override;
-		
+
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
 
@@ -166,7 +166,7 @@ namespace NMib::NFile
 			, EEasyConfigFlag_AllowOverwrite = DMibBit(0)
 			, EEasyConfigFlag_DestinationIsDirectory = DMibBit(1)
 		};
-		
+
 		struct CConfig
 		{
 			CConfig(); ///< Default constructor
@@ -177,10 +177,10 @@ namespace NMib::NFile
 			NStr::CStr m_OutputManifestPath;
 
 			NStr::CStr m_TempDirectory = NFile::CFile::fs_GetTemporaryDirectory(); ///< Used to create temporary files used during RSync
-			
+
 			NStr::CStr m_BasePath;				///< The base path for destination files
 			NStr::CStr m_PreviousBasePath;		///< The location to use for fallback source for rsync comparison
-			
+
 			NContainer::TCSet<NStr::CStr> m_IncludeWildcards; ///< Relative to m_BasePath. Leave empty to include all files in manifest
 			NContainer::TCSet<NStr::CStr> m_ExcludeWildcards; ///< Relative to m_BasePath. Evaluated after include wild cards as a filtering step.
 
@@ -188,27 +188,27 @@ namespace NMib::NFile
 
 			EExcessFilesAction m_ExcessFilesAction = EExcessFilesAction_Ignore;
 			ESyncFlag m_SyncFlags = ESyncFlag_WriteTime | ESyncFlag_Owner | ESyncFlag_Group | ESyncFlag_Attributes;
-			
+
 			uint32 m_QueueSize = NFile::gc_IdealNetworkQueueSize;
 			uint32 m_RSyncConcurrency = 8; ///< Number of simultaneous rsyncs to run.
 		};
-		
+
 		struct CSyncResult
 		{
 			CDirectoryManifest m_Manifest;
 			CDirectorySyncStats m_Stats;
 		};
-		
+
 		CDirectorySyncReceive(CConfig &&_Config, NConcurrency::TCDistributedActorInterface<CDirectorySyncClient> &&_Client);
 		~CDirectorySyncReceive();
-		
+
 		NConcurrency::TCFuture<CSyncResult> f_PerformSync();
-		
+
 	private:
 		struct CInternal;
 
 		NConcurrency::TCFuture<void> fp_Destroy() override;
-		
+
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
 	};
 }

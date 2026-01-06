@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "Malterlib_File_DirectorySync.h"
@@ -17,7 +17,7 @@ namespace NMib::NFile
 	using namespace NStorage;
 	using namespace NFile;
 	using namespace NTime;
-	
+
 	struct CDirectorySyncReceive::CInternal : public CActorInternal
 	{
 		struct CByteStats
@@ -25,7 +25,7 @@ namespace NMib::NFile
 			uint64 m_nIncoming = 0;
 			uint64 m_nOutgoing = 0;
 		};
-		
+
 		struct CRunningSyncState
 		{
 			CRunningSyncState();
@@ -39,23 +39,23 @@ namespace NMib::NFile
 			TCUniquePointer<NStream::CBinaryStream> m_pTempStream = fg_Construct<TCBinaryStreamFile<>>();
 
 			TCUniquePointer<CRSyncClient> m_pClient;
-			
+
 			CDirectorySyncClient::FRunRSync m_fRunProtocol;
-			
+
 			TCVector<CStr> m_TempFiles;
 
 			CStr m_DestinationFilename;
-			
+
 			CByteStats m_ByteStats;
 			TCSharedPointer<TCAtomic<bool>> m_pDestroyed;
 			bool m_bFinished = false;
 		};
-		
+
 		CInternal(CDirectorySyncReceive *_pThis, CConfig &&_Config, TCDistributedActorInterface<CDirectorySyncClient> &&_Client);
 		~CInternal();
 
 		TCFuture<void> f_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> _pState);
-		
+
 		TCFuture<void> f_SyncManifest();
 		TCFuture<void> f_HandleExcessFiles();
 
@@ -68,7 +68,7 @@ namespace NMib::NFile
 				, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 			)
 		;
-		
+
 		void f_RunFileSyncs(TCPromise<void> const &_Promise);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 
@@ -85,7 +85,7 @@ namespace NMib::NFile
 		TCSharedPointer<CCanDestroyTracker> m_pCanDestroyTracker = fg_Construct();
 		bool m_bStartedSync = false;
 		mint m_nRunningSyncs = 0;
-		
+
 	private:
 		static void fsp_RunRSyncProtocol
 			(

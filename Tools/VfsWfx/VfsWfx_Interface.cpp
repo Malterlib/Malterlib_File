@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include "PCH.h"
@@ -228,7 +228,7 @@ int __stdcall FsFindClose(HANDLE Hdl)
 }
 
 BOOL __stdcall FsMkDirW(WCHAR* _pPath)
-{	
+{
 	CWStr Path = _pPath;
 	fg_StrReplaceChar(Path, '\\', '/');
 	return g_VfsWfx.f_CreateDirectory(Path);
@@ -253,7 +253,7 @@ int __stdcall FsRenMovFileW(WCHAR* _pOldName,WCHAR* _pNewName,BOOL Move, BOOL Ov
 	CWStr OldName = _pOldName;
 	fg_StrReplaceChar(OldName, '\\', '/');
 	CWStr NewName = _pNewName;
-	fg_StrReplaceChar(NewName, '\\', '/');	
+	fg_StrReplaceChar(NewName, '\\', '/');
 	return g_VfsWfx.f_RenMoveFile(OldName, NewName, Move, OverWrite);
 }
 
@@ -314,14 +314,14 @@ BOOL __stdcall FsSetTimeW(WCHAR* _pRemoteName,FILETIME *CreationTime, FILETIME *
 void __stdcall FsStatusInfoW(WCHAR* RemoteDir,int InfoStartEnd,int InfoOperation)
 {
 	// This function may be used to initialize variables and to flush buffers
-	
+
 /*	char text[MAX_PATH];
 
 	if (InfoStartEnd==FS_STATUS_START)
 		strcpy(text,"Start: ");
 	else
 		strcpy(text,"End: ");
-	
+
 	switch (InfoOperation) {
 	case FS_STATUS_OP_LIST:
 		strcat(text,"Get directory list");

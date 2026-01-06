@@ -1,4 +1,4 @@
-// Copyright © 2015 Hansoft AB 
+// Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
 #include <Mib/File/RSync>
@@ -153,7 +153,7 @@ namespace
 						if (!Temp.f_IsEmpty())
 							ServerData.f_Insert(fg_Move(Temp));
 					}
-					
+
 				}
 				nRawBytes = RSyncClient.f_GetRawBytes();
 				if (_bEncrypt)
@@ -183,8 +183,8 @@ namespace
 			mint Len = NStr::fg_StrLen(_pStr);
 			CIOByteVector Ret;
 			Ret.f_Insert((uint8 const *)_pStr, Len);
-			
-			return Ret;			
+
+			return Ret;
 		}
 		static void fs_DoTests(uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
