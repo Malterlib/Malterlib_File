@@ -298,8 +298,8 @@ Test files are located in `Test/` directory:
 
 Run tests:
 ```bash
-MalterlibBuildShowProgress=false ./mib build Tests macOS arm64 Debug
-/opt/Deploy/Tests/RunAllTests --paths '["Malterlib_File"]'
+MalterlibBuildShowProgress=false ./mib build Tests
+/opt/Deploy/Tests/RunAllTests --paths '["Malterlib/File/*"]'
 ```
 
 ## Important Notes
