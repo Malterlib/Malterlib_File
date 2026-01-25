@@ -2468,6 +2468,370 @@ namespace
 
 				CFile::fs_DeleteDirectoryRecursive(CurrentDir);
 			};
+			DMibTestSuite("TimePrecision")
+			{
+				// Tests for the precision of file time conversion
+				// On POSIX: tests integer arithmetic conversion between CTime and timespec
+				// On Windows: tests conversion between CTime and FILETIME
+
+				CStr RootPath = CFile::fs_GetProgramDirectory() / "TimespecConversionTest";
+
+				fg_TestAddCleanupPath(RootPath);
+
+				if (CFile::fs_FileExists(RootPath))
+					CFile::fs_DeleteDirectoryRecursive(RootPath, true);
+				CFile::fs_CreateDirectory(RootPath);
+
+				using namespace NMib::NTime;
+
+				// Platform-specific precision for file timestamps
+				// POSIX timespec: nanosecond precision (1e-9)
+				// Windows FILETIME: 100-nanosecond precision (1e-7)
+				NTime::CTimeSpan TimePrecision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(1_ns);
+				bool bHasHighPrecision = true;
+				bool bHasNanosecondPrecision = true;
+
+#if defined(DPlatformFamily_Windows)
+				// Windows FILETIME has 100-nanosecond precision (not nanosecond)
+				TimePrecision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(100_ns);
+				bHasNanosecondPrecision = false;
+#elif defined(DPlatformFamily_macOS)
+				// On older macOS, file system might have lower precision
+				if (CSystem::ms_PlatformVersion < 10'13'00)
+				{
+					TimePrecision = NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(2_seconds);
+					bHasHighPrecision = false;
+					bHasNanosecondPrecision = false;
+				}
+#endif
+
+				auto fDiffTime = [&](NTime::CTime const &_Left, NTime::CTime const &_Right) -> fp64
+					{
+						if (_Left > _Right)
+						{
+							auto Diff = (_Left - _Right);
+							if (Diff > TimePrecision)
+								return Diff.f_GetSecondsFraction();
+						}
+						else
+						{
+							auto Diff = (_Right - _Left);
+							if (Diff > TimePrecision)
+								return Diff.f_GetSecondsFraction();
+						}
+
+						return 0.0;
+					}
+				;
+
+				auto fTestTimeRoundTrip = [&](CStr const &_Path, NTime::CTime const &_Time)
+					{
+						DMibTestPath("{}"_f << _Path);
+						CStr TestFileName = CFile::fs_AppendPath(RootPath, _Path + ".file");
+						{
+							CFile File;
+							File.f_Open(TestFileName, EFileOpen_Write);
+							File.f_SetWriteTime(_Time);
+						}
+						{
+							CFile File;
+							File.f_Open(TestFileName, EFileOpen_Read);
+							DMibExpectFalse(fDiffTime(File.f_GetWriteTime(), _Time));
+						}
+					}
+				;
+
+				{
+					DMibTestPath("FractionPrecision");
+					// Test various fractions to ensure integer arithmetic preserves precision
+					fTestTimeRoundTrip("Fraction_0", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.0));
+					fTestTimeRoundTrip("Fraction_0_1", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.1));
+					fTestTimeRoundTrip("Fraction_0_25", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.25));
+					fTestTimeRoundTrip("Fraction_0_5", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.5));
+					fTestTimeRoundTrip("Fraction_0_75", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.75));
+					fTestTimeRoundTrip("Fraction_0_9", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.9));
+					fTestTimeRoundTrip("Fraction_0_99", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.99));
+					fTestTimeRoundTrip("Fraction_0_999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.999));
+					fTestTimeRoundTrip("Fraction_0_9999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.9999));
+					fTestTimeRoundTrip("Fraction_0_99999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.99999));
+					fTestTimeRoundTrip("Fraction_0_999999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.999999));
+					fTestTimeRoundTrip("Fraction_0_9999999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.9999999));
+					fTestTimeRoundTrip("Fraction_0_99999999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.99999999));
+					fTestTimeRoundTrip("Fraction_0_999999999", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.999999999));
+				}
+
+				if (bHasHighPrecision)
+				{
+					DMibTestPath("FractionIntPrecision");
+					// Test using raw fraction integers for precise control
+					constexpr uint64 MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
+
+					// Test values near maximum fraction - these should round up to 46 seconds
+					// when converted to nanoseconds (since MaxFrac is very close to 1.0)
+					auto fTestMaxFracRoundsUp = [&](CStr const &_Path, uint64 _FracInt)
+						{
+							DMibTestPath("{}"_f << _Path);
+							CStr TestFileName = CFile::fs_AppendPath(RootPath, _Path + ".file");
+							NTime::CTime OriginalTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, _FracInt);
+							NTime::CTime ExpectedRoundedTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 46, 0);
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Write);
+								File.f_SetWriteTime(OriginalTime);
+							}
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Read);
+								NTime::CTime ReadTime = File.f_GetWriteTime();
+								// Should round up to exactly 46.0 seconds - use exact comparison
+								DMibExpect(ReadTime, ==, ExpectedRoundedTime);
+							}
+						}
+					;
+
+					fTestMaxFracRoundsUp("FractionInt_Max", MaxFrac);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1", MaxFrac - 1);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_10", MaxFrac - 10);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_100", MaxFrac - 100);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1000", MaxFrac - 1000);
+
+					// Test values near zero
+					fTestTimeRoundTrip("FractionInt_0", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 0));
+					fTestTimeRoundTrip("FractionInt_1", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 1));
+					fTestTimeRoundTrip("FractionInt_10", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 10));
+					fTestTimeRoundTrip("FractionInt_100", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 100));
+					fTestTimeRoundTrip("FractionInt_1000", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 1000));
+
+					// Test half value
+					fTestTimeRoundTrip("FractionInt_Half", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, NTime::NPrivate::CConst::mc_FractionDividend / 2));
+				}
+
+				if (bHasHighPrecision)
+				{
+					DMibTestPath("NanosecondBoundaries");
+					// Test nanosecond boundary values
+					// These values are chosen to test the integer arithmetic rounding
+
+					// 1 nanosecond = mc_FractionDividend / 1e9 internal units
+					// These constants match fsg_TimespecToCTime in Malterlib_Core_PlatformImp_POSIX_File.hpp
+					constexpr uint64 Billion = 1'000'000'000;
+					constexpr uint64 Divisor = NTime::NPrivate::CConst::mc_FractionDividend / Billion;
+					constexpr uint64 Remainder = NTime::NPrivate::CConst::mc_FractionDividend % Billion;
+
+					// Convert nanoseconds to internal fraction using the same formula as fsg_TimespecToCTime
+					auto fNsToFrac = [](uint64 _Nanoseconds) -> uint64
+						{
+							return _Nanoseconds * Divisor + _Nanoseconds * Remainder / Billion;
+						}
+					;
+
+					// Test exact nanosecond multiples - these should round-trip exactly
+					auto fTestExactNs = [&](CStr const &_Path, uint64 _Nanoseconds)
+						{
+							DMibTestPath("{}"_f << _Path);
+							CStr TestFileName = CFile::fs_AppendPath(RootPath, _Path + ".file");
+							NTime::CTime OriginalTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, fNsToFrac(_Nanoseconds));
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Write);
+								File.f_SetWriteTime(OriginalTime);
+							}
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Read);
+								NTime::CTime ReadTime = File.f_GetWriteTime();
+								DMibExpect(fg_Abs(ReadTime - OriginalTime), ==, NTime::CTimeSpan::fs_Zero());
+							}
+						}
+					;
+
+					// Tests that require true nanosecond precision (POSIX only)
+					// Windows FILETIME has 100-nanosecond precision, so values not divisible by 100 will be rounded
+					if (bHasNanosecondPrecision)
+					{
+						fTestExactNs("Ns_1", 1);
+						fTestExactNs("Ns_10", 10);
+						fTestExactNs("Ns_999999999", 999'999'999);
+					}
+
+					// Tests that work on both POSIX (nanosecond) and Windows (100-nanosecond) precision
+					// These values are exact multiples of 100ns
+					fTestExactNs("Ns_100", 100);
+					fTestExactNs("Ns_1000", 1000);
+					fTestExactNs("Ns_1000000", 1'000'000);
+					fTestExactNs("Ns_500000000", 500'000'000);
+
+					// Test rounding behavior at nanosecond boundaries (POSIX only)
+					// The rounding formula is: (FractionInt + Divisor/2) / Divisor
+					// Values >= Divisor/2 round up, values < Divisor/2 round down
+					// Note: Divisor is odd, so Divisor/2 truncates to slightly below 0.5ns
+					auto fTestRoundsTo = [&](CStr const &_Path, uint64 _FracInt, uint64 _ExpectedNs)
+						{
+							DMibTestPath("{}"_f << _Path);
+							CStr TestFileName = CFile::fs_AppendPath(RootPath, _Path + ".file");
+							NTime::CTime OriginalTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, _FracInt);
+							NTime::CTime ExpectedTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, fNsToFrac(_ExpectedNs));
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Write);
+								File.f_SetWriteTime(OriginalTime);
+							}
+							{
+								CFile File;
+								File.f_Open(TestFileName, EFileOpen_Read);
+								NTime::CTime ReadTime = File.f_GetWriteTime();
+								DMibExpect(fg_Abs(ReadTime - ExpectedTime), ==, NTime::CTimeSpan::fs_Zero());
+							}
+						}
+					;
+
+					// Test rounding down: Divisor/2 rounds to 0 (since Divisor is odd, 2*(Divisor/2) < Divisor)
+					fTestRoundsTo("At_Half_RoundsTo_0", Divisor / 2, 0);
+
+					// These tests require nanosecond precision (POSIX only)
+					if (bHasNanosecondPrecision)
+					{
+						// Test rounding up: Divisor/2 + 1 rounds to 1
+						fTestRoundsTo("Above_Half_RoundsTo_1", Divisor / 2 + 1, 1);
+						// Test rounding from 1.5ns: fNsToFrac(1) + Divisor/2 rounds to 1 (not 2)
+						fTestRoundsTo("At_1_5_RoundsTo_1", fNsToFrac(1) + Divisor / 2, 1);
+						// Test rounding from just above 1.5ns
+						fTestRoundsTo("Above_1_5_RoundsTo_2", fNsToFrac(1) + Divisor / 2 + 1, 2);
+					}
+					else
+					{
+						// Test rounding behavior at 100-nanosecond boundaries (Windows)
+						// Windows FILETIME has 100ns precision, so we test at those boundaries
+						constexpr uint64 TenMillion = 10'000'000;
+						constexpr uint64 Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / TenMillion;
+						constexpr uint64 Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % TenMillion;
+
+						// Convert 100-nanosecond units to internal fraction
+						auto f100nsToFrac = [](uint64 _Units100ns) -> uint64
+							{
+								constexpr uint64 TenMillion = 10'000'000;
+								constexpr uint64 Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / TenMillion;
+								constexpr uint64 Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % TenMillion;
+								return _Units100ns * Divisor100ns + _Units100ns * Remainder100ns / TenMillion;
+							}
+						;
+
+						auto fTestRoundsTo100ns = [&](CStr const &_Path, uint64 _FracInt, uint64 _Expected100ns)
+							{
+								DMibTestPath("{}"_f << _Path);
+								CStr TestFileName = CFile::fs_AppendPath(RootPath, _Path + ".file");
+								NTime::CTime OriginalTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, _FracInt);
+								NTime::CTime ExpectedTime = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, f100nsToFrac(_Expected100ns));
+								{
+									CFile File;
+									File.f_Open(TestFileName, EFileOpen_Write);
+									File.f_SetWriteTime(OriginalTime);
+								}
+								{
+									CFile File;
+									File.f_Open(TestFileName, EFileOpen_Read);
+									NTime::CTime ReadTime = File.f_GetWriteTime();
+									DMibExpect(fg_Abs(ReadTime - ExpectedTime), ==, NTime::CTimeSpan::fs_Zero());
+								}
+							}
+						;
+
+						// Test rounding up: Divisor100ns/2 + 1 rounds to 1 (100ns)
+						fTestRoundsTo100ns("Above_Half_RoundsTo_100ns", Divisor100ns / 2 + 1, 1);
+						// Test rounding from 1.5 * 100ns: f100nsToFrac(1) + Divisor100ns/2 rounds to 1 (not 2)
+						fTestRoundsTo100ns("At_1_5_RoundsTo_100ns", f100nsToFrac(1) + Divisor100ns / 2, 1);
+						// Test rounding from just above 1.5 * 100ns
+						fTestRoundsTo100ns("Above_1_5_RoundsTo_200ns", f100nsToFrac(1) + Divisor100ns / 2 + 1, 2);
+					}
+				}
+
+				if (bHasHighPrecision)
+				{
+					DMibTestPath("OverflowHandling");
+					// Test values near the overflow boundary where nanoseconds might round to 1 billion
+					// The fix handles this by incrementing seconds and setting nanoseconds to 0
+
+					constexpr uint64 Billion = 1'000'000'000;
+					constexpr uint64 Divisor = NTime::NPrivate::CConst::mc_FractionDividend / Billion;
+					constexpr uint64 MaxNsValue = Divisor * (Billion - 1);
+
+					// Values very close to 1 second
+					fTestTimeRoundTrip("NearOverflow_1", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue));
+					fTestTimeRoundTrip("NearOverflow_2", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue + Divisor / 4));
+					fTestTimeRoundTrip("NearOverflow_3", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue + Divisor / 2));
+
+					// Test that overflow case correctly increments seconds
+					// When the fraction is very close to 1, nanoseconds should round up and
+					// the second counter should be incremented
+					constexpr uint64 MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
+					NTime::CTime TimeNearOverflow = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxFrac);
+					NTime::CTime TimeNextSecond = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 46, 0);
+
+					CStr TestFileNearOverflow = CFile::fs_AppendPath(RootPath, "NearOverflow.file");
+					CStr TestFileNextSecond = CFile::fs_AppendPath(RootPath, "NextSecond.file");
+
+					{
+						CFile File;
+						File.f_Open(TestFileNearOverflow, EFileOpen_Write);
+						File.f_SetWriteTime(TimeNearOverflow);
+					}
+					{
+						CFile File;
+						File.f_Open(TestFileNextSecond, EFileOpen_Write);
+						File.f_SetWriteTime(TimeNextSecond);
+					}
+
+					NTime::CTime ReadNearOverflow;
+					NTime::CTime ReadNextSecond;
+					{
+						CFile File;
+						File.f_Open(TestFileNearOverflow, EFileOpen_Read);
+						ReadNearOverflow = File.f_GetWriteTime();
+					}
+					{
+						CFile File;
+						File.f_Open(TestFileNextSecond, EFileOpen_Read);
+						ReadNextSecond = File.f_GetWriteTime();
+					}
+
+					// Both should be exactly the same - the near-overflow time should have
+					// rounded up to exactly 46.0 seconds
+					DMibExpect(ReadNearOverflow, ==, ReadNextSecond);
+					DMibExpect(ReadNearOverflow, ==, TimeNextSecond);
+				}
+
+				{
+					DMibTestPath("YearRange");
+					// Test that precision is preserved across different years
+					fTestTimeRoundTrip("Year_1970", NTime::CTimeConvert::fs_CreateTime(1970, 1, 1, 0, 0, 0, 0.123456789));
+					fTestTimeRoundTrip("Year_2000", NTime::CTimeConvert::fs_CreateTime(2000, 6, 15, 12, 30, 45, 0.987654321));
+					fTestTimeRoundTrip("Year_2024", NTime::CTimeConvert::fs_CreateTime(2024, 12, 31, 23, 59, 59, 0.999999999));
+					fTestTimeRoundTrip("Year_2038", NTime::CTimeConvert::fs_CreateTime(2038, 1, 19, 3, 14, 7, 0.5));
+					// Note: Year 3000 not tested - many file systems can't represent dates that far in the future
+				}
+
+				{
+					DMibTestPath("SpecificValues");
+					// Test specific problematic values that might have caused precision issues before the fix
+					// These are values that would truncate badly with floating-point arithmetic
+
+					// Value that has a repeating decimal in floating-point
+					fTestTimeRoundTrip("Repeating_Third", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 1.0 / 3.0));
+					fTestTimeRoundTrip("Repeating_Sixth", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 1.0 / 6.0));
+					fTestTimeRoundTrip("Repeating_Seventh", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 1.0 / 7.0));
+
+					// Powers of 2 fractions (exact in binary)
+					fTestTimeRoundTrip("Binary_0_5", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.5));
+					fTestTimeRoundTrip("Binary_0_25", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.25));
+					fTestTimeRoundTrip("Binary_0_125", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.125));
+					fTestTimeRoundTrip("Binary_0_0625", NTime::CTimeConvert::fs_CreateTime(2024, 6, 15, 12, 30, 45, 0.0625));
+
+					// Value from the original file test that was used
+					fTestTimeRoundTrip("OriginalTestValue", NTime::CTimeConvert::fs_CreateTime(2005, 05, 01, 22, 16, 05, 0.75757575757575757575));
+				}
+
+				CFile::fs_DeleteDirectoryRecursive(RootPath, true);
+			};
 #ifdef DPlatformFamily_Windows
 			DMibTestSuite("Windows Deletion")
 			{
