@@ -338,41 +338,41 @@ namespace
 
 				if (CurrentDrive[1] == ':')
 				{
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test", true, -1)) == DMibExpr("\\\\?\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test"));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test/Test1", true, -1)) == DMibExpr("\\\\?\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test\\Test1"));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("../Test", true, -1)) == DMibExpr("\\\\?\\" + CFile::fs_GetExpandedPath(CurrentDir + "/../Test").f_ReplaceChar('/', '\\')));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("./Test", true, -1)) == DMibExpr("\\\\?\\" + CurrentDir.f_ReplaceChar('/', '\\') + "\\Test"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test", true, -1))) == DMibExpr("\\\\?\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test/Test1", true, -1))) == DMibExpr("\\\\?\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test\\Test1"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("../Test", true, -1))) == DMibExpr("\\\\?\\" + CFile::fs_GetExpandedPath(CurrentDir + "/../Test").f_ReplaceChar('/', '\\')));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("./Test", true, -1))) == DMibExpr("\\\\?\\" + CurrentDir.f_ReplaceChar('/', '\\') + "\\Test"));
 				}
 				else
 				{
 					CurrentDrive = CurrentDrive.f_Extract(2);
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test", true, -1)) == DMibExpr("\\\\?\\UNC\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test"));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test/Test1", true, -1)) == DMibExpr("\\\\?\\UNC\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test\\Test1"));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("../Test", true, -1)) == DMibExpr("\\\\?\\UNC\\" + CFile::fs_GetExpandedPath(CurrentDir + "/../Test").f_Extract(2).f_ReplaceChar('/', '\\')));
-					DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("./Test", true, -1)) == DMibExpr("\\\\?\\UNC\\" + CurrentDir.f_Extract(2).f_ReplaceChar('/', '\\') + "\\Test"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test", true, -1))) == DMibExpr("\\\\?\\UNC\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("/Test/Test1", true, -1))) == DMibExpr("\\\\?\\UNC\\" + CurrentDrive.f_ReplaceChar('/', '\\') + "\\Test\\Test1"));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("../Test", true, -1))) == DMibExpr("\\\\?\\UNC\\" + CFile::fs_GetExpandedPath(CurrentDir + "/../Test").f_Extract(2).f_ReplaceChar('/', '\\')));
+					DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("./Test", true, -1))) == DMibExpr("\\\\?\\UNC\\" + CurrentDir.f_Extract(2).f_ReplaceChar('/', '\\') + "\\Test"));
 				}
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/./Test", true, -1)) == DMibExpr("\\\\?\\D:\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/../Test", true, -1)) == DMibExpr("\\\\?\\D:\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/../Test", true, -1)) == DMibExpr("\\\\?\\D:\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/Testing2/../Test", true, -1)) == DMibExpr("\\\\?\\D:\\Testing1\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/./Test", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/../Test", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/../Test", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2/../Test", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Test"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2/", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1//Testing2/", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/./Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/../Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/../Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/Testing2/../Test", true, -1))) == DMibExpr("\\\\?\\D:\\Testing1\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/./Test", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/../Test", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/../Test", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2/../Test", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Test"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2/", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1//Testing2/", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
 
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2/", true, -1)) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, -1)) == DMibExpr("\\\\?\\d:\\Testing1"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2/", true, -1))) == DMibExpr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, -1))) == DMibExpr("\\\\?\\d:\\Testing1"));
 
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2", true, _MAX_PATH)) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, _MAX_PATH)) == DMibExpr("d:\\Testing1"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/UNC/Testing/Testing1/Testing2", true, _MAX_PATH))) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/Testing1", true, _MAX_PATH))) == DMibExpr("d:\\Testing1"));
 
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2", true, _MAX_PATH)) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1", true, _MAX_PATH)) == DMibExpr("D:\\Testing1"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//Testing/Testing1/Testing2", true, _MAX_PATH))) == DMibExpr("\\\\Testing\\Testing1\\Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1", true, _MAX_PATH))) == DMibExpr("D:\\Testing1"));
 
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\UNC\\Testing\\Testing1\\Testing2"))) == DMibExpr("//Testing/Testing1/Testing2"));
-				DMibTest(DMibExpr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\D:\\Testing1"))) == DMibExpr("d:/Testing1"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\UNC\\Testing\\Testing1\\Testing2")))) == DMibExpr("//Testing/Testing1/Testing2"));
+				DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\D:\\Testing1")))) == DMibExpr("d:/Testing1"));
 			};
 
 			DMibTestSuite("Windows long paths")
