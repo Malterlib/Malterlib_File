@@ -170,7 +170,7 @@ namespace
 					Synced = ClientNewStream.f_MoveVector();
 			}
 			Timer.f_Stop();
-//			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient << TotalSizeServer << nRawBytes << (TotalSizeClient + TotalSizeServer) << fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)) << Timer.f_GetTime() * 1000.0);
+//			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient, TotalSizeServer, nRawBytes, (TotalSizeClient + TotalSizeServer), fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)), Timer.f_GetTime() * 1000.0);
 			DMibTest(DMibExpr(bServerDone) == DMibExpr(true));
 
 			ETestFlag TestFlags = ETestFlag_NoValuesOnSuccess;

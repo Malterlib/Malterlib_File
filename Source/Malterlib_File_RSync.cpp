@@ -524,7 +524,7 @@ namespace NMib::NFile
 			CHash_SHA256_16 HashSHA1;
 			for (COutstandingRange const &Range : _Outstanding)
 			{
-				//DMibTrace("   {} -> {}" DMibNewLine, (Range.m_Start/_ChunkSize) << ((Range.m_Start + Range.m_Length)/_ChunkSize));
+				//DMibTrace("   {} -> {}" DMibNewLine, (Range.m_Start/_ChunkSize), ((Range.m_Start + Range.m_Length)/_ChunkSize));
 				mp_pFileToSend->f_SetPosition(Range.m_Start);
 				mint nCheckSums = (Range.m_Length + (_ChunkSize - 1)) / _ChunkSize;
 				CIOByteVector TempBuffer;
@@ -793,13 +793,13 @@ namespace NMib::NFile
 		void f_Trace(NStr::CStr const &_Name)
 		{
 #if DFileMapDebug > 1
-			DMibDTrace(DMibNewLine "{}: {} Chunks {} not found" DMibNewLine, _Name << m_Chunks.f_GetLen() << m_nNotFound);
+			DMibDTrace(DMibNewLine "{}: {} Chunks {} not found" DMibNewLine, _Name, m_Chunks.f_GetLen(), m_nNotFound);
 #endif
 			CChunk const *pLastChunk = nullptr;
 			for (auto &Chunk : m_Chunks)
 			{
 #if DFileMapDebug > 1
-				DMibDTrace("{} -> {} = {} -> {}" DMibNewLine, Chunk.f_Start() << Chunk.f_End() << Chunk.f_OldFileStart() << Chunk.f_OldFileEnd());
+				DMibDTrace("{} -> {} = {} -> {}" DMibNewLine, Chunk.f_Start(), Chunk.f_End(), Chunk.f_OldFileStart(), Chunk.f_OldFileEnd());
 #endif
 				if (pLastChunk)
 				{

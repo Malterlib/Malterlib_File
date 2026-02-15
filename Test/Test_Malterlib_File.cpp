@@ -634,7 +634,7 @@ namespace
 									case EFileChangeNotification_Renamed: NotName = "Renamed"; break;
 									}
 
-									DMibConErrOut2("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
+									DMibConErrOut("{}: {}: {} -> {}\n", _Change, NotName, _Notification.m_Path, _Notification.m_PathFrom);
 								}
 							;
 							auto fWaitForChange = [&](CStr const &_Desc) -> CFileChangeNotification::CNotification

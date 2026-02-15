@@ -651,14 +651,14 @@ namespace NMib::NFile
 				{
 					if (i == 0)
 					{
-						DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID << Iter->m_FileClusterID);
+						DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID, Iter->m_FileClusterID);
 						// This is the root
 						fr_CopyTree("", pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 					}
 				}
 				else if (i == 1)
 				{
-					DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID << Iter->m_FileClusterID);
+					DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID, Iter->m_FileClusterID);
 					if (pFile->m_bIsDir)
 					{
 						NStr::CStr PathName = (NStr::CStr::CFormat("Lost&Found/RecoveredDir.{sj8,sf0}") << iCurrentRecover).f_GetStr();
