@@ -386,7 +386,7 @@ namespace NMib::NFile
 		for (auto &ManifestFile : BackupManifest.m_Files)
 		{
 			auto &RelativePath = BackupManifest.m_Files.fs_GetKey(ManifestFile);
-			if (fg_StrMatchesAnyWildcardInMap(RelativePath, _Config.m_ExcludeWildcards))
+			if (fg_StrMatchesAnyWildcardInContainerKeys(RelativePath, _Config.m_ExcludeWildcards))
 			{
 				ToRemove[RelativePath];
 				continue;

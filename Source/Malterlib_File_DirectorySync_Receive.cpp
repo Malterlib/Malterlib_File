@@ -124,10 +124,10 @@ namespace NMib::NFile
 			auto &FileName = Internal.m_pManifest->m_Files.fs_GetKey(File);
 			if (!Config.m_IncludeWildcards.f_IsEmpty())
 			{
-				if (!fg_StrMatchesAnyWildcardInMap(FileName, Config.m_IncludeWildcards))
+				if (!fg_StrMatchesAnyWildcardInContainerKeys(FileName, Config.m_IncludeWildcards))
 					continue;
 			}
-			if (fg_StrMatchesAnyWildcardInMap(FileName, Config.m_ExcludeWildcards))
+			if (fg_StrMatchesAnyWildcardInContainerKeys(FileName, Config.m_ExcludeWildcards))
 				continue;
 			Internal.m_PendingFileSyncs[FileName];
 			CStr Directory = CFile::fs_GetPath(FileName);
