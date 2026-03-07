@@ -3126,8 +3126,8 @@ namespace NMib::NFile
 			, fp32 _Timeout
 		)
 	{
-		NTime::CClock Clock;
-		Clock.f_Start();
+		NTime::CStopwatch Stopwatch;
+		Stopwatch.f_Start();
 		while (1)
 		{
 			try
@@ -3136,7 +3136,7 @@ namespace NMib::NFile
 			}
 			catch (CExceptionFile const &)
 			{
-				if (Clock.f_GetTime() >= _Timeout)
+				if (Stopwatch.f_GetTime() >= _Timeout)
 					throw;
 				NSys::fg_Thread_Sleep(NMisc::fg_GetRandomFloat() * 0.100);
 			}
@@ -3220,7 +3220,7 @@ namespace NMib::NFile
 		}
 
 
-		NTime::CStopWatch Timer(true);
+		NTime::CStopwatch Timer(true);
 
 		while(1)
 		{
@@ -3239,7 +3239,7 @@ namespace NMib::NFile
 				{}
 			else if (_TimeoutSeconds == 0.0)
 				break;
-			else if (Timer.f_Mark().f_GetSecondsFraction() < _TimeoutSeconds)
+			else if (Timer.f_GetTime() < _TimeoutSeconds)
 				{}
 			else
 				break;

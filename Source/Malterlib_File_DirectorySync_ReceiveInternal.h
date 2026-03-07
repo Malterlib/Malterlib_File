@@ -77,7 +77,7 @@ namespace NMib::NFile
 		TCDistributedActorInterface<CDirectorySyncClient> m_Client;
 		TCMap<CStr, TCSharedPointerSupportWeak<CRunningSyncState>> m_RSyncStates;
 		TCSet<CStr> m_PendingFileSyncs;
-		CClock m_Clock{true};
+		CStopwatch m_Stopwatch{true};
 		TCSharedPointer<CDirectoryManifest> m_pManifest;
 		CDirectorySyncStats m_Stats;
 		CStr m_SyncErrors;

@@ -50,7 +50,7 @@ namespace NMib::NFile
 		TCSharedPointer<CDirectoryManifest> m_pManifest = fg_Construct();
 		TCSharedPointer<TCAtomic<bool>> m_pDestroyed = fg_Construct(false);
 		TCMap<CStr, TCSharedPointerSupportWeak<CRunningSyncState>> m_RSyncStates;
-		CClock m_Clock{true};
+		CStopwatch m_Stopwatch{true};
 		CDirectorySyncStats m_Stats;
 		TCSharedPointer<CCanDestroyTracker> m_pCanDestroyTracker = fg_Construct();
 		bool m_bFinished = false;
@@ -81,7 +81,7 @@ namespace NMib::NFile
 		CSyncResult Result;
 		Result.m_bFinished = Internal.m_bFinished;
 		Result.m_Stats = Internal.m_Stats;
-		Result.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
+		Result.m_Stats.m_nSeconds = Internal.m_Stopwatch.f_GetTime();
 
 		co_return Result;
 	}

@@ -148,7 +148,7 @@ namespace NMib::NFile
 		CSyncResult SyncResult;
 		SyncResult.m_Manifest = fg_Move(*Internal.m_pManifest);
 		SyncResult.m_Stats = Internal.m_Stats;
-		SyncResult.m_Stats.m_nSeconds = Internal.m_Clock.f_GetTime();
+		SyncResult.m_Stats.m_nSeconds = Internal.m_Stopwatch.f_GetTime();
 
 		co_return fg_Move(SyncResult);
 	}

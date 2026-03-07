@@ -1,8 +1,9 @@
 // Copyright © 2015 Hansoft AB
 // Distributed under the MIT license, see license text in LICENSE.Malterlib
 
-#include <Mib/File/RSync>
 #include <Mib/Cryptography/EncryptedStream>
+#include <Mib/File/RSync>
+#include <Mib/Time/TimeMeasure>
 
 using namespace NMib::NFile;
 using namespace NMib;
@@ -62,7 +63,7 @@ namespace
 			[[maybe_unused]] mint TotalSizeClient = 0;
 			[[maybe_unused]] mint TotalSizeServer = 0;
 			[[maybe_unused]] mint nRawBytes;
-			NTime::CTimer Timer;
+			NTime::CTimeMeasure Timer;
 			Timer.f_Start();
 			CIOByteVector Synced;
 			{
@@ -314,37 +315,37 @@ namespace
 			{
 				DMibTestSuite("Almost same")
 				{
-					//DMibScopeTraceTimer("Almost same");
+					//DMibScopeTraceTimeMeasure("Almost same");
 					CRSync_Tests::fs_TestFiles("StartFile", "EndFile0");
 				};
 				DMibTestSuite("Day")
 				{
-					//DMibScopeTraceTimer("Day");
+					//DMibScopeTraceTimeMeasure("Day");
 					CRSync_Tests::fs_TestFiles("StartFile", "EndFile1");
 				};
 				DMibTestSuite("24 days")
 				{
-					//DMibScopeTraceTimer("24 days");
+					//DMibScopeTraceTimeMeasure("24 days");
 					CRSync_Tests::fs_TestFiles("StartFile", "EndFile2");
 				};
 				DMibTestSuite("Dll")
 				{
-					//DMibScopeTraceTimer("Dll");
+					//DMibScopeTraceTimeMeasure("Dll");
 					CRSync_Tests::fs_TestFiles("StartDll", "EndDll");
 				};
 				DMibTestSuite("Big")
 				{
-					//DMibScopeTraceTimer("Big");
+					//DMibScopeTraceTimeMeasure("Big");
 					CRSync_Tests::fs_TestFiles("StartBig", "EndBig");
 				};
 				DMibTestSuite("Worst")
 				{
-					//DMibScopeTraceTimer("Big");
+					//DMibScopeTraceTimeMeasure("Big");
 					CRSync_Tests::fs_TestFiles("StartWorst0", "EndWorst0");
 				};
 				DMibTestSuite("Same")
 				{
-					//DMibScopeTraceTimer("Big");
+					//DMibScopeTraceTimeMeasure("Big");
 					CRSync_Tests::fs_TestFiles("StartWorst0", "StartWorst0");
 				};
 			};
