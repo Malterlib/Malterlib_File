@@ -52,7 +52,7 @@ namespace NMib::NFile
 		uint64 m_VolumeID = TCLimitsInt<uint64>::mc_Max;
 		uint128 m_FileID = TCLimitsInt<uint64>::mc_Max;
 
-		auto operator <=> (CUniqueFileIdentifier const &_Right) const = default;
+		auto operator <=> (CUniqueFileIdentifier const &_Right) const noexcept = default;
 	};
 
 	struct CFileIoTempBuffer
@@ -294,7 +294,7 @@ namespace NMib::NFile
 			NStr::CStr m_Path;
 			NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
 
-			auto operator <=> (CNotification const &_Right) const = default;
+			auto operator <=> (CNotification const &_Right) const noexcept = default;
 		};
 
 		bool f_GetNotification(CNotification &_ToFill)
@@ -373,7 +373,7 @@ namespace NMib::NFile
 				_Stream >> m_Attribs;
 			}
 
-			auto operator <=> (CFoundFile const &_Other) const = default;
+			auto operator <=> (CFoundFile const &_Other) const noexcept = default;
 		};
 
 		struct CFindFilesOptions

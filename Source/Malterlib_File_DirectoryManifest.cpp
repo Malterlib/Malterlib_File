@@ -41,7 +41,7 @@ namespace NMib::NFile
 		return Json;
 	}
 
-	bool CDirectoryManifestFile::operator == (CDirectoryManifestFile const &_Right) const
+	bool CDirectoryManifestFile::operator == (CDirectoryManifestFile const &_Right) const noexcept
 	{
 		return NStorage::fg_TupleReferences
 			(

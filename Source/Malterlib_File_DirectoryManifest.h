@@ -21,7 +21,7 @@ namespace NMib::NFile
 
 	struct CDirectoryManifestFile
 	{
-		bool operator == (CDirectoryManifestFile const &_Right) const;
+		bool operator == (CDirectoryManifestFile const &_Right) const noexcept;
 
 		NStr::CStr const &f_GetFileName() const;
 		bool f_IsDirectory() const;
