@@ -63,7 +63,7 @@ namespace
 		{
 			return CFile::fs_AppendPath(CStr(_pPath), CStr(_pAppend));
 		}
-		static CStr fs_RemovePathTopLevels(ch8 const *_pPath, mint _Levels)
+		static CStr fs_RemovePathTopLevels(ch8 const *_pPath, umint _Levels)
 		{
 			return CFile::fs_RemovePathTopLevels(CStr(_pPath), _Levels);
 		}
@@ -416,7 +416,7 @@ namespace
 				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestMain";
 				fg_TestAddCleanupPath(RootPath);
 
-				for (mint i = 0; i < 8; ++i)
+				for (umint i = 0; i < 8; ++i)
 				{
 					CStr TestName = "File functions";
 					bool bLongNames = i & 1;
@@ -453,9 +453,9 @@ namespace
 							CStr SubDir = "/TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
 							TestFileName = CurrentDir;
 							FirstTestFileDir = CurrentDir + SubDir;
-							for (mint i = 0; i < 32; ++i)
+							for (umint i = 0; i < 32; ++i)
 							{
-								if (mint(TestFileName.f_GetLen() + SubDir.f_GetLen()) > (CFile::fs_MaximumPathLength() - 32u))
+								if (umint(TestFileName.f_GetLen() + SubDir.f_GetLen()) > (CFile::fs_MaximumPathLength() - 32u))
 									break;
 
 								TestFileName += SubDir;
@@ -963,7 +963,7 @@ namespace
 										}
 									}
 
-									mint ExpectedLen = 4;
+									umint ExpectedLen = 4;
 									if (Notifications.f_GetLen() == 5)
 										ExpectedLen = 5;
 
@@ -1269,8 +1269,8 @@ namespace
 									// We need to wait for both file notifications AND directory notifications
 									TCSet<CFileChangeNotification::CNotification> MoveNotifications;
 
-									mint nFileFound = 0;
-									mint nDirFound = 0;
+									umint nFileFound = 0;
+									umint nDirFound = 0;
 									while (nFileFound < 2 || nDirFound < 2)
 									{
 										auto Notification = fWaitForChange("MoveFromSyncTemp");

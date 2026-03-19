@@ -5,7 +5,7 @@
 
 namespace NAOCC
 {
-	mint g_ExeFS_nBytes = 0;
+	umint g_ExeFS_nBytes = 0;
 	uint8 const* g_ExeFS_pBytes = nullptr;
 
 	void fg_SetExeFSData(int _nBytes, void const *_pData)
@@ -65,12 +65,12 @@ namespace NMib::NFile
 
 			const ch8 *pSigOrig = "SFEXESDI";
 			ch8 Temp[9];
-			for (mint i = 0; i < 8; ++i)
+			for (umint i = 0; i < 8; ++i)
 				Temp[i] = pSigOrig[7-i];
 			Temp[8] = 0;
 			const ch8 *pSig = Temp;
 
-			const mint SigSize = 8;
+			const umint SigSize = 8;
 			ch8 Signature[SigSize+1];
 			Signature[SigSize] = 0;
 

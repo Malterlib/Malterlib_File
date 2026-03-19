@@ -186,25 +186,25 @@ namespace NMib::NFile
 		if (_AttribMask & EFileAttrib_File)
 			Files = f_FindFiles(_FindPath, EFileAttrib_File, _bRecursive);
 
-		mint nPaths = Paths.f_GetLen();
+		umint nPaths = Paths.f_GetLen();
 
 		NStr::CStr RootPath = CFile::fs_GetPath(_FindPath);
 		if (!RootPath.f_IsEmpty())
 			RootPath += "/";
 
-		mint RootPathLen = RootPath.f_GetLen();
+		umint RootPathLen = RootPath.f_GetLen();
 		NStr::CStr ToPath = _ToPath;
 		if (!ToPath.f_IsEmpty())
 			ToPath += "/";
 
-		for (mint i = 0; i < nPaths; ++i)
+		for (umint i = 0; i < nPaths; ++i)
 		{
 			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
 			f_CreateDirectory(ToPath + Path);
 		}
 
-		mint nFiles = Files.f_GetLen();
-		for (mint i = 0; i < nFiles; ++i)
+		umint nFiles = Files.f_GetLen();
+		for (umint i = 0; i < nFiles; ++i)
 		{
 			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
 			NStr::CStr ToFile = ToPath + Path;
@@ -312,7 +312,7 @@ namespace NMib::NFile
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> pInFile = f_OpenStream(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll);
 
 		NContainer::CByteVector SourceData;
-		mint FileLen = pInFile->f_GetLength();
+		umint FileLen = pInFile->f_GetLength();
 		SourceData.f_SetLen(FileLen);
 		pInFile->f_ConsumeBytes(SourceData.f_GetArray(), FileLen);
 //				if (_bCopyDate)
@@ -380,21 +380,21 @@ namespace NMib::NFile
 		if (_AttribMask & EFileAttrib_File)
 			Files = f_FindFiles(_FindPath, EFileAttrib_File, _bRecursive);
 
-		mint nPaths = Paths.f_GetLen();
+		umint nPaths = Paths.f_GetLen();
 
 		NStr::CStr RootPath = CFile::fs_GetPath(_FindPath);
 		if (!RootPath.f_IsEmpty())
 			RootPath += "/";
-		mint RootPathLen = RootPath.f_GetLen();
+		umint RootPathLen = RootPath.f_GetLen();
 
-		for (mint i = 0; i < nPaths; ++i)
+		for (umint i = 0; i < nPaths; ++i)
 		{
 			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
 			_ToFS.f_CreateDirectory(NFile::CFile::fs_AppendPath(_ToPath, Path));
 		}
 
-		mint nFiles = Files.f_GetLen();
-		for (mint i = 0; i < nFiles; ++i)
+		umint nFiles = Files.f_GetLen();
+		for (umint i = 0; i < nFiles; ++i)
 		{
 			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
 			NStr::CStr ToFile = NFile::CFile::fs_AppendPath(_ToPath, Path);
@@ -416,21 +416,21 @@ namespace NMib::NFile
 		if (_AttribMask & EFileAttrib_File)
 			Files = f_FindFiles(_FindPath, EFileAttrib_File, _bRecursive, false);
 
-		mint nPaths = Paths.f_GetLen();
+		umint nPaths = Paths.f_GetLen();
 
 		NStr::CStr RootPath = CFile::fs_GetPath(_FindPath);
 		if (!RootPath.f_IsEmpty())
 			RootPath += "/";
-		mint RootPathLen = RootPath.f_GetLen();
+		umint RootPathLen = RootPath.f_GetLen();
 
-		for (mint i = 0; i < nPaths; ++i)
+		for (umint i = 0; i < nPaths; ++i)
 		{
 			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
 			_ToFS.f_CreateDirectory(NFile::CFile::fs_AppendPath(_ToPath, Path));
 		}
 
-		mint nFiles = Files.f_GetLen();
-		for (mint i = 0; i < nFiles; ++i)
+		umint nFiles = Files.f_GetLen();
+		for (umint i = 0; i < nFiles; ++i)
 		{
 			NStr::CStr FromFile = Files[i];
 			NStr::CStr Path = FromFile.f_Extract(RootPathLen);
@@ -477,9 +477,9 @@ namespace NMib::NFile
 		auto ToFind = CFile::fs_AppendPath(_Path, "*");
 		TCVector<CStr> Files = _SourceFS.f_FindFilesNoRoot(ToFind);
 
-		mint nFiles = Files.f_GetLen();
+		umint nFiles = Files.f_GetLen();
 
-		for (mint i = 0; i < nFiles; ++i)
+		for (umint i = 0; i < nFiles; ++i)
 		{
 			CStr FileName;
 			FileName = CFile::fs_AppendPath(_Path, Files[i]);

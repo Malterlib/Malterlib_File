@@ -11,7 +11,7 @@ namespace NMib::NFile
 	{
 	public:
 
-		static constexpr mint mc_MapLength = 64;
+		static constexpr umint mc_MapLength = 64;
 
 		class CMappedPos
 		{
@@ -34,11 +34,11 @@ namespace NMib::NFile
 
 				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
 				{
-					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Len0 = m_Context.m_nMapped - Pos0;
-					mint Len1 = m_Context.m_nMapped - Pos1;
-					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+					umint Len0 = m_Context.m_nMapped - Pos0;
+					umint Len1 = m_Context.m_nMapped - Pos1;
+					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
 
 					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
 					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
@@ -54,11 +54,11 @@ namespace NMib::NFile
 
 				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
 				{
-					mint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Pos1 = _pSecond - m_Context.m_pFindData;
-					mint Len0 = m_Context.m_nMapped - Pos0;
-					mint Len1 = m_Context.m_FindLen - Pos1;
-					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+					umint Pos1 = _pSecond - m_Context.m_pFindData;
+					umint Len0 = m_Context.m_nMapped - Pos0;
+					umint Len1 = m_Context.m_FindLen - Pos1;
+					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
 
 					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
 					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
@@ -74,11 +74,11 @@ namespace NMib::NFile
 
 				inline_small COrdering_Partial operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
 				{
-					mint Pos0 = _pFirst - m_Context.m_pFindData;
-					mint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					mint Len0 = m_Context.m_FindLen - Pos0;
-					mint Len1 = m_Context.m_nMapped - Pos1;
-					mint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+					umint Pos0 = _pFirst - m_Context.m_pFindData;
+					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+					umint Len0 = m_Context.m_FindLen - Pos0;
+					umint Len1 = m_Context.m_nMapped - Pos1;
+					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
 
 					DMibFastCheck(_pFirst >= m_Context.m_pFindData);
 					DMibFastCheck((_pFirst + CompareLen) <= m_Context.m_pFindDataEnd);
@@ -103,11 +103,11 @@ namespace NMib::NFile
 
 		NContainer::TCVector<CMappedChunk> m_MappedChunk;
 		NContainer::TCVector<CMappedPos> m_MappedPos;
-		mint m_nMapped;
+		umint m_nMapped;
 		const uint8 *m_pOrigData;
 
 		const uint8 *m_pFindData;
-		mint m_FindLen;
+		umint m_FindLen;
 
 #if DMibEnableSafeCheck > 0
 		const uint8 *m_pOrigDataEnd;
@@ -127,7 +127,7 @@ namespace NMib::NFile
 #endif
 
 			aint iMapped = 0;
-			mint nMapped = pOrigEnd - pOrig;
+			umint nMapped = pOrigEnd - pOrig;
 			m_nMapped = nMapped;
 			m_MappedPos.f_SetLen(nMapped);
 			m_MappedChunk.f_SetLen(nMapped);
@@ -187,7 +187,7 @@ namespace NMib::NFile
 					while (Iter)
 					{
 						const uint8 *pFind0 = pChanged;
-						mint MappedPos = (Iter.f_GetCurrent() - pMappedArray);
+						umint MappedPos = (Iter.f_GetCurrent() - pMappedArray);
 						const uint8 *pFind1 = pOrig + MappedPos;
 
 						while (pFind0 < pChangedEnd && pFind1 < pOrigEnd)

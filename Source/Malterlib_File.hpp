@@ -13,7 +13,7 @@ namespace NMib::NFile
 			return true;
 
 
-		mint Len = _Path.f_GetLen();
+		umint Len = _Path.f_GetLen();
 
 		if
 			(
@@ -359,7 +359,7 @@ namespace NMib::NFile
 			}
 			else
 			{
-				mint FindLen = iFind - iParse;
+				umint FindLen = iFind - iParse;
 				SubPath = Temp.f_Extract(iParse, FindLen);
 				iParse += FindLen + 1;
 			}
@@ -368,7 +368,7 @@ namespace NMib::NFile
 				if (!NewPath.f_IsEmpty())
 				{
 					tf_CStr New = fs_GetPath(NewPath);
-					mint Len = NewPath.f_GetLen();
+					umint Len = NewPath.f_GetLen();
 					if (Len > 0 && fg_Const(NewPath)[Len - 1] == '/')
 						;
 					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
@@ -448,7 +448,7 @@ namespace NMib::NFile
 			}
 			else
 			{
-				mint FindLen = iFind - iParse;
+				umint FindLen = iFind - iParse;
 				SubPath = Temp.f_Extract(iParse, FindLen);
 				iParse += FindLen + 1;
 			}
@@ -457,7 +457,7 @@ namespace NMib::NFile
 				if (!NewPath.f_IsEmpty())
 				{
 					tf_CStr New = fs_GetPath(NewPath);
-					mint Len = NewPath.f_GetLen();
+					umint Len = NewPath.f_GetLen();
 					if (Len > 0 && fg_Const(NewPath)[Len - 1] == '/')
 						;
 					else if (Len > 1 && fg_Const(NewPath)[1] == ':' && New.f_IsEmpty())
@@ -549,7 +549,7 @@ namespace NMib::NFile
 	}
 
 	template <typename tf_CStr>
-	tf_CStr CFile::fs_RemovePathTopLevels(const tf_CStr &_Path, mint _Levels)
+	tf_CStr CFile::fs_RemovePathTopLevels(const tf_CStr &_Path, umint _Levels)
 	{
 		tf_CStr Ret = _Path;
 		while (_Levels && !Ret.f_IsEmpty())
@@ -617,7 +617,7 @@ namespace NMib::NFile
 
 		fg_StrReplaceChar(Ret, '\\', '/');
 
-		mint Len = Ret.f_GetLen();
+		umint Len = Ret.f_GetLen();
 		if (Len > 1 && fg_Const(Ret)[1] == ':')
 			return Ret.f_Left(2);
 
@@ -668,16 +668,16 @@ namespace NMib::NFile
 	namespace NPrivate
 	{
 		template <typename tf_CStr>
-		mint fg_GetCommonPathIndex(tf_CStr const &_Path0, tf_CStr const &_Path1)
+		umint fg_GetCommonPathIndex(tf_CStr const &_Path0, tf_CStr const &_Path1)
 		{
-			mint Path0Len = _Path0.f_GetLen();
-			mint Path1Len = _Path1.f_GetLen();
-			mint Len = fg_Min(Path0Len, Path1Len);
+			umint Path0Len = _Path0.f_GetLen();
+			umint Path1Len = _Path1.f_GetLen();
+			umint Len = fg_Min(Path0Len, Path1Len);
 
 			if (Len == 0)
 				return 0;
 
-			mint MaxLen = fg_Max(Path0Len, Path1Len);
+			umint MaxLen = fg_Max(Path0Len, Path1Len);
 
 			auto fCharIsPathSeparator = [](typename tf_CStr::CChar _Char)
 				{
@@ -685,8 +685,8 @@ namespace NMib::NFile
 				}
 			;
 
-			mint iPath = 0;
-			mint iLastFullPath = 0;
+			umint iPath = 0;
+			umint iLastFullPath = 0;
 			auto *pPath0 = _Path0.f_GetStr();
 			auto *pPath1 = _Path1.f_GetStr();
 
@@ -704,7 +704,7 @@ namespace NMib::NFile
 			}
 
 			if (iPath == MaxLen)
-				return TCLimitsInt<mint>::mc_Max;
+				return TCLimitsInt<umint>::mc_Max;
 
 			if (iPath == Path0Len && Path1Len >= iPath && fCharIsPathSeparator(pPath1[iPath]))
 				iLastFullPath = iPath;
@@ -718,11 +718,11 @@ namespace NMib::NFile
 	template <typename tf_CStr>
 	tf_CStr CFile::fs_GetCommonPathAndMakeRelative(tf_CStr &o_Path0, tf_CStr &o_Path1)
 	{
-		mint iLastFullPath = NPrivate::fg_GetCommonPathIndex(o_Path0, o_Path1);
+		umint iLastFullPath = NPrivate::fg_GetCommonPathIndex(o_Path0, o_Path1);
 
 		if (iLastFullPath == 0)
 			return {};
-		else if (iLastFullPath == TCLimitsInt<mint>::mc_Max)
+		else if (iLastFullPath == TCLimitsInt<umint>::mc_Max)
 		{
 			tf_CStr Ret = fg_Move(o_Path0);
 			o_Path0.f_Clear();
@@ -739,11 +739,11 @@ namespace NMib::NFile
 	template <typename tf_CStr>
 	tf_CStr CFile::fs_GetCommonPath(tf_CStr const &_Path0, tf_CStr const &_Path1)
 	{
-		mint iLastFullPath = NPrivate::fg_GetCommonPathIndex(_Path0, _Path1);
+		umint iLastFullPath = NPrivate::fg_GetCommonPathIndex(_Path0, _Path1);
 
 		if (iLastFullPath == 0)
 			return {};
-		else if (iLastFullPath == TCLimitsInt<mint>::mc_Max)
+		else if (iLastFullPath == TCLimitsInt<umint>::mc_Max)
 			return _Path0;
 		else if (_Path0.f_GetLen() == iLastFullPath)
 			return _Path0;
@@ -757,7 +757,7 @@ namespace NMib::NFile
 	template <typename tf_CLength>
 	inline_small CFileIoTempBuffer::CUseBufferResult CFileIoTempBuffer::f_UseBuffer(tf_CLength _Length)
 	{
-		mint ThisTime = fg_Min(NTraits::TCUnsigned<tf_CLength>(_Length), gc_IdealIoSize);
+		umint ThisTime = fg_Min(NTraits::TCUnsigned<tf_CLength>(_Length), gc_IdealIoSize);
 		mp_nUsedBytes = fg_Max(mp_nUsedBytes, ThisTime);
 		if (ThisTime)
 		{

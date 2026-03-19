@@ -67,7 +67,7 @@ namespace NMib::NFile
 			)
 		;
 
-		mint ReadAhead = _Params.m_ReadAhead;
+		umint ReadAhead = _Params.m_ReadAhead;
 		NContainer::TCLinkedList<NConcurrency::TCFuture<NContainer::CIOByteVector>> ReadAheadFutures;
 
 		NConcurrency::CRoundRobinBlockingActors BlockingActors(4);
@@ -78,7 +78,7 @@ namespace NMib::NFile
 
 		while (Position < FileSize)
 		{
-			mint ThisTime = fg_Min(FileSize - Position, ChunkSize);
+			umint ThisTime = fg_Min(FileSize - Position, ChunkSize);
 
 			ReadAheadFutures.f_Insert
 				(

@@ -110,7 +110,7 @@ namespace NMib::NFile
 		}
 	};
 
-	constexpr static mint gc_ChecksumNetworkSize = []()
+	constexpr static umint gc_ChecksumNetworkSize = []()
 		{
 			constexpr CChecksum c_Checksum;
 
@@ -370,7 +370,7 @@ namespace NMib::NFile
 
 	static_assert(sizeof(CHashDigest_MD5) == sizeof(CHashDigest_SHA256_16));
 
-	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData, mint _nBytes)
+	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData, umint _nBytes)
 	{
 		_Hash.f_Reset();
 		_Hash.f_AddData(_pData, _nBytes);
@@ -380,7 +380,7 @@ namespace NMib::NFile
 		return Return;
 	}
 
-	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData0, mint _nBytes0, void const *_pData1, mint _nBytes1)
+	CHashDigest_SHA256_16 fg_GetMD5Checksum(CHash_MD5 &_Hash, void const *_pData0, umint _nBytes0, void const *_pData1, umint _nBytes1)
 	{
 		_Hash.f_Reset();
 		_Hash.f_AddData(_pData0, _nBytes0);
@@ -392,14 +392,14 @@ namespace NMib::NFile
 	}
 
 
-	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData, mint _nBytes)
+	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData, umint _nBytes)
 	{
 		_Hash.f_Reset();
 		_Hash.f_AddData(_pData, _nBytes);
 		return fg_Move(_Hash);
 	}
 
-	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData0, mint _nBytes0, void const *_pData1, mint _nBytes1)
+	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData0, umint _nBytes0, void const *_pData1, umint _nBytes1)
 	{
 		_Hash.f_Reset();
 		_Hash.f_AddData(_pData0, _nBytes0);
@@ -526,14 +526,14 @@ namespace NMib::NFile
 			{
 				//DMibTrace("   {} -> {}" DMibNewLine, (Range.m_Start/_ChunkSize), ((Range.m_Start + Range.m_Length)/_ChunkSize));
 				mp_pFileToSend->f_SetPosition(Range.m_Start);
-				mint nCheckSums = (Range.m_Length + (_ChunkSize - 1)) / _ChunkSize;
+				umint nCheckSums = (Range.m_Length + (_ChunkSize - 1)) / _ChunkSize;
 				CIOByteVector TempBuffer;
 				TempBuffer.f_SetLen(_ChunkSize);
-				mint nBytes = Range.m_Length;
-				for (mint i = 0; i < nCheckSums; ++i)
+				umint nBytes = Range.m_Length;
+				for (umint i = 0; i < nCheckSums; ++i)
 				{
 					CChecksum &Checksum = _Destination.f_Insert();
-					mint nBytesToRead = fg_Min(nBytes, _ChunkSize);
+					umint nBytesToRead = fg_Min(nBytes, _ChunkSize);
 					nBytes -= nBytesToRead;
 					mp_pFileToSend->f_ConsumeBytes(TempBuffer.f_GetArray(), nBytesToRead);
 					if (mp_Flags & ERSyncFlag_UseSHA256)
@@ -770,9 +770,9 @@ namespace NMib::NFile
 			_InStream.f_SetPosition(0);
 		}
 
-		void f_GetOutstanding(TCVector<COutstandingRange> &_Outstanding, uint64 &_TotalBytes, uint64 &_ChecksumSizes, mint _ChunkSize)
+		void f_GetOutstanding(TCVector<COutstandingRange> &_Outstanding, uint64 &_TotalBytes, uint64 &_ChecksumSizes, umint _ChunkSize)
 		{
-			mint ChecksumSize = gc_ChecksumNetworkSize;
+			umint ChecksumSize = gc_ChecksumNetworkSize;
 			for (auto &Chunk : m_Chunks)
 			{
 				if (Chunk.f_OldFileStart() < 0)
@@ -1042,7 +1042,7 @@ namespace NMib::NFile
 		TCVector<COutstandingRange> mp_Outstanding;
 		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
 
-		constexpr static mint mc_HashSize = 65536;
+		constexpr static umint mc_HashSize = 65536;
 		constexpr static uint32 mc_HashMask = uint32(mc_HashSize) - 1;
 		constexpr static uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
 
@@ -1160,7 +1160,7 @@ namespace NMib::NFile
 				(
 					[&]()
 					{
-						for (mint i = 0; i < mc_HashSize; ++i)
+						for (umint i = 0; i < mc_HashSize; ++i)
 						{
 							auto &Tree = m_Hash[i];
 							while (auto *pRoot = Tree.f_GetRoot())
@@ -1178,8 +1178,8 @@ namespace NMib::NFile
 				)
 			;
 
-			mint ChunkSize = _ChunkSize;
-			mint iCurrentChecksum = 0;
+			umint ChunkSize = _ChunkSize;
+			umint iCurrentChecksum = 0;
 			TCVector<COutstandingRange> LastAskedFor = mp_LastAskedFor.f_Pop();
 
 			for (COutstandingRange const &Sequence : LastAskedFor)
@@ -1230,15 +1230,15 @@ namespace NMib::NFile
 			{
 				if (iRegion->f_Data())
 					continue; // Region already found
-				mint nSkipBytes = 0;
-				mint iCurrentHistory = 0;
+				umint nSkipBytes = 0;
+				umint iCurrentHistory = 0;
 				CRollsum Rollsum;
 				CMibFilePos End = iRegion->f_End();
 				CMibFilePos Start = iRegion->f_Start();
 				mp_OldFile.f_SetPosition(Start);
 
 				auto fl_CheckBytes
-					= [&](mint _LocalPos)
+					= [&](umint _LocalPos)
 					{
 						uint32 Digest = Rollsum.f_Digest();
 						uint32 HashDigest = Digest;
@@ -1248,8 +1248,8 @@ namespace NMib::NFile
 						auto *pFind = Map.f_FindEqual(Digest);
 						if (pFind)
 						{
-							mint First = fg_Min(ChunkSize - iCurrentHistory, Rollsum.m_Count);
-							mint Second = fg_Min(iCurrentHistory, Rollsum.m_Count - First);
+							umint First = fg_Min(ChunkSize - iCurrentHistory, Rollsum.m_Count);
+							umint Second = fg_Min(iCurrentHistory, Rollsum.m_Count - First);
 							CHashDigest_SHA256_16 Digest;
 							if (mp_Flags & ERSyncFlag_UseSHA256)
 								Digest = fg_GetSHA256Checksum(HashSHA1, pHistory + iCurrentHistory, First, pHistory, Second);
@@ -1258,12 +1258,12 @@ namespace NMib::NFile
 							auto *pPosition = pFind->m_InnerHash.f_FindEqual(Digest);
 							if (pPosition)
 							{
-								mint nPosition = pPosition->m_Positions.f_GetLen();
+								umint nPosition = pPosition->m_Positions.f_GetLen();
 								uint64 const *pPositionArray = pPosition->m_Positions.f_GetArray();
-								for (mint j = 0; j < nPosition; ++j)
+								for (umint j = 0; j < nPosition; ++j)
 								{
 									uint64 const &Position = pPositionArray[j];
-									mint Size = Rollsum.m_Count;
+									umint Size = Rollsum.m_Count;
 									if (Position + Rollsum.m_Count > mp_FileSize)
 										Size = mp_FileSize - Position;
 									if (mp_ServerFile.f_AddFoundChunk(Position, _LocalPos, Size))
@@ -1317,9 +1317,9 @@ namespace NMib::NFile
 
 				for (CMibFilePos i = Start; i < End && !bFound;)
 				{
-					mint nBuffer = fg_Min(uint64(End - i), BufferSize);
+					umint nBuffer = fg_Min(uint64(End - i), BufferSize);
 					mp_OldFile.f_ConsumeBytes(pByteBuffer, nBuffer);
-					mint k = 0;
+					umint k = 0;
 					if (_fCheckAbort)
 						_fCheckAbort();
 					auto *pBuffer = pByteBuffer;
@@ -1333,12 +1333,12 @@ namespace NMib::NFile
 
 						if (Rollsum.m_Count < ChunkSize)
 						{
-							mint nBytes = fg_Min(nBuffer, ChunkSize - Rollsum.m_Count);
+							umint nBytes = fg_Min(nBuffer, ChunkSize - Rollsum.m_Count);
 							Rollsum.f_RollIn(pBuffer, nBytes);
 							{
-								mint nHistory0 = fg_Min(nBytes, ChunkSize - iCurrentHistory);
+								umint nHistory0 = fg_Min(nBytes, ChunkSize - iCurrentHistory);
 								fg_MemCopy(pHistory + iCurrentHistory, pBuffer, nHistory0);
-								mint nHistory1 = fg_Min((ChunkSize - iCurrentHistory) - nHistory0, nBytes - nHistory0);
+								umint nHistory1 = fg_Min((ChunkSize - iCurrentHistory) - nHistory0, nBytes - nHistory0);
 								fg_MemCopy(pHistory, pBuffer + nHistory0, nHistory1);
 								iCurrentHistory += nBytes;
 								if (iCurrentHistory >= ChunkSize)
@@ -1403,7 +1403,7 @@ namespace NMib::NFile
 			if (!_Data.f_IsEmpty())
 			{
 				uint8 const *pData = _Data.f_GetArray();
-				mint nData = _Data.f_GetLen();
+				umint nData = _Data.f_GetLen();
 				TCVector<COutstandingRange> LastAskedFor = mp_LastAskedFor.f_Pop();
 				for (COutstandingRange const &Chunk : LastAskedFor)
 				{
@@ -1450,12 +1450,12 @@ namespace NMib::NFile
 			if (mp_Outstanding.f_IsEmpty() && mp_bSentDoneMessage)
 				return false;
 
-			mint MaxPerPacket = mc_OutstandingPerPacket;
+			umint MaxPerPacket = mc_OutstandingPerPacket;
 			CPacket_ClientOutstandingRanges ServerPacket;
 
-			mint nOutstanding = mp_Outstanding.f_GetLen();
-			mint iRemove = 0;
-			for (mint i = 0; i < nOutstanding && MaxPerPacket; ++i)
+			umint nOutstanding = mp_Outstanding.f_GetLen();
+			umint iRemove = 0;
+			for (umint i = 0; i < nOutstanding && MaxPerPacket; ++i)
 			{
 				COutstandingRange &Outstanding = mp_Outstanding[i];
 				if (Outstanding.m_Length)
@@ -1574,7 +1574,7 @@ namespace NMib::NFile
 			{
 				case EClientMode_Init:
 				{
-					mint OldFileSize;
+					umint OldFileSize;
 					if (mp_OldFile.f_IsValid())
 						OldFileSize = mp_OldFile.f_GetLength();
 					else

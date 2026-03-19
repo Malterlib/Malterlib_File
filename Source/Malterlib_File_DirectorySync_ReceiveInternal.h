@@ -84,7 +84,7 @@ namespace NMib::NFile
 		TCSharedPointer<TCAtomic<bool>> m_pDestroyed = fg_Construct(false);
 		TCSharedPointer<CCanDestroyTracker> m_pCanDestroyTracker = fg_Construct();
 		bool m_bStartedSync = false;
-		mint m_nRunningSyncs = 0;
+		umint m_nRunningSyncs = 0;
 
 	private:
 		static void fsp_RunRSyncProtocol

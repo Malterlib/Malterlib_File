@@ -42,7 +42,7 @@ namespace NMib::NFile
 			CCoalesceSettings m_CoalesceSettings;
 			TCActorFunctor<TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> m_fOnChange;
 			uint64 m_Sequence = 0;
-			mint m_nOutstanding = 0;
+			umint m_nOutstanding = 0;
 			bool m_bScheduledTimeout = false;
 		};
 

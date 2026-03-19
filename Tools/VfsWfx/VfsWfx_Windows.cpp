@@ -33,7 +33,7 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 
 INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	CEditFileSystemClass *pThis = (CEditFileSystemClass *)(mint)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
+	CEditFileSystemClass *pThis = (CEditFileSystemClass *)(umint)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 	switch (uMsg)
 	{
 	case WM_SYSCOMMAND:
@@ -49,8 +49,8 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 		break;
 	case WM_INITDIALOG:
 		{
-			SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (mint)lParam);
-			pThis = (CEditFileSystemClass *)(mint)lParam;
+			SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (umint)lParam);
+			pThis = (CEditFileSystemClass *)(umint)lParam;
 			POINT Pnt;
 			GetCursorPos(&Pnt);
 			HMONITOR hMon = MonitorFromPoint(Pnt, MONITOR_DEFAULTTONEAREST);

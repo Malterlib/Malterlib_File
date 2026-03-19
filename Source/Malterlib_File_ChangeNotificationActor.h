@@ -16,7 +16,7 @@ namespace NMib::NFile
 
 		struct CCoalesceSettings
 		{
-			mint m_nMaxOutstanding = 5;
+			umint m_nMaxOutstanding = 5;
 			fp64 m_Delay = 1.0;
 		};
 

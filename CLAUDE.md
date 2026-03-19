@@ -191,8 +191,8 @@ struct CReadFileGeneratorParams
 	NStr::CStr m_Path;
 	NConcurrency::TCActorFunctorWeak<NConcurrency::TCFuture<void> (NException::CExceptionPointer)> m_fOnError;
 	NConcurrency::TCActorFunctorWeak<NConcurrency::TCFuture<void> (uint64, uint64, uint64)> m_fOnProgress;
-	mint m_ReadAhead = 16;
-	mint m_ChunkSize = NFile::gc_IdealIoSize;
+	umint m_ReadAhead = 16;
+	umint m_ChunkSize = NFile::gc_IdealIoSize;
 	uint64 m_StartPosition = 0;
 	uint64 m_FileSize = TCLimitsInt<uint64>::mc_Max;
 };

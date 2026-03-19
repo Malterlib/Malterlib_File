@@ -213,20 +213,20 @@ namespace NMib::NFile
 		if (_AttribMask & EFileAttrib_File)
 			Files = fs_FindFiles(_FindPath, EFileAttrib_File, _bRecursive);
 
-		mint nPaths = Paths.f_GetLen();
+		umint nPaths = Paths.f_GetLen();
 
 		NStr::CStr RootPath = fs_GetPath(_FindPath) + "/";
-		mint RootPathLen = RootPath.f_GetLen();
+		umint RootPathLen = RootPath.f_GetLen();
 		NStr::CStr ToPath = _ToPath + "/";
 
-		for (mint i = 0; i < nPaths; ++i)
+		for (umint i = 0; i < nPaths; ++i)
 		{
 			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
 			fs_CreateDirectory(ToPath + Path);
 		}
 
-		mint nFiles = Files.f_GetLen();
-		for (mint i = 0; i < nFiles; ++i)
+		umint nFiles = Files.f_GetLen();
+		for (umint i = 0; i < nFiles; ++i)
 		{
 			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
 			NStr::CStr ToFile = ToPath + Path;
@@ -256,7 +256,7 @@ namespace NMib::NFile
 			return mp_CacheBuffer.f_GetArray();
 	}
 
-	mint CFile::fp_GetCacheBufferLen()
+	umint CFile::fp_GetCacheBufferLen()
 	{
 		if (mp_bNonTracked)
 			return mp_CacheBufferNonTracked.f_GetLen();
@@ -281,12 +281,12 @@ namespace NMib::NFile
 		}
 	}
 
-	void *CFile::fp_GetCache(CMibFilePos _CurrentPos, mint &_nBytesAvailable)
+	void *CFile::fp_GetCache(CMibFilePos _CurrentPos, umint &_nBytesAvailable)
 	{
 		CMibFilePos CacheSize = fp_GetCacheBufferLen();
 		if (mp_CachePos >= 0 && _CurrentPos >= mp_CachePos && _CurrentPos < mp_CachePos + CacheSize)
 		{
-			mint Offset = (_CurrentPos - mp_CachePos);
+			umint Offset = (_CurrentPos - mp_CachePos);
 			_nBytesAvailable = CacheSize - Offset;
 			return fp_GetCacheBuffer() + (_CurrentPos - mp_CachePos);
 		}
@@ -304,7 +304,7 @@ namespace NMib::NFile
 				DMibErrorFile("Not all bytes were read");
 		}
 
-		mint Offset = (_CurrentPos - mp_CachePos);
+		umint Offset = (_CurrentPos - mp_CachePos);
 		_nBytesAvailable = CacheSize - Offset;
 		return fp_GetCacheBuffer() + (_CurrentPos - mp_CachePos);
 	}
@@ -323,20 +323,20 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetOSFile(mp_pFile);
 	}
 
-	void CFile::f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, mint _nBytes)
+	void CFile::f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, umint _nBytes)
 	{
 		fp_CheckOpen();
 
 		if (!(mp_OpenFlags & EFileOpen_Read))
 			DMibErrorFile("Cannot perform read, file not opened for read");
 
-		mint nBytes = NSys::NFile::fg_Read(mp_pFile, _pDest, _Position, _nBytes);
+		umint nBytes = NSys::NFile::fg_Read(mp_pFile, _pDest, _Position, _nBytes);
 
 		if (nBytes != _nBytes)
 			DMibErrorFile("Not all bytes were read");
 	}
 
-	void CFile::f_Read(void *_pDest, mint _nBytes)
+	void CFile::f_Read(void *_pDest, umint _nBytes)
 	{
 		fp_CheckOpen();
 
@@ -351,7 +351,7 @@ namespace NMib::NFile
 
 		if (mp_OpenFlags & EFileOpen_NoLocalCache)
 		{
-			mint nBytes = NSys::NFile::fg_Read(mp_pFile, _pDest, mp_FilePos, _nBytes);
+			umint nBytes = NSys::NFile::fg_Read(mp_pFile, _pDest, mp_FilePos, _nBytes);
 
 			if (nBytes != _nBytes)
 				DMibErrorFile("Not all bytes were read");
@@ -360,14 +360,14 @@ namespace NMib::NFile
 		}
 		else
 		{
-			mint ToCopy = _nBytes;
+			umint ToCopy = _nBytes;
 			CMibFilePos CurrentPos = mp_FilePos;
 			uint8 *pDest = (uint8 *)_pDest;
 			while (ToCopy)
 			{
-				mint nBytesAvailable;
+				umint nBytesAvailable;
 				void *pCache = fp_GetCache(CurrentPos, nBytesAvailable);
-				mint nThisTime = fg_Min(nBytesAvailable, ToCopy);
+				umint nThisTime = fg_Min(nBytesAvailable, ToCopy);
 				NMemory::fg_MemCopy(pDest, pCache, nThisTime);
 				ToCopy -= nThisTime;
 				CurrentPos += nThisTime;
@@ -378,20 +378,20 @@ namespace NMib::NFile
 		}
 	}
 
-	void CFile::f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, mint _nBytes)
+	void CFile::f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, umint _nBytes)
 	{
 		fp_CheckOpen();
 
 		if (!(mp_OpenFlags & EFileOpen_Write))
 			DMibErrorFile("Cannot perform write, file not opened for write");
 
-		mint nBytes = NSys::NFile::fg_Write(mp_pFile, _pSrc, _Position, _nBytes);
+		umint nBytes = NSys::NFile::fg_Write(mp_pFile, _pSrc, _Position, _nBytes);
 
 		if (nBytes != _nBytes)
 			DMibErrorFile("Not all bytes were written");
 	}
 
-	void CFile::f_Write(const void *_pSrc, mint _nBytes)
+	void CFile::f_Write(const void *_pSrc, umint _nBytes)
 	{
 		fp_CheckOpen();
 
@@ -400,7 +400,7 @@ namespace NMib::NFile
 
 		if (mp_OpenFlags & EFileOpen_NoLocalCache)
 		{
-			mint nBytes = NSys::NFile::fg_Write(mp_pFile, _pSrc, mp_FilePos, _nBytes);
+			umint nBytes = NSys::NFile::fg_Write(mp_pFile, _pSrc, mp_FilePos, _nBytes);
 
 			if (nBytes != _nBytes)
 				DMibErrorFile("Not all bytes were written");
@@ -409,13 +409,13 @@ namespace NMib::NFile
 		}
 		else
 		{
-			mint ToCopy = _nBytes;
+			umint ToCopy = _nBytes;
 			const uint8 *pSrc = (uint8 *)_pSrc;
 			while (ToCopy)
 			{
-				mint nBytesAvailable;
+				umint nBytesAvailable;
 				void *pCache = fp_GetCache(mp_FilePos, nBytesAvailable);
-				mint nThisTime = fg_Min(nBytesAvailable, ToCopy);
+				umint nThisTime = fg_Min(nBytesAvailable, ToCopy);
 				NMemory::fg_MemCopy(pCache, pSrc, nThisTime);
 				mp_bCacheDirty = true;
 				mp_FilePos += nThisTime;
@@ -588,13 +588,13 @@ namespace NMib::NFile
 		fp_FlushCache();
 	}
 
-	void CFile::f_SetCacheSize(mint _CacheSize)
+	void CFile::f_SetCacheSize(umint _CacheSize)
 	{
 		DMibRequire(_CacheSize > 0);
 		fp_FlushCache();
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
-			mint NewCacheSize = mint(1) << fg_GetHighestBitSetNoZero(_CacheSize);
+			umint NewCacheSize = umint(1) << fg_GetHighestBitSetNoZero(_CacheSize);
 			mp_CachePos = -1;
 			if (mp_bNonTracked)
 				mp_CacheBufferNonTracked.f_SetLen(NewCacheSize);
@@ -1140,7 +1140,7 @@ namespace NMib::NFile
 				NFile::CFile File;
 				File.f_Open(_ToFileName, EFileOpen_Read | EFileOpen_ShareAll);
 
-				mint FileLen = File.f_GetLength();
+				umint FileLen = File.f_GetLength();
 				NContainer::CByteVector DestData;
 				DestData.f_SetLen(FileLen);
 				File.f_Read(DestData.f_GetArray(), FileLen);
@@ -1343,7 +1343,7 @@ namespace NMib::NFile
 		NFile::CFile File;
 		File.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 		NContainer::CByteVector SourceData;
-		mint FileLen = File.f_GetLength();
+		umint FileLen = File.f_GetLength();
 		SourceData.f_SetLen(FileLen);
 		File.f_Read(SourceData.f_GetArray(), FileLen);
 		EFileAttrib Attribs = File.f_GetAttributes() & EFileAttrib_Executable;
@@ -1770,8 +1770,8 @@ namespace NMib::NFile
 		// TODO: When we have static substring objects this can be boiled down to a couple of allocs.
 
 		NStr::CStr Portion;
-		mint iHead = 0;
-		mint SectionsCharCount = 0;
+		umint iHead = 0;
+		umint SectionsCharCount = 0;
 		NContainer::TCVector<NStr::CStr> lSections;
 
 		auto fl_Push = [&](NStr::CStr && _Section)
@@ -1819,15 +1819,15 @@ namespace NMib::NFile
 			return NStr::CStr();
 
 		NStr::CStr Out;
-		mint const nOutChars = Prefix.f_GetLen() + SectionsCharCount + (iHead - 1) + Suffix.f_GetLen();
+		umint const nOutChars = Prefix.f_GetLen() + SectionsCharCount + (iHead - 1) + Suffix.f_GetLen();
 		NStr::CStr::CChar* pOut = Out.f_GetStr(nOutChars);
 		NStr::CStr::CChar* pEnd = pOut + nOutChars;
 		(void)pEnd;
 
 		auto fl_WriteStr = [&](NStr::CStr const& _Str)
 		{
-			mint const nChars = _Str.f_GetLen();
-			mint const nBytes = nChars * sizeof(NStr::CStr::CChar);
+			umint const nChars = _Str.f_GetLen();
+			umint const nBytes = nChars * sizeof(NStr::CStr::CChar);
 			DMibSafeCheck((pOut + nChars) <= (pOut + nOutChars), "Buffer overrun.");
 			NMemory::fg_MemCopy(pOut, _Str.f_GetStr(), nBytes);
 			pOut += nChars;
@@ -1836,7 +1836,7 @@ namespace NMib::NFile
 		if (!Prefix.f_IsEmpty())
 			fl_WriteStr(Prefix);
 
-		mint iS = 0;
+		umint iS = 0;
 		fl_WriteStr(lSections[iS]);
 		++iS;
 
@@ -2355,7 +2355,7 @@ namespace NMib::NFile
 		return fg_Move(FileData);
 	}
 
-	mint CFile::fs_MaximumPathLength()
+	umint CFile::fs_MaximumPathLength()
 	{
 		return NSys::NFile::fg_MaximumPathLength();
 	}
@@ -2424,7 +2424,7 @@ namespace NMib::NFile
 			{
 				++pStr;
 			}
-			mint Len = pStr - pParseStart;
+			umint Len = pStr - pParseStart;
 			bool bValid = true;
 			if (Len)
 			{
@@ -2473,11 +2473,11 @@ namespace NMib::NFile
 			return str_utf16("$$");
 		return NStr::CFWStr16::CFormat(str_utf16("${nfh}")) << _Char;
 	}
-	auto CFile::fsp_EncodeString(ch32 *_pChars, mint _Len) -> NStr::CUStr
+	auto CFile::fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr
 	{
 		NStr::CUStr Ret;
 
-		for (mint i = 0; i < _Len; ++i)
+		for (umint i = 0; i < _Len; ++i)
 			Ret += fsp_EncodeChar(_pChars[i]);
 
 		return Ret;
@@ -2529,7 +2529,7 @@ namespace NMib::NFile
 			{
 				++pStr;
 			}
-			mint Len = pStr - pParseStart;
+			umint Len = pStr - pParseStart;
 			bool bValid = true;
 			if (Len)
 			{
@@ -2631,7 +2631,7 @@ namespace NMib::NFile
 			{
 				++pParse;
 			}
-			mint Len = pParse - pParseStart;
+			umint Len = pParse - pParseStart;
 			if (Len)
 			{
 				const ch8 **pInv = pInvalidNames;
@@ -2673,7 +2673,7 @@ namespace NMib::NFile
 				++pParse;
 			}
 
-			mint Len = pParse - pParseStart;
+			umint Len = pParse - pParseStart;
 			if (Len)
 			{
 				if (pParse[-1] == ' ')

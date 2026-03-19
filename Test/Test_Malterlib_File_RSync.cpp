@@ -60,9 +60,9 @@ namespace
 		static void fs_DoRSync(CIOByteVector const &_Orig, CIOByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			bool bServerDone = false;
-			[[maybe_unused]] mint TotalSizeClient = 0;
-			[[maybe_unused]] mint TotalSizeServer = 0;
-			[[maybe_unused]] mint nRawBytes;
+			[[maybe_unused]] umint TotalSizeClient = 0;
+			[[maybe_unused]] umint TotalSizeServer = 0;
+			[[maybe_unused]] umint nRawBytes;
 			NTime::CTimeMeasure Timer;
 			Timer.f_Start();
 			CIOByteVector Synced;
@@ -181,7 +181,7 @@ namespace
 		}
 		static CIOByteVector fs_ToVector(const ch8 *_pStr)
 		{
-			mint Len = NStr::fg_StrLen(_pStr);
+			umint Len = NStr::fg_StrLen(_pStr);
 			CIOByteVector Ret;
 			Ret.f_Insert((uint8 const *)_pStr, Len);
 
@@ -290,10 +290,10 @@ namespace
 		{
 			DMibTestSuite("Basic")
 			{
-				for (mint e = 0; e < 2; ++e)
+				for (umint e = 0; e < 2; ++e)
 				{
 					bool bEncrypt = e != 0;
-					for (mint i = 0; i < 2; ++i)
+					for (umint i = 0; i < 2; ++i)
 					{
 						bool bInline = i != 0;
 						fs_DoTests(1, 1, bInline, bEncrypt);

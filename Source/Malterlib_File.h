@@ -63,7 +63,7 @@ namespace NMib::NFile
 		struct CUseBufferResult
 		{
 			uint8 *m_pBuffer;
-			mint m_nBytes;
+			umint m_nBytes;
 		};
 
 		template <typename tf_CLength>
@@ -73,7 +73,7 @@ namespace NMib::NFile
 		inline_never void fp_CreateBuffer();
 
 		NContainer::CByteVector mp_Data;
-		mint mp_nUsedBytes = 0;
+		umint mp_nUsedBytes = 0;
 	};
 
 	struct CFileIoTempBufferSecure : public CFileIoTempBuffer
@@ -98,8 +98,8 @@ namespace NMib::NSys::NFile
 	void *fg_Open(const NMib::NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
 	void fg_Close(void *_pFile);
 	void *fg_GetOSFile(void *_pFile);
-	mint fg_Read(void *_pFile, void *_pData, const CMibFilePos &_Offset, mint _NumBytes); // Returns number of bytes read
-	mint fg_Write(void *_pFile, const void *_pData, const CMibFilePos &_Offset, mint _NumBytes); // Returns number of bytes written
+	umint fg_Read(void *_pFile, void *_pData, const CMibFilePos &_Offset, umint _NumBytes); // Returns number of bytes read
+	umint fg_Write(void *_pFile, const void *_pData, const CMibFilePos &_Offset, umint _NumBytes); // Returns number of bytes written
 	void fg_Flush(void *_pFile); // Returns when all pending bytes are written to disk
 	void fg_LockRange(void *_pFile, const CMibFilePos &_Offset, const CMibFilePos &_NumBytes, NMib::NFile::EFileLock _Flags);
 	void fg_UnlockRange(void *_pFile, const CMibFilePos &_Offset, const CMibFilePos &_NumBytes);
@@ -119,7 +119,7 @@ namespace NMib::NSys::NFile
 
 	NMib::NFile::EFileAttrib fg_GetSupportedAttributes();
 	NMib::NFile::EFileAttrib fg_GetValidAttributes();
-	mint fg_MaximumPathLength();
+	umint fg_MaximumPathLength();
 
 	CMibFilePos fg_GetSize(void *_pFile);
 	void fg_SetSize(void *_pFile, const CMibFilePos &_Size);
@@ -425,7 +425,7 @@ namespace NMib::NFile
 		NContainer::TCVector<uint8, NMemory::CAllocator_NonTrackedHeap> mp_CacheBufferNonTracked;
 
 		uint8 *fp_GetCacheBuffer();
-		mint fp_GetCacheBufferLen();
+		umint fp_GetCacheBufferLen();
 
 		enum
 		{
@@ -439,7 +439,7 @@ namespace NMib::NFile
 		}
 
 		void fp_FlushCache();
-		void *fp_GetCache(CMibFilePos _CurrentPos, mint &_nBytesAvailable);
+		void *fp_GetCache(CMibFilePos _CurrentPos, umint &_nBytesAvailable);
 		CMibFilePos fp_GetLength() const;
 
 		static bool fsp_OpenFile(NFile::CFile &_File, const NStr::CStr &_FileName, EFileOpen _Open, const NTime::CTime &_FileTime);
@@ -505,10 +505,10 @@ namespace NMib::NFile
 		void f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags);
 
 
-		void f_Read(void *_pDest, mint _nBytes);
-		void f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, mint _nBytes);
-		void f_Write(const void *_pSrc, mint _nBytes);
-		void f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, mint _nBytes);
+		void f_Read(void *_pDest, umint _nBytes);
+		void f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, umint _nBytes);
+		void f_Write(const void *_pSrc, umint _nBytes);
+		void f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, umint _nBytes);
 
 		void f_FileEnumOtherHandles(NContainer::TCVector<CFileHandle> &_HandleInfo);
 
@@ -516,7 +516,7 @@ namespace NMib::NFile
 
 		void f_FlushCache();
 
-		void f_SetCacheSize(mint _CacheSize);
+		void f_SetCacheSize(umint _CacheSize);
 
 		void *f_GetOSFile() const;
 
@@ -544,7 +544,7 @@ namespace NMib::NFile
 
 		CUniqueFileIdentifier f_GetUniqueIdentifier() const;
 
-		static mint fs_MaximumPathLength();
+		static umint fs_MaximumPathLength();
 
 		// Static functions
 		static bool fs_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable = true);
@@ -850,7 +850,7 @@ namespace NMib::NFile
 		template <typename tf_CStr, typename tf_CToAppend>
 		static tf_CStr fs_AppendPath(const tf_CStr &_Path, tf_CToAppend &&_Append);
 		template <typename tf_CStr>
-		static tf_CStr fs_RemovePathTopLevels(const tf_CStr &_Path, mint _Levels);
+		static tf_CStr fs_RemovePathTopLevels(const tf_CStr &_Path, umint _Levels);
 		template <typename tf_CStr>
 		static tf_CStr fs_GetFile(const tf_CStr &_File);
 		template <typename tf_CStr>
@@ -865,7 +865,7 @@ namespace NMib::NFile
 
 	private:
 		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
-		static auto fsp_EncodeString(ch32 *_pChars, mint _Len) -> NStr::CUStr;
+		static auto fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr;
 	public:
 		static NStr::CStr fs_MakeNiceUniqueFilename(const NStr::CStr &_CurrentName);
 
@@ -941,12 +941,12 @@ namespace NMib::NFile
 			m_File.f_SetLength(0);
 		}
 
-		void f_FeedBytes(const void *_pMem, mint _nBytes)
+		void f_FeedBytes(const void *_pMem, umint _nBytes)
 		{
 			m_File.f_Write(_pMem, _nBytes);
 		}
 
-		void f_ConsumeBytes(void *_pMem, mint _nBytes)
+		void f_ConsumeBytes(void *_pMem, umint _nBytes)
 		{
 			m_File.f_Read(_pMem, _nBytes);
 		}
@@ -991,7 +991,7 @@ namespace NMib::NFile
 			return m_File.f_Flush(_bLocalCacheOnly);
 		}
 
-		void f_SetCacheSize(mint _CacheSize)
+		void f_SetCacheSize(umint _CacheSize)
 		{
 			m_File.f_SetCacheSize(_CacheSize);
 		}
@@ -1001,7 +1001,7 @@ namespace NMib::NFile
 			return m_File.f_GetLength();
 		}
 
-		mint f_ContainerLengthLimit() const
+		umint f_ContainerLengthLimit() const
 		{
 			return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
 		}
@@ -1057,12 +1057,12 @@ namespace NMib::NFile
 			mp_pFile->f_Flush(false);
 		}
 
-		void f_FeedBytes(const void *_pMem, mint _nBytes)
+		void f_FeedBytes(const void *_pMem, umint _nBytes)
 		{
 			mp_pFile->f_Write(_pMem, _nBytes);
 		}
 
-		void f_ConsumeBytes(void *_pMem, mint _nBytes)
+		void f_ConsumeBytes(void *_pMem, umint _nBytes)
 		{
 			mp_pFile->f_Read(_pMem, _nBytes);
 		}
@@ -1107,7 +1107,7 @@ namespace NMib::NFile
 			mp_pFile->f_Flush(_bLocalCacheOnly);
 		}
 
-		void f_SetCacheSize(mint _CacheSize)
+		void f_SetCacheSize(umint _CacheSize)
 		{
 			mp_pFile->f_SetCacheSize(_CacheSize);
 		}
@@ -1117,7 +1117,7 @@ namespace NMib::NFile
 			return mp_pFile->f_GetLength();
 		}
 
-		mint f_ContainerLengthLimit() const
+		umint f_ContainerLengthLimit() const
 		{
 			return NStream::fg_CapLengthLimit(mp_pFile->f_GetLength() - mp_pFile->f_GetPosition());
 		}

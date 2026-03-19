@@ -22,12 +22,12 @@ namespace
 				NMib::NContainer::CByteVector PatchData = NMib::NFile::fg_MalterlibPatchEncode(OrigVector, ChangedVector);
 				NMib::NContainer::CByteVector Decoded = NMib::NFile::fg_MalterlibPatchDecode(OrigVector, PatchData);
 
-				mint Overhead = 40;
-				mint FoundChunkOverhead = 4 * 3;
-				mint ExpectedFoundChunks = 2;
-				mint ExpectedRaw0 = 4 + 7;
-				mint ExpectedRaw1 = 4 + 7;
-				mint ExpectedSize = Overhead + FoundChunkOverhead * ExpectedFoundChunks + ExpectedRaw0 + ExpectedRaw1;
+				umint Overhead = 40;
+				umint FoundChunkOverhead = 4 * 3;
+				umint ExpectedFoundChunks = 2;
+				umint ExpectedRaw0 = 4 + 7;
+				umint ExpectedRaw1 = 4 + 7;
+				umint ExpectedSize = Overhead + FoundChunkOverhead * ExpectedFoundChunks + ExpectedRaw0 + ExpectedRaw1;
 
 				DMibExpect(PatchData.f_GetLen(), ==, ExpectedSize);
 				DMibExpect(Decoded, ==, ChangedVector);

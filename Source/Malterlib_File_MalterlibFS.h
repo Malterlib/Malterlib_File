@@ -306,7 +306,7 @@ namespace NMib::NFile
 				_Stream << m_nClusterIDs;
 				if (m_nClusterIDs > m_ClusterIDs.f_GetLen())
 					return;
-				for (mint i = 0; i < m_nClusterIDs; ++i)
+				for (umint i = 0; i < m_nClusterIDs; ++i)
 				{
 					_Stream << m_ClusterIDs[i];
 				}
@@ -332,7 +332,7 @@ namespace NMib::NFile
 						return;
 					}
 
-					for (mint i = 0; i < m_nClusterIDs; ++i)
+					for (umint i = 0; i < m_nClusterIDs; ++i)
 					{
 						_Stream >> m_ClusterIDs[i];
 					}
@@ -420,12 +420,12 @@ namespace NMib::NFile
 				if (_Version == 0x101)
 				{
 					uint32 nFiles = m_Files.f_GetLen();
-					for (mint i = 0; i < nFiles; ++i)
+					for (umint i = 0; i < nFiles; ++i)
 					{
 						m_Files[i].m_FileName.m_OriginalType = NStr::EStrType_Ansi;
 					}
 					f_WriteInternalValidate(Stream);
-					for (mint i = 0; i < nFiles; ++i)
+					for (umint i = 0; i < nFiles; ++i)
 					{
 						m_Files[i].m_FileName.m_OriginalType = NStr::EStrType_Unicode;
 					}
@@ -469,7 +469,7 @@ namespace NMib::NFile
 
 					uint32 nFiles;
 					_Stream >> nFiles;
-					mint MaxFiles = ((_Stream.f_GetLength() - _Stream.f_GetPosition()) / (sizeof(CClusterID) + sizeof(uint32)));
+					umint MaxFiles = ((_Stream.f_GetLength() - _Stream.f_GetPosition()) / (sizeof(CClusterID) + sizeof(uint32)));
 					if (nFiles > MaxFiles)
 					{
 						m_Files.f_Clear();
@@ -477,7 +477,7 @@ namespace NMib::NFile
 						return ;
 					}
 					m_Files.f_SetLen(nFiles);
-					for (mint i = 0; i < nFiles; ++i)
+					for (umint i = 0; i < nFiles; ++i)
 					{
 						_Stream >> m_Files[i];
 					}
@@ -491,7 +491,7 @@ namespace NMib::NFile
 
 			CClusterID f_GetChild(NStr::CStr const &_Child)
 			{
-				for (mint i = 0; i < m_Files.f_GetLen(); ++i)
+				for (umint i = 0; i < m_Files.f_GetLen(); ++i)
 				{
 					if (m_Files[i].m_FileName == _Child)
 						return m_Files[i].m_FileRecordCluster;
@@ -502,7 +502,7 @@ namespace NMib::NFile
 
 			void f_RemoveChild(CClusterID _Child)
 			{
-				for (mint i = 0; i < m_Files.f_GetLen(); ++i)
+				for (umint i = 0; i < m_Files.f_GetLen(); ++i)
 				{
 					if (m_Files[i].m_FileRecordCluster == _Child)
 					{
@@ -593,7 +593,7 @@ namespace NMib::NFile
 			DMibListLinkD_Link(CClusterCacheEntry, m_AccessLink);
 			//DMibListLinkD_Link(CClusterCacheEntry, m_LazyLink);
 
-			mint m_RefCount;
+			umint m_RefCount;
 
 			bool m_bDirty;
 
@@ -621,7 +621,7 @@ namespace NMib::NFile
 
 			void f_OpenStream(NStream::CBinaryStreamMemoryPtr<> &_Stream)
 			{
-				mint Len = m_ClusterMemory.f_GetLen();
+				umint Len = m_ClusterMemory.f_GetLen();
 				_Stream.f_OpenReadWrite(m_ClusterMemory.f_GetArray(), Len, Len);
 			}
 
@@ -691,10 +691,10 @@ namespace NMib::NFile
 			DMibListLinkD_List(CClusterCacheEntry, m_AccessLink) m_Cached;
 			DMibListLinkD_List(CClusterCacheEntry, m_AccessLink) m_InUse;
 			// DMibListLinkD_List(CClusterCacheEntry, m_LazyLink) m_LazyOrder; Disable lazy writing for now
-			mint m_nCached;
-			mint m_nCachedMax;
+			umint m_nCached;
+			umint m_nCachedMax;
 
-			void f_SetCacheSize(mint _nCachedMax)
+			void f_SetCacheSize(umint _nCachedMax)
 			{
 				m_nCachedMax = _nCachedMax;
 				f_MakeSpace(0);
@@ -707,7 +707,7 @@ namespace NMib::NFile
 				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
 			}
 
-			void f_MakeSpace(mint _Space)
+			void f_MakeSpace(umint _Space)
 			{
 				while ((m_nCached + _Space) > m_nCachedMax)
 				{
@@ -766,7 +766,7 @@ namespace NMib::NFile
 			CClusterID m_DirectoryFileClusterID;
 			DMibListLinkD_Link(CDirectoryCacheEntry, m_AccessLink);
 			bool m_bDirty;
-			mint m_RefCount;
+			umint m_RefCount;
 
 			CDirectoryCacheEntry()
 			{
@@ -852,8 +852,8 @@ namespace NMib::NFile
 			NIntrusive::TCAVLTree<&CDirectoryCacheEntry::m_CacheLink, CDirectoryCacheEntry::CCompare> m_Tree;
 			DMibListLinkD_List(CDirectoryCacheEntry, m_AccessLink) m_Cached;
 			DMibListLinkD_List(CDirectoryCacheEntry, m_AccessLink) m_InUse;
-			mint m_nCached;
-			mint m_nCachedMax;
+			umint m_nCached;
+			umint m_nCachedMax;
 
 			CDirectoryCacheEntry *f_GetNewCacheEntry(CDirectoryCacheEntry *_pParent, NStr::CStr const &_Path);
 			CDirectoryCacheEntry *f_GetExistingCacheEntry(CClusterID _DirectoryCluster, NStr::CStr const &_Path);
@@ -1027,7 +1027,7 @@ namespace NMib::NFile
 				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
 			}
 
-			void f_MakeSpace(mint _Space)
+			void f_MakeSpace(umint _Space)
 			{
 				while ((m_nCached + _Space) > m_nCachedMax)
 				{
@@ -1040,7 +1040,7 @@ namespace NMib::NFile
 				}
 			}
 
-			void f_SetCacheSize(mint _Size)
+			void f_SetCacheSize(umint _Size)
 			{
 				m_nCachedMax = _Size;
 				f_MakeSpace(0);
@@ -1055,7 +1055,7 @@ namespace NMib::NFile
 		public:
 			CVirtualFS *m_pVirtualFS;
 
-			mint m_RefCount;
+			umint m_RefCount;
 			CClusterID m_FileDescriptorID; // This is the guid for the file
 			CFileRecord m_FileRecord; // The file record. The records lives here while the file is open
 			CClusterChain m_ClusterChain; // The chain of data clusters
@@ -1137,7 +1137,7 @@ namespace NMib::NFile
 			};
 
 			DMibListLinkDS_List(CClusterCache, m_Link) m_CachedClusters;
-			mint m_nCachedClusters;
+			umint m_nCachedClusters;
 
 			CClusterCacheEntry *f_GetCluster(CFilePos &_Position)
 			{
@@ -1180,7 +1180,7 @@ namespace NMib::NFile
 				return pEntry;
 			}
 
-			void f_Read(void *_pDest, CFilePos _Position, mint _nBytes)
+			void f_Read(void *_pDest, CFilePos _Position, umint _nBytes)
 			{
 				CFilePos CurrentPosition = _Position;
 				uint8 *pDest = (uint8 *)_pDest;
@@ -1196,7 +1196,7 @@ namespace NMib::NFile
 				{
 					CFilePos Pos = CurrentPosition;
 					CClusterCacheEntry *pEntry = f_GetCluster(Pos);
-					mint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
+					umint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
 					NMemory::fg_MemCopy(pDest, pEntry->m_ClusterMemory.f_GetArray() + Pos, MaxBytes);
 					pDest += MaxBytes;
 					_nBytes -= MaxBytes;
@@ -1204,7 +1204,7 @@ namespace NMib::NFile
 				}
 			}
 
-			void f_Write(const void *_pSource, CFilePos _Position, mint _nBytes)
+			void f_Write(const void *_pSource, CFilePos _Position, umint _nBytes)
 			{
 				CFilePos CurrentPosition = _Position;
 				uint8 *pSrc = (uint8 *)_pSource;
@@ -1215,7 +1215,7 @@ namespace NMib::NFile
 				{
 					CFilePos Pos = CurrentPosition;
 					CClusterCacheEntry *pEntry = f_GetCluster(Pos);
-					mint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
+					umint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
 					NMemory::fg_MemCopy(pEntry->m_ClusterMemory.f_GetArray() + Pos, pSrc, MaxBytes);
 					pEntry->m_bDirty = true;
 					pSrc += MaxBytes;
@@ -1449,13 +1449,13 @@ namespace NMib::NFile
 				mp_pFile = nullptr;
 			}
 
-			void f_FeedBytes(const void *_pMem, mint _nBytes)
+			void f_FeedBytes(const void *_pMem, umint _nBytes)
 			{
 				mp_pFile->f_Write(_pMem, mp_Position, _nBytes);
 				mp_Position += _nBytes;
 			}
 
-			void f_ConsumeBytes(void *_pMem, mint _nBytes)
+			void f_ConsumeBytes(void *_pMem, umint _nBytes)
 			{
 				mp_pFile->f_Read(_pMem, mp_Position, _nBytes);
 				mp_Position += _nBytes;
@@ -1501,7 +1501,7 @@ namespace NMib::NFile
 				return mp_pFile->f_Flush();
 			}
 
-			void f_SetCacheSize(mint _CacheSize)
+			void f_SetCacheSize(umint _CacheSize)
 			{
 			}
 
@@ -1510,7 +1510,7 @@ namespace NMib::NFile
 				return mp_pFile->m_FileRecord.m_FileSize;
 			}
 
-			mint f_ContainerLengthLimit() const
+			umint f_ContainerLengthLimit() const
 			{
 				return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
 			}
@@ -1561,7 +1561,7 @@ namespace NMib::NFile
 		void f_Create(NStream::CBinaryStream *_pStorageStream, uint64 _ClusterSize, uint64 _FileSystemGrowSise, uint64 _InitialSize);
 		void f_Close();
 
-		void f_SetCacheSizes(mint _nDirectories, mint _nClusterBytes);
+		void f_SetCacheSizes(umint _nDirectories, umint _nClusterBytes);
 
 
 		void f_OpenFile(CFile &_File, NStr::CStr const &_FileName, uint32 _OpenFlags);
@@ -1635,7 +1635,7 @@ namespace NMib::NFile
 			void f_Seek(CClusterID _Cluster);
 			uint64 f_AddClusterID(CClusterID _Cluster, CClusterID _File, uint64 _Flags, bool _bMap);
 			ECheckFSError f_AddFreeClusters(CClusterID _ClusterID);
-			bool f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, mint _Length);
+			bool f_WriteFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data, umint _Length);
 			bool f_ReadFileData(CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
 			static bool fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data);
 			static bool fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord);
@@ -1735,10 +1735,10 @@ namespace NMib::NFile
 			bool f_IsValid() const;
 			void f_Close();
 			void f_Open(CVirtualFS &_FileSystem, NStr::CStr const &_FileName, uint32 _OpenFlags);
-			void f_Read(void *_pDest, mint _nBytes);
-			void f_Write(const void *_pSrc, mint _nBytes);
+			void f_Read(void *_pDest, umint _nBytes);
+			void f_Write(const void *_pSrc, umint _nBytes);
 			void f_Flush(bool _bLocalCacheOnly);
-			void f_SetCacheSize(mint _CacheSize);
+			void f_SetCacheSize(umint _CacheSize);
 			bool f_IsAtEndOfFile() const;
 			void f_SetLength(const CMibFilePos &_Length);
 			CMibFilePos f_GetLength() const;
@@ -1811,19 +1811,19 @@ namespace NMib::NFile
 			DMibMemLightweightTrackDisableScope;
 			mp_pFile->f_Flush(_bLocalCacheOnly);
 		}
-		void f_SetCacheSize(mint _CacheSize)
+		void f_SetCacheSize(umint _CacheSize)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_pFile->f_SetCacheSize(_CacheSize);
 		}
 
-		void f_FeedBytes(const void *_pMem, mint _nBytes)
+		void f_FeedBytes(const void *_pMem, umint _nBytes)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_pFile->f_Write(_pMem, _nBytes);
 		}
 
-		void f_ConsumeBytes(void *_pMem, mint _nBytes)
+		void f_ConsumeBytes(void *_pMem, umint _nBytes)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_pFile->f_Read(_pMem, _nBytes);
@@ -1877,7 +1877,7 @@ namespace NMib::NFile
 			return mp_pFile->f_GetLength();
 		}
 
-		mint f_ContainerLengthLimit() const
+		umint f_ContainerLengthLimit() const
 		{
 			return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
 		}
@@ -1926,19 +1926,19 @@ namespace NMib::NFile
 			DMibMemLightweightTrackDisableScope;
 			mp_File.f_Flush(_bLocalCacheOnly);
 		}
-		void f_SetCacheSize(mint _CacheSize)
+		void f_SetCacheSize(umint _CacheSize)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_File.f_SetCacheSize(_CacheSize);
 		}
 
-		void f_FeedBytes(const void *_pMem, mint _nBytes)
+		void f_FeedBytes(const void *_pMem, umint _nBytes)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_File.f_Write(_pMem, _nBytes);
 		}
 
-		void f_ConsumeBytes(void *_pMem, mint _nBytes)
+		void f_ConsumeBytes(void *_pMem, umint _nBytes)
 		{
 			DMibMemLightweightTrackDisableScope;
 			mp_File.f_Read(_pMem, _nBytes);
@@ -1992,7 +1992,7 @@ namespace NMib::NFile
 			return mp_File.f_GetLength();
 		}
 
-		mint f_ContainerLengthLimit() const
+		umint f_ContainerLengthLimit() const
 		{
 			return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
 		}

@@ -61,7 +61,7 @@ void CVfsWfx::f_LoadSettings()
 
 class CFindRoot : public CFindInstance
 {
-	mint m_iCurrent;
+	umint m_iCurrent;
 	TCVector<CStr> m_lStatic;
 
 	CVfsWfx::CFileSysIter m_FileSysIter;
@@ -111,7 +111,7 @@ public:
 
 class CFindFileSystem : public CFindInstance
 {
-	mint m_iCurrent;
+	umint m_iCurrent;
 
 	CFileSystem *m_pFileSystem;
 	TCVector<CStr> m_Files;
