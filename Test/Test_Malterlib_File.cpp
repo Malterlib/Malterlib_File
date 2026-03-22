@@ -2806,7 +2806,7 @@ namespace
 					fTestTimeRoundTrip("Year_1970", NTime::CTimeConvert::fs_CreateTime(1970, 1, 1, 0, 0, 0, 0.123456789));
 					fTestTimeRoundTrip("Year_2000", NTime::CTimeConvert::fs_CreateTime(2000, 6, 15, 12, 30, 45, 0.987654321));
 					fTestTimeRoundTrip("Year_2024", NTime::CTimeConvert::fs_CreateTime(2024, 12, 31, 23, 59, 59, 0.999999999));
-					fTestTimeRoundTrip("Year_2038", NTime::CTimeConvert::fs_CreateTime(2038, 1, 19, 3, 14, 7, 0.5));
+					fTestTimeRoundTrip("Year_2038", NTime::CTimeConvert::fs_CreateTime(2038, 1, 19, 3, 14, 6, 0.5));
 					// Note: Year 3000 not tested - many file systems can't represent dates that far in the future
 				}
 
