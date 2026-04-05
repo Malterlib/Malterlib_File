@@ -1,5 +1,5 @@
-// Copyright © 2015 Hansoft AB
-// Distributed under the MIT license, see license text in LICENSE.Malterlib
+// Copyright © Unbroken AB
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 // contents of fsplugin.h  version 2.0 (30.Jan.2009)
 #define DMibAllowCodeStandardViolations 1
