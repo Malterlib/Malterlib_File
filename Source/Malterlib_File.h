@@ -14,9 +14,11 @@
 
 namespace NMib::NEncoding
 {
+	enum class EJsonContainerFlag : uint32;
+
 	namespace NPrivate
 	{
-		template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
+		template <template <typename t_CParent> class t_TCValue, typename t_CTypes, EJsonContainerFlag t_ContainerFlags>
 		struct TCJsonValueBase;
 		struct CEJsonExtraTypesSorted;
 	}
@@ -24,10 +26,10 @@ namespace NMib::NEncoding
 	template <typename t_CParent>
 	struct TCEJsonValue;
 
-	template <template <typename t_CParent> class t_TCValue, typename t_CTypes, bool t_bOrdered>
-	using TCJson = t_TCValue<NPrivate::TCJsonValueBase<t_TCValue, t_CTypes, t_bOrdered>>;
+	template <template <typename t_CParent> class t_TCValue, typename t_CTypes, EJsonContainerFlag t_ContainerFlags>
+	using TCJson = t_TCValue<NPrivate::TCJsonValueBase<t_TCValue, t_CTypes, t_ContainerFlags>>;
 
-	using CEJsonSorted = TCJson<TCEJsonValue, NPrivate::CEJsonExtraTypesSorted, false>;
+	using CEJsonSorted = TCJson<TCEJsonValue, NPrivate::CEJsonExtraTypesSorted, EJsonContainerFlag(0)>;
 }
 
 namespace NMib::NFile
