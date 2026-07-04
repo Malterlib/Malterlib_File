@@ -5,6 +5,24 @@
 
 namespace NMib::NFile
 {
+	template <typename tf_CJson>
+	auto CDirectoryManifestFile::fs_ParseSyncFlags(tf_CJson const &_Json) -> EDirectoryManifestSyncFlag
+	{
+		EDirectoryManifestSyncFlag Flags = EDirectoryManifestSyncFlag_None;
+
+		for (auto &Flag : _Json.f_Array())
+		{
+			if (Flag.f_String() == "Append")
+				Flags |= EDirectoryManifestSyncFlag_Append;
+			else if (Flag.f_String() == "TransactionLog")
+				Flags |= EDirectoryManifestSyncFlag_TransactionLog;
+			else
+				DMibError(NStr::fg_Format("Unknown sync flag: {}", Flag.f_String()));
+		}
+
+		return Flags;
+	}
+
 	template <typename tf_CStream>
 	void CDirectoryManifestConfig::f_Stream(tf_CStream &_Stream, uint32 _Version)
 	{

@@ -11,23 +11,6 @@ namespace NMib::NFile
 	using namespace NContainer;
 	using namespace NStr;
 
-	auto CDirectoryManifestFile::fs_ParseSyncFlags(NEncoding::CEJsonSorted const &_Json) -> EDirectoryManifestSyncFlag
-	{
-		EDirectoryManifestSyncFlag Flags = EDirectoryManifestSyncFlag_None;
-
-		for (auto &Flag : _Json.f_Array())
-		{
-			if (Flag.f_String() == "Append")
-				Flags |= EDirectoryManifestSyncFlag_Append;
-			else if (Flag.f_String() == "TransactionLog")
-				Flags |= EDirectoryManifestSyncFlag_TransactionLog;
-			else
-				DMibError(NStr::fg_Format("Unknown sync flag: {}", Flag.f_String()));
-		}
-
-		return Flags;
-	}
-
 	NEncoding::CEJsonSorted CDirectoryManifestFile::fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags)
 	{
 		NEncoding::CEJsonSorted Json;
