@@ -675,6 +675,18 @@ namespace
 									return bHasChange;
 								}
 							;
+							auto fDrainUntilQuiet = [&]
+								{
+									for (;;)
+									{
+										while (fHasChange())
+											;
+
+										if (Event.f_WaitTimeout(0.25))
+											return;
+									}
+								}
+							;
 
 							CStr SubDir;
 							if (bRecursive)
@@ -1246,8 +1258,7 @@ namespace
 											break;
 									}
 
-									while (fHasChange())
-										; // The rest of modified
+									fDrainUntilQuiet(); // The rest of modified
 
 									DMibExpectFalse(fHasChange() && "Before");
 
@@ -1355,8 +1366,7 @@ namespace
 
 									// Critical test: write to file at NEW location
 									// Verify we receive modification notification
-									fSleep();
-									while (fHasChange()) {} // Drain any remaining notifications
+									fDrainUntilQuiet(); // Drain any remaining notifications
 									DMibExpectFalse(fHasChange() && "Before new location write");
 
 									CStr NewFile = DestDir + "/TestFile.txt";
@@ -1386,8 +1396,7 @@ namespace
 										if (Notification.m_Notification == EFileChangeNotification_Removed && Notification.m_Path == "SyncTemp")
 											break;
 									}
-									while (fHasChange())
-										; // The rest of modified
+									fDrainUntilQuiet(); // The rest of modified
 									DMibExpectFalse(fHasChange() && "AfterCleanup");
 								}
 							}
