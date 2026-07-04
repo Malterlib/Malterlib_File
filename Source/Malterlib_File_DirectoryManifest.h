@@ -31,7 +31,9 @@ namespace NMib::NFile
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream, uint32 _Version);
 
-		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(NEncoding::CEJsonSorted const &_Json);
+		template <typename tf_CJson>
+		static EDirectoryManifestSyncFlag fs_ParseSyncFlags(tf_CJson const &_Json);
+
 		static NEncoding::CEJsonSorted fs_GenerateSyncFlags(EDirectoryManifestSyncFlag _Flags);
 
 		NStorage::TCOptional<NCryptography::CHashDigest_SHA256> m_Digest;
