@@ -11,6 +11,8 @@ namespace NMib::NFile
 	class CFileChangeNotificationActor : public NConcurrency::CActor
 	{
 	public:
+		static constexpr NConcurrency::EPriority mc_Priority = NConcurrency::EPriority_NormalHighCPU; // Tree scans can consume substantial CPU without requiring low latency.
+
 		CFileChangeNotificationActor();
 		~CFileChangeNotificationActor();
 

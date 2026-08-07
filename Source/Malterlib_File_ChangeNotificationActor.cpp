@@ -92,36 +92,42 @@ namespace NMib::NFile
 			}
 		;
 
-		pNotification->m_pNotifier =
-			fg_Construct
+		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> fNotify =
+			[
+				this
+				, pNotification
+				, pDestroyed = pNotification->m_pDestroyed
+				, ThisWeak = NConcurrency::fg_ThisActor(this).f_Weak()
+			]
+			(CFileChangeNotification::CNotification const &_Change)
+			{
+				auto ThisActor = ThisWeak.f_Lock();
+
+				if (!ThisActor)
+					return;
+
+				NConcurrency::g_Dispatch(ThisActor) / [=, this]
+					{
+						if (*pDestroyed)
+							return;
+
+						auto &Internal = *mp_pInternal;
+
+						Internal.fp_HandleNotification(pNotification, _Change);
+					}
+					> NConcurrency::g_DiscardResult
+				;
+			}
+		;
+
+		// Opening a notification may scan the watched tree and block.
+		auto BlockingActorCheckout = fg_BlockingActor();
+
+		pNotification->m_pNotifier = co_await
 			(
-				_Path
-				, _OpenFlags
-				,
-				[
-					this
-					, pNotification
-					, pDestroyed = pNotification->m_pDestroyed
-					, ThisWeak = NConcurrency::fg_ThisActor(this).f_Weak()
-				]
-				(CFileChangeNotification::CNotification const &_Change)
+				g_Dispatch(BlockingActorCheckout) / [_Path, _OpenFlags, fNotify = fg_Move(fNotify)]() -> TCUniquePointer<CFileChangeNotifier>
 				{
-					auto ThisActor = ThisWeak.f_Lock();
-
-					if (!ThisActor)
-						return;
-
-					NConcurrency::g_Dispatch(ThisActor) / [=, this]
-						{
-							if (*pDestroyed)
-								return;
-
-							auto &Internal = *mp_pInternal;
-
-							Internal.fp_HandleNotification(pNotification, _Change);
-						}
-						> NConcurrency::g_DiscardResult
-					;
+					return fg_Construct(_Path, _OpenFlags, fNotify);
 				}
 			)
 		;
