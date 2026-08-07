@@ -11,6 +11,10 @@ namespace NMib::NFile
 	class CFileChangeNotificationActor : public NConcurrency::CActor
 	{
 	public:
+		// Notification processing can use a lot of CPU without being latency sensitive, so it
+		// runs on the high CPU work queues instead of occupying the normal ones
+		static constexpr NConcurrency::EPriority mc_Priority = NConcurrency::EPriority_NormalHighCPU;
+
 		CFileChangeNotificationActor();
 		~CFileChangeNotificationActor();
 
