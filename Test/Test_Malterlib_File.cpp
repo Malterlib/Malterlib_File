@@ -1328,6 +1328,63 @@ namespace
 							DMibTest(DMibExpr(fg_StrCmp(Temp, "Testing") == 0));
 						}
 
+						{
+							// Regression test: a read landing in a file's last, partial cache page must
+							// not copy stale bytes left over from a previous cache fill. Uses a cache page
+							// much larger than the file so the single fill is a genuine short/partial read.
+							DMibTestPath("Read partial last cache page");
+							NStr::CStr PartialCacheTestFile = TestFileName + ".partialcache";
+							ch8 const *pPattern = "0123456789ABCDEFGHIJ";
+							mint const PatternLen = 20;
+
+							{
+								CFile File;
+								File.f_Open(PartialCacheTestFile, EFileOpen_Write);
+								File.f_Write(pPattern, PatternLen);
+								File.f_Close();
+							}
+
+							{
+								DMibTestPath("Single read covering the whole partial page");
+								CFile File;
+								File.f_Open(PartialCacheTestFile, EFileOpen_Read);
+								File.f_SetCacheSize(4096);
+
+								ch8 Temp[PatternLen + 1];
+								NMib::NMemory::fg_MemClear(Temp);
+								File.f_Read(Temp, PatternLen);
+								File.f_Close();
+								DMibTest(DMibExpr(fg_StrCmp(Temp, pPattern) == 0));
+							}
+
+							{
+								DMibTestPath("Split reads within the same cached partial page");
+								CFile File;
+								File.f_Open(PartialCacheTestFile, EFileOpen_Read);
+								File.f_SetCacheSize(4096);
+
+								ch8 Temp[PatternLen + 1];
+								NMib::NMemory::fg_MemClear(Temp);
+								File.f_Read(Temp, 10);
+								File.f_Read(Temp + 10, PatternLen - 10);
+								File.f_Close();
+								DMibTest(DMibExpr(fg_StrCmp(Temp, pPattern) == 0));
+							}
+
+							{
+								DMibTestPath("Reading past end of file still throws");
+								CFile File;
+								File.f_Open(PartialCacheTestFile, EFileOpen_Read);
+								File.f_SetCacheSize(4096);
+
+								ch8 Temp[PatternLen + 8];
+								DMibTest(DMibExpr(TCThrowsException<NMib::NFile::CExceptionFile>()) == DMibLExpr(File.f_Read(Temp, PatternLen + 1);));
+								File.f_Close();
+							}
+
+							CFile::fs_DeleteFile(PartialCacheTestFile);
+						}
+
 						// Copy
 						{
 							DMibTestPath("Copy");

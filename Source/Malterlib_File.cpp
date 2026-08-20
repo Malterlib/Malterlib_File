@@ -367,7 +367,13 @@ namespace NMib::NFile
 			{
 				mint nBytesAvailable;
 				void *pCache = fp_GetCache(CurrentPos, nBytesAvailable);
+				// fp_GetCache reports how much room is left in the cache page, not how much of
+				// that room is actually filled with real file data - when a read lands in the
+				// file's last, partial cache page, the page has room beyond what was ever read
+				// from disk. Clamp against the tracked file length too, or this copies stale
+				// bytes left over from a previous cache fill instead of real file content.
 				mint nThisTime = fg_Min(nBytesAvailable, ToCopy);
+				nThisTime = fg_Min(nThisTime, (mint)fg_Max(CMibFilePos(0), mp_CachedFileLen - CurrentPos));
 				NMemory::fg_MemCopy(pDest, pCache, nThisTime);
 				ToCopy -= nThisTime;
 				CurrentPos += nThisTime;
