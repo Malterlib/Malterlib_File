@@ -10,6 +10,13 @@ using namespace NMib;
 #ifdef DPlatformFamily_Windows
 #include "stdlib.h"
 #include <Mib/Core/PlatformSpecific/WindowsFilePath>
+#else
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#endif
+#if defined(DPlatformFamily_macOS) || defined(DPlatformFamily_Linux)
+#include <sys/xattr.h>
 #endif
 
 namespace
@@ -1744,6 +1751,294 @@ namespace
 				}
 
 			};
+
+#ifndef DPlatformFamily_Windows
+			DMibTestSuite("Duplicate Permissions")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestDuplicatePermissions";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				CStr SourceFile = TestDir + "/Source";
+				CStr DestFile = TestDir + "/Duplicate";
+				CFile::fs_WriteStringToFile(SourceFile, "Duplicate permissions content");
+
+				// A mode with bits the default umask strips at file creation, so a duplicate whose
+				// mode was filtered through the umask instead of copied from the source is caught
+				mode_t Mode = 0766;
+				DMibTest(DMibExpr(chmod(SourceFile, Mode)) == DMibExpr(0));
+
+#ifdef DPlatformFamily_Linux
+				// A duplicate is faithful beyond the mode: extended attributes and timestamps
+				// ride along, which distinguishes it from the data-only clone. The source is
+				// backdated so a fresh-file timestamp cannot pass by coincidence. Not every
+				// filesystem supports user xattrs, so that half of the check is gated on the
+				// setup succeeding rather than failing the suite where the feature is absent
+				bool bXattrSupported = setxattr(SourceFile, "user.malterlib.test", "x", 1, 0) == 0;
+				if (!bXattrSupported)
+					DMibTest(DMibExpr(errno == ENOTSUP || errno == EOPNOTSUPP) == DMibExpr(true));
+
+				struct timespec BackdatedTimes[2] = {{1000000000, 0}, {1000000000, 0}};
+				DMibTest(DMibExpr(utimensat(AT_FDCWD, SourceFile, BackdatedTimes, 0)) == DMibExpr(0));
+#endif
+
+				struct stat SourceStat;
+				DMibTest(DMibExpr(stat(SourceFile, &SourceStat)) == DMibExpr(0));
+
+				// The umask is pinned so the test observes the same masking everywhere; restored
+				// when the scope closes, exceptional exits included
+				mode_t PreviousUmask = umask(022);
+				auto UmaskRestore = g_OnScopeExit / [&]
+					{
+						umask(PreviousUmask);
+					}
+				;
+
+				bool bDuplicated = CFile::fs_TryDuplicateFile(SourceFile, DestFile);
+
+				// Reflink support depends on the filesystem; without it there is nothing to check
+				if (bDuplicated)
+				{
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibTest(DMibExpr(umint(DestStat.st_mode & 07777)) == DMibExpr(umint(Mode)));
+
+#ifdef DPlatformFamily_Linux
+					if (bXattrSupported)
+					{
+						char XattrValue[2] = {};
+						DMibExpect(smint(getxattr(DestFile, "user.malterlib.test", XattrValue, sizeof(XattrValue))), ==, smint(1));
+					}
+					DMibExpect(smint(DestStat.st_mtim.tv_sec), ==, smint(SourceStat.st_mtim.tv_sec));
+#endif
+				}
+			};
+
+			DMibTestSuite("Copy Diff Permissions")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCopyDiffPermissions";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				// The destination gets fresh default permissions whether the copy cloned the
+				// source or wrote it out: a clone must not carry the source's wider mode
+				{
+					DMibTestPath("Default mode");
+
+					CStr SourceFile = TestDir + "/Source";
+					CStr DestFile = TestDir + "/Dest";
+					CFile::fs_WriteStringToFile(SourceFile, "Copy diff permissions content");
+					DMibTest(DMibExpr(chmod(SourceFile, 0666)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0644));
+				}
+
+				// Executable sources keep the executable bit through either path
+				{
+					DMibTestPath("Executable");
+
+					CStr SourceFile = TestDir + "/SourceExec";
+					CStr DestFile = TestDir + "/DestExec";
+					CFile::fs_WriteStringToFile(SourceFile, "Executable content");
+					DMibTest(DMibExpr(chmod(SourceFile, 0777)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0755));
+				}
+
+				// Special mode bits never propagate: a cloned setuid source must not install a
+				// setuid destination
+				{
+					DMibTestPath("Setuid");
+
+					CStr SourceFile = TestDir + "/SourceSetuid";
+					CStr DestFile = TestDir + "/DestSetuid";
+					CFile::fs_WriteStringToFile(SourceFile, "Setuid content");
+					DMibTest(DMibExpr(chmod(SourceFile, 04755)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0755));
+				}
+
+#ifdef DPlatformFamily_macOS
+				// Extended attributes never propagate: the clone path must produce the same fresh
+				// metadata the write path does
+				{
+					DMibTestPath("Extended attributes");
+
+					CStr SourceFile = TestDir + "/SourceXattr";
+					CStr DestFile = TestDir + "/DestXattr";
+					CFile::fs_WriteStringToFile(SourceFile, "Xattr content");
+					DMibTest(DMibExpr(setxattr(SourceFile, "com.malterlib.test", "x", 1, 0, 0)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					DMibExpect(smint(listxattr(DestFile, nullptr, 0, XATTR_NOFOLLOW)), ==, smint(0));
+				}
+#endif
+			};
+
+#ifdef DPlatformFamily_Linux
+			DMibTestSuite("Copy Permissions Umask")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCopyPermissionsUmask";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				// Both copy paths normalize a written destination to the fixed 0644 default before
+				// the attribute copy adjusts read-only and executable — the same policy CFile
+				// applies to every file it opens for writing. The umask deliberately does not
+				// participate, and neither do the source's group and other bits: the result must
+				// be 0644 whether the kernel fast copy or the userspace fallback ran
+				CStr SourceFile = TestDir + "/Source";
+				CStr DestFile = TestDir + "/Dest";
+				CFile::fs_WriteStringToFile(SourceFile, "Copy umask content");
+				DMibTest(DMibExpr(chmod(SourceFile, 0666)) == DMibExpr(0));
+
+				mode_t PreviousUmask = umask(077);
+				auto UmaskRestore = g_OnScopeExit / [&]
+					{
+						umask(PreviousUmask);
+					}
+				;
+				CFile::fs_CopyFile(SourceFile, DestFile);
+
+				struct stat DestStat;
+				DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+				DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0644));
+			};
+#endif
+
+#ifndef DPlatformFamily_Windows
+			DMibTestSuite("Clone Refuses Fifo")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCloneFifo";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				// A FIFO with no writer holds a blocking open until one arrives; the clone opens
+				// its source without blocking and turns the non-regular source down instead
+				CStr Fifo = TestDir + "/Fifo";
+				DMibTest(DMibExpr(mkfifo(Fifo, 0600)) == DMibExpr(0));
+
+				DMibExpectTrue(!CFile::fs_TryCloneFileData(Fifo, TestDir + "/Clone"));
+				DMibExpectTrue(!CFile::fs_FileExists(TestDir + "/Clone"));
+			};
+#endif
+
+#ifdef DPlatformFamily_macOS
+			DMibTestSuite("Compressed Source")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCompressedSource";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				CStr PlainFile = TestDir + "/Plain";
+				CStr SourceFile = TestDir + "/Source";
+				CStr Content;
+				for (umint iRepetition = 0; iRepetition < 4096; ++iRepetition)
+					Content += "compressible content ";
+				CFile::fs_WriteStringToFile(PlainFile, Content);
+
+				// A filesystem-compressed file keeps its logical bytes in the decmpfs metadata a
+				// data-only clone strips — cloning one used to produce an empty destination. If
+				// ditto or the filesystem declines to compress, there is nothing to regress
+				// against. The suite body is a lambda (DMibTestSuite wraps it in one), so these
+				// returns skip only this suite, exactly like the loop tests' platform skips
+				CStr Command = CStr::CFormat("/usr/bin/ditto --hfsCompression '{}' '{}'") << PlainFile << SourceFile;
+				if (system(Command) != 0)
+					return;
+
+				struct stat SourceStat;
+				DMibTest(DMibExpr(stat(SourceFile, &SourceStat)) == DMibExpr(0));
+				if (!(SourceStat.st_flags & UF_COMPRESSED))
+					return;
+
+				{
+					DMibTestPath("Clone refuses");
+
+					DMibExpectTrue(!CFile::fs_TryCloneFileData(SourceFile, TestDir + "/Clone"));
+				}
+
+				{
+					DMibTestPath("Diff copy delivers content");
+
+					CStr DestFile = TestDir + "/Dest";
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+					DMibExpectTrue(CFile::fs_ReadStringFromFile(DestFile) == Content);
+				}
+			};
+#endif
+#endif
 
 			DMibTestCategory("Ownership")
 			{
