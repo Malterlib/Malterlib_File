@@ -170,6 +170,12 @@ namespace NMib::NSys::NFile
 	void fg_Duplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 	bool fg_TryDuplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 
+	// Copy-on-write clone of the file's data only: the destination gets fresh metadata — mode from
+	// the process default and umask, no ownership of the source's flags, special bits or extended
+	// attributes — exactly as if it had been created and written, while the data blocks are shared.
+	// Returns false where the platform or filesystem cannot do it, and the caller copies instead
+	bool fg_TryCloneData(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
+
 	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
 	void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
@@ -464,6 +470,17 @@ namespace NMib::NFile
 					, EFileAttrib _AddAttribs
 					, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
 					, bool _bRemoveWriteProtection = false
+					// When false, _SourceData is empty, _FromFileName is known to differ from
+					// _ToFileName, and the source is read lazily only if needed
+					, bool _bSourceDataValid = true
+					// The inode the caller's metadata was read from: the source is re-resolved by
+					// name for the clone and lazy read, and a mismatch means the path was
+					// replaced, so the copy throws and the caller's retry re-reads everything
+					, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
+					// Stamp the moment after the data was secured instead of _FileTime: the lazy
+					// read happens inside, so an entry-time "now" would date a slow copy older by
+					// its whole read
+					, bool _bFileTimeIsNow = false
 				)
 		;
 		static bool fsp_CopyFileDiffDate
@@ -559,6 +576,9 @@ namespace NMib::NFile
 
 		static void fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 		static bool fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+		// Data-only copy-on-write clone: shares data blocks with the source but gets fresh
+		// metadata, exactly as if the destination had been created and written
+		static bool fs_TryCloneFileData(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 
 		static void fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 		static void fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
