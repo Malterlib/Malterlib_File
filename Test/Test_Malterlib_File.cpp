@@ -10,6 +10,13 @@ using namespace NMib;
 #ifdef DPlatformFamily_Windows
 #include "stdlib.h"
 #include <Mib/Core/PlatformSpecific/WindowsFilePath>
+#else
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#endif
+#if defined(DPlatformFamily_macOS) || defined(DPlatformFamily_Linux)
+#include <sys/xattr.h>
 #endif
 
 namespace
@@ -1744,6 +1751,269 @@ namespace
 				}
 
 			};
+
+#ifndef DPlatformFamily_Windows
+			DMibTestSuite("Duplicate Permissions")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestDuplicatePermissions";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				CStr SourceFile = TestDir + "/Source";
+				CStr DestFile = TestDir + "/Duplicate";
+				CFile::fs_WriteStringToFile(SourceFile, "Duplicate permissions content");
+
+				// Use permission bits that the default umask would strip if the mode were not copied.
+				mode_t Mode = 0766;
+				DMibTest(DMibExpr(chmod(SourceFile, Mode)) == DMibExpr(0));
+
+#ifdef DPlatformFamily_Linux
+				// Backdating distinguishes a copied timestamp from a fresh-file timestamp. User xattrs may be unsupported.
+				bool bXattrSupported = setxattr(SourceFile, "user.malterlib.test", "x", 1, 0) == 0;
+				if (!bXattrSupported)
+					DMibTest(DMibExpr(errno == ENOTSUP || errno == EOPNOTSUPP) == DMibExpr(true));
+
+				struct timespec BackdatedTimes[2] = {{1000000000, 0}, {1000000000, 0}};
+				DMibTest(DMibExpr(utimensat(AT_FDCWD, SourceFile, BackdatedTimes, 0)) == DMibExpr(0));
+#endif
+
+				struct stat SourceStat;
+				DMibTest(DMibExpr(stat(SourceFile, &SourceStat)) == DMibExpr(0));
+
+				mode_t PreviousUmask = umask(022);
+				auto UmaskRestore = g_OnScopeExit / [&]
+					{
+						umask(PreviousUmask);
+					}
+				;
+
+				bool bDuplicated = CFile::fs_TryDuplicateFile(SourceFile, DestFile);
+
+				if (bDuplicated)
+				{
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibTest(DMibExpr(umint(DestStat.st_mode & 07777)) == DMibExpr(umint(Mode)));
+
+#ifdef DPlatformFamily_Linux
+					if (bXattrSupported)
+					{
+						char XattrValue[2] = {};
+						DMibExpect(smint(getxattr(DestFile, "user.malterlib.test", XattrValue, sizeof(XattrValue))), ==, smint(1));
+					}
+					DMibExpect(smint(DestStat.st_mtim.tv_sec), ==, smint(SourceStat.st_mtim.tv_sec));
+#endif
+				}
+			};
+
+			DMibTestSuite("Copy Diff Permissions")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCopyDiffPermissions";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				{
+					DMibTestPath("Default mode");
+
+					CStr SourceFile = TestDir + "/Source";
+					CStr DestFile = TestDir + "/Dest";
+					CFile::fs_WriteStringToFile(SourceFile, "Copy diff permissions content");
+					DMibTest(DMibExpr(chmod(SourceFile, 0666)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0644));
+				}
+
+				{
+					DMibTestPath("Executable");
+
+					CStr SourceFile = TestDir + "/SourceExec";
+					CStr DestFile = TestDir + "/DestExec";
+					CFile::fs_WriteStringToFile(SourceFile, "Executable content");
+					DMibTest(DMibExpr(chmod(SourceFile, 0777)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0755));
+				}
+
+				{
+					DMibTestPath("Setuid");
+
+					CStr SourceFile = TestDir + "/SourceSetuid";
+					CStr DestFile = TestDir + "/DestSetuid";
+					CFile::fs_WriteStringToFile(SourceFile, "Setuid content");
+					DMibTest(DMibExpr(chmod(SourceFile, 04755)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					struct stat DestStat;
+					DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+					DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0755));
+				}
+
+#ifdef DPlatformFamily_macOS
+				{
+					DMibTestPath("Extended attributes");
+
+					CStr SourceFile = TestDir + "/SourceXattr";
+					CStr DestFile = TestDir + "/DestXattr";
+					CFile::fs_WriteStringToFile(SourceFile, "Xattr content");
+					DMibTest(DMibExpr(setxattr(SourceFile, "com.malterlib.test", "x", 1, 0, 0)) == DMibExpr(0));
+
+					mode_t PreviousUmask = umask(022);
+					auto UmaskRestore = g_OnScopeExit / [&]
+						{
+							umask(PreviousUmask);
+						}
+					;
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+
+					DMibExpect(smint(listxattr(DestFile, nullptr, 0, XATTR_NOFOLLOW)), ==, smint(0));
+				}
+#endif
+			};
+
+#ifdef DPlatformFamily_Linux
+			DMibTestSuite("Copy Permissions Umask")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCopyPermissionsUmask";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				CStr SourceFile = TestDir + "/Source";
+				CStr DestFile = TestDir + "/Dest";
+				CFile::fs_WriteStringToFile(SourceFile, "Copy umask content");
+				DMibTest(DMibExpr(chmod(SourceFile, 0666)) == DMibExpr(0));
+
+				mode_t PreviousUmask = umask(077);
+				auto UmaskRestore = g_OnScopeExit / [&]
+					{
+						umask(PreviousUmask);
+					}
+				;
+				CFile::fs_CopyFile(SourceFile, DestFile);
+
+				struct stat DestStat;
+				DMibTest(DMibExpr(stat(DestFile, &DestStat)) == DMibExpr(0));
+				DMibExpect(umint(DestStat.st_mode & 07777), ==, umint(0644));
+			};
+#endif
+
+#ifndef DPlatformFamily_Windows
+			DMibTestSuite("Clone Refuses Fifo")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCloneFifo";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				// Without a writer, a blocking open of this FIFO would hang.
+				CStr Fifo = TestDir + "/Fifo";
+				DMibTest(DMibExpr(mkfifo(Fifo, 0600)) == DMibExpr(0));
+
+				DMibExpectTrue(!CFile::fs_TryCloneFileData(Fifo, TestDir + "/Clone"));
+				DMibExpectTrue(!CFile::fs_FileExists(TestDir + "/Clone"));
+			};
+#endif
+
+#ifdef DPlatformFamily_macOS
+			DMibTestSuite("Compressed Source")
+			{
+				CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCompressedSource";
+				if (CFile::fs_FileExists(TestDir))
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				CFile::fs_CreateDirectory(TestDir);
+
+				auto Cleanup = g_OnScopeExit / [&]
+					{
+						CFile::fs_DeleteDirectoryRecursive(TestDir);
+					}
+				;
+
+				CStr PlainFile = TestDir + "/Plain";
+				CStr SourceFile = TestDir + "/Source";
+				CStr Content;
+				for (umint iRepetition = 0; iRepetition < 4096; ++iRepetition)
+					Content += "compressible content ";
+				CFile::fs_WriteStringToFile(PlainFile, Content);
+
+				// Compressed logical bytes may live in decmpfs metadata. Skip if compression is unavailable.
+				CStr Command = CStr::CFormat("/usr/bin/ditto --hfsCompression '{}' '{}'") << PlainFile << SourceFile;
+				if (system(Command) != 0)
+					return;
+
+				struct stat SourceStat;
+				DMibTest(DMibExpr(stat(SourceFile, &SourceStat)) == DMibExpr(0));
+				if (!(SourceStat.st_flags & UF_COMPRESSED))
+					return;
+
+				{
+					DMibTestPath("Clone refuses");
+
+					DMibExpectTrue(!CFile::fs_TryCloneFileData(SourceFile, TestDir + "/Clone"));
+				}
+
+				{
+					DMibTestPath("Diff copy delivers content");
+
+					CStr DestFile = TestDir + "/Dest";
+					CFile::fs_CopyFileDiff(SourceFile, DestFile, true);
+					DMibExpectTrue(CFile::fs_ReadStringFromFile(DestFile) == Content);
+				}
+			};
+#endif
+#endif
 
 			DMibTestCategory("Ownership")
 			{

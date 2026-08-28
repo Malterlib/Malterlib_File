@@ -169,7 +169,7 @@ namespace NMib::NSys::NFile
 
 	void fg_Duplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 	bool fg_TryDuplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-
+	bool fg_TryCloneData(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
 	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
 	void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
@@ -464,6 +464,9 @@ namespace NMib::NFile
 					, EFileAttrib _AddAttribs
 					, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
 					, bool _bRemoveWriteProtection = false
+					, bool _bSourceDataValid = true
+					, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
+					, bool _bFileTimeIsNow = false
 				)
 		;
 		static bool fsp_CopyFileDiffDate
@@ -559,6 +562,7 @@ namespace NMib::NFile
 
 		static void fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 		static bool fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+		static bool fs_TryCloneFileData(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
 
 		static void fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 		static void fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);

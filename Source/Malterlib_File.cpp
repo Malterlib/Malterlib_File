@@ -982,6 +982,12 @@ namespace NMib::NFile
 		return NSys::NFile::fg_TryDuplicate(_FileFrom, _FileTo);
 	}
 
+	// Clones data blocks with fresh-file metadata. Returns false if cloning is unsupported.
+	bool CFile::fs_TryCloneFileData(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	{
+		return NSys::NFile::fg_TryCloneData(_FileFrom, _FileTo);
+	}
+
 	void CFile::fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo)
 	{
 		NStream::CFilePos Len = _FileFrom.f_GetLength() - _FileFrom.f_GetPosition();
@@ -1176,9 +1182,25 @@ namespace NMib::NFile
 	}
 
 
-	bool CFile::fsp_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange, bool _bRemoveWriteProtection)
+	// When _bSourceDataValid is false, _SourceData is empty and the differing source is read lazily if needed.
+	// _pExpectedSourceIdentity binds reopened data to the caller's metadata; mismatches throw for caller retry.
+	// _bFileTimeIsNow stamps after the data is secured, rather than using _FileTime.
+	auto CFile::fsp_CopyFileDiff
+		(
+			const NContainer::CByteVector &_SourceData
+			, const NStr::CStr &_FromFileName
+			, const NStr::CStr &_ToFileName
+			, const NTime::CTime &_FileTime
+			, EFileAttrib _AddAttribs
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, bool _bRemoveWriteProtection
+			, bool _bSourceDataValid
+			, CUniqueFileIdentifier const *_pExpectedSourceIdentity
+			, bool _bFileTimeIsNow
+		)
+		-> bool
 	{
-		if (fsp_FileIsSame(_SourceData, _ToFileName))
+		if (_bSourceDataValid && fsp_FileIsSame(_SourceData, _ToFileName))
 		{
 			if (_OnChange)
 				_OnChange(EDiffCopyChange_NoChange, _FromFileName, _ToFileName, NStr::CStr());
@@ -1211,8 +1233,6 @@ namespace NMib::NFile
 					CFile::fs_MakeFileWritable(_ToFileName, true);
 			}
 
-			NStream::CFilePos SourceLen = _SourceData.f_GetLen();
-
 			NStr::CStr TempFileName = CFile::fs_AppendPath(CFile::fs_GetPath(_ToFileName), NCryptography::fg_FastRandomID() + ".tmp");
 
 			auto Cleanup = g_OnScopeExit / [&]
@@ -1229,16 +1249,65 @@ namespace NMib::NFile
 			;
 
 			{
+				// Cloning shares data blocks but must leave fresh-file metadata, matching the write fallback.
+				bool bCloned =
+					!_FromFileName.f_IsEmpty()
+					&& CFile::fs_TryCloneFileData(_FromFileName, TempFileName)
+				;
+
+				// Reject path replacement between the metadata read and the clone. Callers must coordinate
+				// in-place writes and ABA replacements themselves when they need a consistent snapshot.
+				if (bCloned && _pExpectedSourceIdentity && CFile::fs_GetUniqueIdentifier(_FromFileName) != *_pExpectedSourceIdentity)
+					DMibErrorFile(NStr::CStr::CFormat("Source '{}' was replaced while cloning it") << _FromFileName);
+
 				NFile::CFile File;
-				File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
-				File.f_Write(_SourceData.f_GetArray(), SourceLen);
+				if (bCloned)
+				{
+					// The fresh file must remain readable by its owner for the attribute reopen.
+					File.f_Open(TempFileName, EFileOpen_ReadAttribs | EFileOpen_WriteAttribs | EFileOpen_ShareRead);
+
+					// Match the fixed default permissions applied by the fallback write open.
+					File.f_SetAttributes
+						(
+							EFileAttrib_UnixAttributesValid
+							| EFileAttrib_UserRead
+							| EFileAttrib_UserWrite
+							| EFileAttrib_GroupRead
+							| EFileAttrib_EveryoneRead
+						)
+					;
+				}
+				else
+				{
+					NContainer::CByteVector LazySourceData;
+					if (!_bSourceDataValid)
+					{
+						NFile::CFile SourceFile;
+						SourceFile.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
+
+						// The data handle must match the source of the caller's metadata.
+						if (_pExpectedSourceIdentity && SourceFile.f_GetUniqueIdentifier() != *_pExpectedSourceIdentity)
+							DMibErrorFile(NStr::CStr::CFormat("Source '{}' was replaced while copying it") << _FromFileName);
+
+						umint SourceFileLen = SourceFile.f_GetLength();
+						LazySourceData.f_SetLen(SourceFileLen);
+						SourceFile.f_Read(LazySourceData.f_GetArray(), SourceFileLen);
+					}
+
+					NContainer::CByteVector const &SourceData = _bSourceDataValid ? _SourceData : LazySourceData;
+
+					File.f_Open(TempFileName, EFileOpen_Write | EFileOpen_ShareRead | EFileOpen_NoLocalCache);
+					File.f_Write(SourceData.f_GetArray(), SourceData.f_GetLen());
+				}
 
 				if (_AddAttribs != EFileAttrib_None)
 				{
 					EFileAttrib CurrentAttribs = File.f_GetAttributes();
 					File.f_SetAttributes(CurrentAttribs | _AddAttribs);
 				}
-				File.f_SetWriteTime(_FileTime);
+
+				// Take "now" after securing the data so a slow read does not backdate the copy.
+				File.f_SetWriteTime(_bFileTimeIsNow ? NTime::CTime::fs_NowUTC() : _FileTime);
 			}
 
 			CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
@@ -1342,15 +1411,28 @@ namespace NMib::NFile
 	{
 		NFile::CFile File;
 		File.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
-		NContainer::CByteVector SourceData;
 		umint FileLen = File.f_GetLength();
-		SourceData.f_SetLen(FileLen);
-		File.f_Read(SourceData.f_GetArray(), FileLen);
 		EFileAttrib Attribs = File.f_GetAttributes() & EFileAttrib_Executable;
+
+		bool bSourceDataValid =
+			CFile::fs_FileExists(_ToFileName, EFileAttrib_File)
+			&& CMibFilePos(FileLen) == CFile::fs_GetFileSize(_ToFileName)
+		;
+
+		NContainer::CByteVector SourceData;
+		if (bSourceDataValid)
+		{
+			SourceData.f_SetLen(FileLen);
+			File.f_Read(SourceData.f_GetArray(), FileLen);
+		}
+
+		// Cloning and lazy reads reopen the path; retain this identity to detect replacement.
+		CUniqueFileIdentifier SourceIdentity = File.f_GetUniqueIdentifier();
+
 		if (_bCopyDate)
-			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, File.f_GetWriteTime(), Attribs, _OnChange, _bRemoveWriteProtection);
+			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, File.f_GetWriteTime(), Attribs, _OnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity);
 		else
-			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime::fs_NowUTC(), Attribs, _OnChange, _bRemoveWriteProtection);
+			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime(), Attribs, _OnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity, true);
 	}
 
 	void CFile::fs_Touch(const NStr::CStr &_File)
