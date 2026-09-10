@@ -1651,6 +1651,41 @@ namespace
 				}
 			};
 
+#ifdef DPlatformFamily_macOS
+			// /tmp resolves to /private/tmp, so the events name a root the watcher was never given
+			DMibTestSuite("Path hints under an aliased root")
+			{
+				if (!CFileChangeNotification::fs_Supported())
+					return;
+
+				CStr WatchDir = "/tmp/Malterlib_FileTest_Hints";
+				if (CFile::fs_FileExists(WatchDir))
+					CFile::fs_DeleteDirectoryRecursive(WatchDir);
+				CFile::fs_CreateDirectory(WatchDir);
+				fg_TestAddCleanupPath(WatchDir);
+
+				NThread::CEventAutoReset Event;
+				CFileChangeNotification FileChangeNotification;
+				FileChangeNotification.f_Open(WatchDir, EFileChange_Recursive | EFileChange_Write | EFileChange_FileName | EFileChange_PathHintsOnly, &Event);
+
+				CFile::fs_WriteStringToFile(WatchDir + "/File.txt", "Hint");
+
+				for (;;)
+				{
+					CFileChangeNotification::CNotification Notification;
+					while (!FileChangeNotification.f_GetNotification(Notification))
+						DMibExpectFalse(Event.f_WaitTimeout(10.0))(ETest_FailAndStop)(ETestFlag_Aggregated);
+
+					DMibExpectFalse(Notification.m_Path.f_StartsWith("../"))(ETestFlag_Aggregated);
+
+					if (Notification.m_Path == "File.txt")
+						break;
+				}
+
+				FileChangeNotification.f_Close();
+			};
+#endif
+
 			CStr ProtectedFolder;
 			CStr UnprotectedFolder;
 			CStr ProtectedButExecutableExe;
