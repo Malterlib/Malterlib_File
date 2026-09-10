@@ -213,11 +213,12 @@ namespace NMib::NFile
 								co_return {};
 							}
 						)
-						/ [this, pCanDestroy, pDestroyed, pRSyncState](CIOByteVector _Packet) -> TCFuture<CIOByteVector>
+						/ [pCanDestroy, pDestroyed, pRSyncState](CIOByteVector _Packet) -> TCFuture<CIOByteVector>
 						{
 							auto CaptureScope = co_await g_CaptureExceptions;
 
-							if (m_pThis->f_IsDestroyed())
+							// Runs on the blocking actor, which must not read this actor's own destroyed state
+							if (*pDestroyed)
 								DMibError("Aborted");
 
 							if (!pRSyncState->m_pRSyncServer)
