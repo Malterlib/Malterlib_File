@@ -18,12 +18,12 @@ namespace NMib::NFile
 	using namespace NMemory;
 	enum EPacketType
 	{
-		EPacketType_ClientInit,
-		EPacketType_ServerInit,
-		EPacketType_ClientChecksums,
-		EPacketType_ServerChecksums,
-		EPacketType_ClientOutstandingRanges,
-		EPacketType_ServerOutstandingRanges,
+		EPacketType_ClientInit
+		, EPacketType_ServerInit
+		, EPacketType_ClientChecksums
+		, EPacketType_ServerChecksums
+		, EPacketType_ClientOutstandingRanges
+		, EPacketType_ServerOutstandingRanges
 	};
 
 	struct CPacket
@@ -52,9 +52,10 @@ namespace NMib::NFile
 			// _Stream >> m_PacketType;
 		}
 
-		CIOByteVector f_GetVector(
+		CIOByteVector f_GetVector
+			(
 #ifdef DPacketOrderDebug
-			uint32 _PacketID
+				uint32 _PacketID
 #endif
 			)
 		{
@@ -84,6 +85,7 @@ namespace NMib::NFile
 			CPacket::f_Feed(_Stream);
 			_Stream << m_InitialChecksumSize;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -103,6 +105,7 @@ namespace NMib::NFile
 			_Stream << m_Digest;
 			_Stream << m_Running;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			_Stream >> m_Digest;
@@ -110,7 +113,7 @@ namespace NMib::NFile
 		}
 	};
 
-	constexpr static umint gc_ChecksumNetworkSize = []()
+	static constexpr umint gc_ChecksumNetworkSize = []()
 		{
 			constexpr CChecksum c_Checksum;
 
@@ -119,7 +122,8 @@ namespace NMib::NFile
 			Stream << c_Checksum.m_Running;
 
 			return Stream.f_GetLength();
-		}()
+		}
+		()
 	;
 
 	struct CPacket_ServerChecksums : public CPacket
@@ -137,6 +141,7 @@ namespace NMib::NFile
 			CPacket::f_Feed(_Stream);
 			_Stream << m_Checksums;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -153,6 +158,7 @@ namespace NMib::NFile
 			_Stream << m_Start;
 			_Stream << m_Length;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			_Stream >> m_Start;
@@ -177,6 +183,7 @@ namespace NMib::NFile
 			_Stream << m_ChunkSize;
 			_Stream << m_Outstanding;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -184,7 +191,6 @@ namespace NMib::NFile
 			_Stream >> m_Outstanding;
 		}
 	};
-
 
 	struct CPacket_ClientOutstandingRanges : public CPacket
 	{
@@ -204,6 +210,7 @@ namespace NMib::NFile
 			_Stream << m_Outstanding;
 			_Stream << m_bDone;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -227,6 +234,7 @@ namespace NMib::NFile
 			CPacket::f_Feed(_Stream);
 			_Stream << m_Data;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -234,12 +242,11 @@ namespace NMib::NFile
 		}
 	};
 
-
 	struct CPacket_ServerInit : public CPacket
 	{
 	public:
 		CPacket_ServerInit()
-		: CPacket(EPacketType_ServerInit)
+			: CPacket(EPacketType_ServerInit)
 		{
 		}
 
@@ -252,6 +259,7 @@ namespace NMib::NFile
 			_Stream << m_FileSize;
 			_Stream << m_InitialChecksums;
 		}
+
 		void f_Consume(NStream::CBinaryStreamDefault &_Stream)
 		{
 			CPacket::f_Consume(_Stream);
@@ -268,7 +276,6 @@ namespace NMib::NFile
 #ifdef DPacketOrderDebug
 		_Stream << m_PacketID;
 #endif
-
 	}
 
 	NStorage::TCUniquePointer<CPacket> CPacket::fs_DecodePacket(CIOByteVector const &_Data)
@@ -280,7 +287,7 @@ namespace NMib::NFile
 
 		switch (Protocol)
 		{
-			case EPacketType_ClientInit:
+		case EPacketType_ClientInit:
 			{
 				NStorage::TCUniquePointer<CPacket_ClientInit> pRet;
 				pRet = fg_Construct<CPacket_ClientInit>();
@@ -288,7 +295,7 @@ namespace NMib::NFile
 				return fg_Move(pRet);
 			}
 			break;
-			case EPacketType_ServerInit:
+		case EPacketType_ServerInit:
 			{
 				NStorage::TCUniquePointer<CPacket_ServerInit> pRet;
 				pRet = fg_Construct<CPacket_ServerInit>();
@@ -296,7 +303,7 @@ namespace NMib::NFile
 				return fg_Move(pRet);
 			}
 			break;
-			case EPacketType_ClientChecksums:
+		case EPacketType_ClientChecksums:
 			{
 				NStorage::TCUniquePointer<CPacket_ClientChecksums> pRet;
 				pRet = fg_Construct<CPacket_ClientChecksums>();
@@ -304,7 +311,7 @@ namespace NMib::NFile
 				return fg_Move(pRet);
 			}
 			break;
-			case EPacketType_ServerChecksums:
+		case EPacketType_ServerChecksums:
 			{
 				NStorage::TCUniquePointer<CPacket_ServerChecksums> pRet;
 				pRet = fg_Construct<CPacket_ServerChecksums>();
@@ -312,7 +319,7 @@ namespace NMib::NFile
 				return fg_Move(pRet);
 			}
 			break;
-			case EPacketType_ClientOutstandingRanges:
+		case EPacketType_ClientOutstandingRanges:
 			{
 				NStorage::TCUniquePointer<CPacket_ClientOutstandingRanges> pRet;
 				pRet = fg_Construct<CPacket_ClientOutstandingRanges>();
@@ -320,7 +327,7 @@ namespace NMib::NFile
 				return fg_Move(pRet);
 			}
 			break;
-			case EPacketType_ServerOutstandingRanges:
+		case EPacketType_ServerOutstandingRanges:
 			{
 				NStorage::TCUniquePointer<CPacket_ServerOutstandingRanges> pRet;
 				pRet = fg_Construct<CPacket_ServerOutstandingRanges>();
@@ -343,7 +350,6 @@ namespace NMib::NFile
 
 		CRunningType Sum0 = 0;
 		CRunningType Sum1 = 0;
-
 
 		aint i = 0;
 		for (; i < (_nBytes - 4); i += 4)
@@ -391,7 +397,6 @@ namespace NMib::NFile
 		return Return;
 	}
 
-
 	CHashDigest_SHA256_16 fg_GetSHA256Checksum(CHash_SHA256_16 &_Hash, void const *_pData, umint _nBytes)
 	{
 		_Hash.f_Reset();
@@ -423,12 +428,12 @@ namespace NMib::NFile
 		void f_Advance(uint8 _Out, uint8 _In)
 		{
 			m_Sum0 += _In - _Out;
-			m_Sum1 += m_Sum0 - m_Count*(_Out+gc_Offset);
+			m_Sum1 += m_Sum0 - m_Count * (_Out + gc_Offset);
 		}
 
 		void f_RollIn(uint8 _Byte)
 		{
-			m_Sum0 += ((_Byte)+gc_Offset);
+			m_Sum0 += ((_Byte) + gc_Offset);
 			m_Sum1 += m_Sum0;
 			++m_Count;
 		}
@@ -454,8 +459,8 @@ namespace NMib::NFile
 
 		void f_RollOut(uint8 _Byte)
 		{
-			m_Sum0 -= (_Byte+gc_Offset);
-			m_Sum1 -= m_Count*(_Byte+gc_Offset);
+			m_Sum0 -= (_Byte + gc_Offset);
+			m_Sum1 -= m_Count * (_Byte + gc_Offset);
 			--m_Count;
 		}
 
@@ -474,7 +479,6 @@ namespace NMib::NFile
 		}
 	};
 
-
 	/////////////////////////////////////
 	// Server
 	/////////////////////////////////////
@@ -483,8 +487,8 @@ namespace NMib::NFile
 	{
 		enum EServerMode
 		{
-			EServerMode_Init,
-			EServerMode_SyncChecksum,
+			EServerMode_Init
+			, EServerMode_SyncChecksum
 		};
 
 		NStream::CBinaryStream *mp_pFileToSend = nullptr;
@@ -552,7 +556,7 @@ namespace NMib::NFile
 		{
 			switch (mp_ServerMode)
 			{
-				case EServerMode_Init:
+			case EServerMode_Init:
 				{
 					NStorage::TCUniquePointer<CPacket> pPacket = CPacket::fs_DecodePacket(_ClientData);
 #ifdef DPacketOrderDebug
@@ -570,8 +574,7 @@ namespace NMib::NFile
 						ServerInit.m_FileSize = Range.m_Length;
 						if (pTypedPacket->m_InitialChecksumSize)
 							f_GetChecksums(ServerInit.m_InitialChecksums.m_Checksums, Outstanding, pTypedPacket->m_InitialChecksumSize, _fCheckAbort);
-						_ToSendToClient
-							= ServerInit.f_GetVector
+						_ToSendToClient = ServerInit.f_GetVector
 							(
 #ifdef DPacketOrderDebug
 								++mp_LastSentPacketID
@@ -587,7 +590,7 @@ namespace NMib::NFile
 					return true;
 				}
 				break;
-				case EServerMode_SyncChecksum:
+			case EServerMode_SyncChecksum:
 				{
 					if (_ClientData.f_IsEmpty())
 						return mp_bDone;
@@ -626,8 +629,7 @@ namespace NMib::NFile
 							if (_fCheckAbort)
 								_fCheckAbort();
 						}
-						_ToSendToClient
-							= Outstanding.f_GetVector
+						_ToSendToClient = Outstanding.f_GetVector
 							(
 #ifdef DPacketOrderDebug
 								++mp_LastSentPacketID
@@ -661,18 +663,17 @@ namespace NMib::NFile
 		mp_pImpl->f_SetFileStream(_pFileToSend);
 	}
 
-
 	CRSyncServer::~CRSyncServer()
 	{
 	}
 
 	bool // Return true when the process is finished and it's safe to delete this object.
 	CRSyncServer::f_ProcessPacket
-	(
-		CIOByteVector const &_ClientData	// Data returned from rsync client.
-		, CIOByteVector &_ToSendToClient	// New packet to send to client. If the function returns true this array should still be sent to the client.
-		, NFunction::TCFunction<void ()> const &_fCheckAbort
-	)
+		(
+			CIOByteVector const &_ClientData // Data returned from rsync client.
+			, CIOByteVector &_ToSendToClient // New packet to send to client. If the function returns true this array should still be sent to the client.
+			, NFunction::TCFunction<void ()> const &_fCheckAbort
+		)
 	{
 		return mp_pImpl->f_ProcessPacket(_ClientData, _ToSendToClient, _fCheckAbort);
 	}
@@ -689,26 +690,29 @@ namespace NMib::NFile
 		{
 			return m_End - TCMap<uint64, CChunk>::fs_GetKey(this);
 		}
+
 		uint64 f_Start() const
 		{
 			return TCMap<uint64, CChunk>::fs_GetKey(this);
 		}
+
 		uint64 f_End() const
 		{
 			return m_End;
 		}
+
 		uint64 f_OldFileEnd() const
 		{
 			if (m_OldFilePos < 0)
 				return 0;
 			return m_OldFilePos + f_Length();
 		}
+
 		int64 f_OldFileStart() const
 		{
 			return m_OldFilePos;
 		}
 	};
-
 
 	struct CFileMap
 	{
@@ -802,13 +806,9 @@ namespace NMib::NFile
 				DMibDTrace("{} -> {} = {} -> {}" DMibNewLine, Chunk.f_Start(), Chunk.f_End(), Chunk.f_OldFileStart(), Chunk.f_OldFileEnd());
 #endif
 				if (pLastChunk)
-				{
 					DMibFastCheck(Chunk.f_Start() == pLastChunk->f_End());
-				}
 				else
-				{
 					DMibFastCheck(Chunk.f_Start() == 0);
-				}
 				pLastChunk = &Chunk;
 			}
 		}
@@ -861,9 +861,7 @@ namespace NMib::NFile
 						}
 					}
 					else
-					{
 						DMibCheck(_ServerPos >= pChunk->f_Start() && (_ServerPos + _Length) <= pChunk->m_End)("Protocol requires no overlapping chunks");
-					}
 				}
 				else
 				{
@@ -1029,11 +1027,10 @@ namespace NMib::NFile
 
 		enum EClientMode
 		{
-			EClientMode_Init,
-			EClientMode_SyncChecksum,
-			EClientMode_SyncOutstanding,
+			EClientMode_Init
+			, EClientMode_SyncChecksum
+			, EClientMode_SyncOutstanding
 		};
-
 
 		CFileMap mp_ServerFile;
 
@@ -1042,9 +1039,9 @@ namespace NMib::NFile
 		TCVector<COutstandingRange> mp_Outstanding;
 		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
 
-		constexpr static umint mc_HashSize = 65536;
-		constexpr static uint32 mc_HashMask = uint32(mc_HashSize) - 1;
-		constexpr static uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
+		static constexpr umint mc_HashSize = 65536;
+		static constexpr uint32 mc_HashMask = uint32(mc_HashSize) - 1;
+		static constexpr uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
 
 		struct CInnerHash
 		{
@@ -1068,7 +1065,6 @@ namespace NMib::NFile
 			};
 
 			NIntrusive::TCAVLLink<> m_Link;
-
 		};
 
 		struct COuterHash
@@ -1125,6 +1121,7 @@ namespace NMib::NFile
 		{
 			DMibCheck(&_OldFile != &_NewFile || _pTempStream);
 		}
+
 		uint64 f_GetRawBytes()
 		{
 			return mp_RawBytes;
@@ -1237,8 +1234,7 @@ namespace NMib::NFile
 				CMibFilePos Start = iRegion->f_Start();
 				mp_OldFile.f_SetPosition(Start);
 
-				auto fl_CheckBytes
-					= [&](umint _LocalPos)
+				auto fl_CheckBytes = [&](umint _LocalPos)
 					{
 						uint32 Digest = Rollsum.f_Digest();
 						uint32 HashDigest = Digest;
@@ -1283,10 +1279,10 @@ namespace NMib::NFile
 									)
 								;
 								pPosition->m_Positions.f_Clear();
-								nSkipBytes = Rollsum.m_Count-1;
+								nSkipBytes = Rollsum.m_Count - 1;
 								if (bFound)
 									return;
-								if (ChunkSize <= 4*1024)
+								if (ChunkSize <= 4 * 1024)
 								{
 									pFind->m_InnerHash.f_Remove(pPosition);
 									m_InnerPool.f_Delete(pPosition);
@@ -1297,7 +1293,7 @@ namespace NMib::NFile
 									}
 								}
 							}
-							else if (ChunkSize >= 4*1024)
+							else if (ChunkSize >= 4 * 1024)
 							{
 								if (++pFind->m_nFalseAlarms > 16)
 								{
@@ -1378,7 +1374,6 @@ namespace NMib::NFile
 						}
 						fl_CheckBytes(i - Rollsum.m_Count);
 					}
-
 				}
 
 				while (Rollsum.m_Count > 1 && !bFound)
@@ -1436,7 +1431,6 @@ namespace NMib::NFile
 					mp_ServerFile.f_WriteOutFromTemporary(mp_NewFile, *mp_pTempStream, _fCheckAbort);
 				else
 					mp_ServerFile.f_WriteOut(mp_NewFile, mp_OldFile, _fCheckAbort);
-
 			}
 
 			bool bIsDone = mp_Outstanding.f_IsEmpty() && mp_LastAskedFor.f_IsEmpty() && mp_bSentDoneMessage && mp_bReceivedDoneMessage;
@@ -1484,8 +1478,7 @@ namespace NMib::NFile
 			if (mp_LastAskedFor.f_GetLen() < mp_MaxInFlightPackets)
 				_bWantOneMoreProcess = true;
 
-			_ToSendToServer
-				= ServerPacket.f_GetVector
+			_ToSendToServer = ServerPacket.f_GetVector
 				(
 #ifdef DPacketOrderDebug
 					++mp_LastSentPacketID
@@ -1521,7 +1514,7 @@ namespace NMib::NFile
 			}
 			else
 			{
-				RedoCheck:
+			RedoCheck:
 				if (mp_CurrentChunkSize <= mp_MinChunkSize)
 				{
 					if (mp_pTempStream)
@@ -1540,7 +1533,7 @@ namespace NMib::NFile
 						if (mp_CurrentChunkSize < mp_MinChunkSize)
 							mp_CurrentChunkSize = mp_MinChunkSize;
 					}
-					while (mp_CurrentChunkSize != mp_MinChunkSize && mp_CurrentChunkSize > mp_FileSize/2);
+					while (mp_CurrentChunkSize != mp_MinChunkSize && mp_CurrentChunkSize > mp_FileSize / 2);
 
 					if (mp_CurrentChunkSize < mp_MinChunkSize)
 						goto RedoCheck;
@@ -1558,11 +1551,12 @@ namespace NMib::NFile
 					}
 					mp_LastAskedFor.f_Insert(ServerCommand.m_Outstanding);
 					_ToSendToServer = ServerCommand.f_GetVector
-							(
+						(
 #ifdef DPacketOrderDebug
-								++mp_LastSentPacketID
+							++mp_LastSentPacketID
 #endif
-							);
+						)
+					;
 				}
 			}
 		}
@@ -1572,17 +1566,15 @@ namespace NMib::NFile
 			_bWantOneMoreProcess = false;
 			switch (mp_ClientMode)
 			{
-				case EClientMode_Init:
+			case EClientMode_Init:
 				{
 					umint OldFileSize;
 					if (mp_OldFile.f_IsValid())
 						OldFileSize = mp_OldFile.f_GetLength();
 					else
 						OldFileSize = 0;
-					while (mp_MaxChunkSize && mp_MaxChunkSize > OldFileSize/2)
-					{
+					while (mp_MaxChunkSize && mp_MaxChunkSize > OldFileSize / 2)
 						mp_MaxChunkSize >>= 1;
-					}
 					mp_CurrentChunkSize = mp_MaxChunkSize;
 
 					CPacket_ClientInit Init;
@@ -1592,16 +1584,17 @@ namespace NMib::NFile
 						Init.m_InitialChecksumSize = mp_MaxChunkSize;
 					mp_CurrentChunkSize = mp_MaxChunkSize;
 					_ToSendToServer = Init.f_GetVector
-							(
+						(
 #ifdef DPacketOrderDebug
-								++mp_LastSentPacketID
+							++mp_LastSentPacketID
 #endif
-							);
+						)
+					;
 					mp_ClientMode = EClientMode_SyncChecksum;
 					return false;
 				}
 				break;
-				case EClientMode_SyncChecksum:
+			case EClientMode_SyncChecksum:
 				{
 					NStorage::TCUniquePointer<CPacket> pPacket = CPacket::fs_DecodePacket(_ServerData);
 #ifdef DPacketOrderDebug
@@ -1639,7 +1632,7 @@ namespace NMib::NFile
 					return true;
 				}
 				break;
-				case EClientMode_SyncOutstanding:
+			case EClientMode_SyncOutstanding:
 				{
 					if (!_ServerData.f_IsEmpty())
 					{
@@ -1699,12 +1692,12 @@ namespace NMib::NFile
 
 	bool // Return true when the new file is fully written
 	CRSyncClient::f_ProcessPacket
-	(
-		CIOByteVector const &_ServerData	// Data returned from rsync server, send in empty for the first packet (client initiates process)
-		, CIOByteVector &_ToSendToServer	// New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
-		, bool &_bWantOneMoreProcess		// Set to true when returning if the rsync server needs to send one more packet
-		, NFunction::TCFunction<void ()> const &_fCheckAbort
-	)
+		(
+			CIOByteVector const &_ServerData // Data returned from rsync server, send in empty for the first packet (client initiates process)
+			, CIOByteVector &_ToSendToServer // New packet to send to server. If the function returns true this array will never be filled and no data should be sent to server.
+			, bool &_bWantOneMoreProcess // Set to true when returning if the rsync server needs to send one more packet
+			, NFunction::TCFunction<void ()> const &_fCheckAbort
+		)
 	{
 		return mp_pImpl->f_ProcessPacket(_ServerData, _ToSendToServer, _bWantOneMoreProcess, _fCheckAbort);
 	}
@@ -1713,6 +1706,7 @@ namespace NMib::NFile
 	{
 		return mp_pImpl->f_GetRawBytes();
 	}
+
 	void CRSyncClient::f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes)
 	{
 		return mp_pImpl->f_GetProgress(_Stage, _Stages, _BytesTransfered, _TotalBytes);

@@ -9,124 +9,121 @@
 
 #define DMibAllowCodeStandardViolations 1
 
-
 enum EFileError
 {
-	EFileError_OK = 0,
-	EFileError_Exists = 1,
-	EFileError_NotFound = 2,
-	EFileError_ReadError = 3,
-	EFileError_WriteError = 4,
-	EFileError_UserAbort = 5,
-	EFileError_NotSupported = 6,
-	EFileError_ExistsResumeAllowed = 7
+	EFileError_OK = 0
+	, EFileError_Exists = 1
+	, EFileError_NotFound = 2
+	, EFileError_ReadError = 3
+	, EFileError_WriteError = 4
+	, EFileError_UserAbort = 5
+	, EFileError_NotSupported = 6
+	, EFileError_ExistsResumeAllowed = 7
 };
 
 enum EExecuteError
 {
-	EExecuteError_OK = 0,
-	EExecuteError_Error = 1,
-	EExecuteError_YourSelf = -1,
-	EExecuteError_SymLink = -2
+	EExecuteError_OK = 0
+	, EExecuteError_Error = 1
+	, EExecuteError_YourSelf = -1
+	, EExecuteError_SymLink = -2
 };
 
 enum ECopyFlags
 {
-	ECopyFlags_OverWrite = 1,
-	ECopyFlags_Resume = 2,
-	ECopyFlags_Move = 4,
-	ECopyFlags_Exists_SameCase = 8,
-	ECopyFlags_Exists_DifferentCase = 16
+	ECopyFlags_OverWrite = 1
+	, ECopyFlags_Resume = 2
+	, ECopyFlags_Move = 4
+	, ECopyFlags_Exists_SameCase = 8
+	, ECopyFlags_Exists_DifferentCase = 16
 };
 
 // flags for tRequestProc
 enum ERequest
 {
-	ERequest_Other = 0,
-	ERequest_UserName = 1,
-	ERequest_Password = 2,
-	ERequest_Account = 3,
-	ERequest_UserNameFirewall = 4,
-	ERequest_PasswordFirewall = 5,
-	ERequest_TargetDir = 6,
-	ERequest_URL = 7,
-	ERequest_MsgOK = 8,
-	ERequest_MsgYesNo = 9,
-	ERequest_MsgOKCancel = 10
+	ERequest_Other = 0
+	, ERequest_UserName = 1
+	, ERequest_Password = 2
+	, ERequest_Account = 3
+	, ERequest_UserNameFirewall = 4
+	, ERequest_PasswordFirewall = 5
+	, ERequest_TargetDir = 6
+	, ERequest_URL = 7
+	, ERequest_MsgOK = 8
+	, ERequest_MsgYesNo = 9
+	, ERequest_MsgOKCancel = 10
 };
 
 // flags for tLogProc
 enum ELog
 {
-	ELog_Connect = 1,
-	ELog_Disconnect = 2,
-	ELog_Details = 3,
-	ELog_TransferComplete = 4,
-	ELog_ConnectComplete = 5,
-	ELog_ImportantError = 6,
-	ELog_OperationComplete = 7
+	ELog_Connect = 1
+	, ELog_Disconnect = 2
+	, ELog_Details = 3
+	, ELog_TransferComplete = 4
+	, ELog_ConnectComplete = 5
+	, ELog_ImportantError = 6
+	, ELog_OperationComplete = 7
 };
 
 // flags for FsStatusInfo
 enum EStatus
 {
-	EStatus_Start = 0,
-	EStatus_End = 1
+	EStatus_Start = 0
+	, EStatus_End = 1
 };
 
 enum EStatusOp
 {
-	EStatusOp_List = 1,
-	EStatusOp_GetSingle = 2,
-	EStatusOp_GetMulti = 3,
-	EStatusOp_PutSingle = 4,
-	EStatusOp_PutMulti = 5,
-	EStatusOp_RenMoveSingle = 6,
-	EStatusOp_RenMoveMulti = 7,
-	EStatusOp_Delete = 8,
-	EStatusOp_Attrib = 9,
-	EStatusOp_CreateDirectory = 10,
-	EStatusOp_Exec = 11,
-	EStatusOp_CalcSize = 12,
-	EStatusOp_SEARCH = 13,
-	EStatusOp_SEARCH_TEXT = 14,
-	EStatusOp_SYNC_SEARCH = 15,
-	EStatusOp_SYNC_GET = 16,
-	EStatusOp_SYNC_PUT = 17,
-	EStatusOp_SYNC_DELETE = 18
+	EStatusOp_List = 1
+	, EStatusOp_GetSingle = 2
+	, EStatusOp_GetMulti = 3
+	, EStatusOp_PutSingle = 4
+	, EStatusOp_PutMulti = 5
+	, EStatusOp_RenMoveSingle = 6
+	, EStatusOp_RenMoveMulti = 7
+	, EStatusOp_Delete = 8
+	, EStatusOp_Attrib = 9
+	, EStatusOp_CreateDirectory = 10
+	, EStatusOp_Exec = 11
+	, EStatusOp_CalcSize = 12
+	, EStatusOp_SEARCH = 13
+	, EStatusOp_SEARCH_TEXT = 14
+	, EStatusOp_SYNC_SEARCH = 15
+	, EStatusOp_SYNC_GET = 16
+	, EStatusOp_SYNC_PUT = 17
+	, EStatusOp_SYNC_DELETE = 18
 };
 
 enum EIconFlag
 {
-	EIconFlag_Small = 1,
-	EIconFlag_BackGround = 2
+	EIconFlag_Small = 1
+	, EIconFlag_BackGround = 2
 };
 
 enum EIconType
 {
-	EIconType_UseDefault,
-	EIconType_Exracted,
-	EIconType_ExractedDestroy,
-	EIconType_Delayed
+	EIconType_UseDefault
+	, EIconType_Exracted
+	, EIconType_ExractedDestroy
+	, EIconType_Delayed
 };
-
 
 // Total Commander Callbacks
 
-typedef int (__stdcall *FProgressProc)(int PluginNr,ch16* SourceName,          ch16* TargetName,int PercentDone);
-typedef void (__stdcall *FLogProc)(int PluginNr,int MsgType,ch16* LogString);
-typedef BOOL (__stdcall *FRequestProc)(int PluginNr,int RequestType,ch16* CustomTitle, ch16* CustomText,ch16* ReturnedText,int maxlen);
+typedef int (__stdcall *FProgressProc)(int PluginNr, ch16 *SourceName, ch16 *TargetName, int PercentDone);
+typedef void (__stdcall *FLogProc)(int PluginNr, int MsgType, ch16 *LogString);
+typedef BOOL (__stdcall *FRequestProc)(int PluginNr, int RequestType, ch16 *CustomTitle, ch16 *CustomText, ch16 *ReturnedText, int maxlen);
 
 class CFindData
 {
 public:
-
-    uint32 m_FileAttributes;
-    CTime m_CreationTime;
-    CTime m_LastAccessTime;
-    CTime m_LastWriteTime;
-    uint64 m_FileSize;
-    CStr m_FileName;
+	uint32 m_FileAttributes;
+	CTime m_CreationTime;
+	CTime m_LastAccessTime;
+	CTime m_LastWriteTime;
+	uint64 m_FileSize;
+	CStr m_FileName;
 };
 
 class CFindInstance
@@ -142,7 +139,6 @@ public:
 class CFileSystem
 {
 public:
-
 	CStr m_Name;
 	CStr m_FileName;
 	CVirtualFS *m_pVirtualFS;
@@ -155,6 +151,7 @@ public:
 		{
 			return _Node.m_Name;
 		}
+
 		inline_small bool operator () (CStr const &_Left, CStr const &_Right) const
 		{
 			return fg_StrCmp(_Left, _Right) < 0;
@@ -204,7 +201,6 @@ public:
 		{
 			DDTrace("{}\n", _Error);
 		}
-
 	};
 
 	CVirtualFS::ECheckFSError f_CheckFSFixNewFS()
@@ -222,7 +218,7 @@ public:
 			NFile::TCBinaryStreamFile<> NewFile;
 			NewFile.f_Open(m_FileName + ".fixfstmp", EFileOpen_Write | EFileOpen_Read);
 			CVirtualFS NewFS;
-			NewFS.f_Create(&NewFile, 16384, 1024*1024, 1024*1024);
+			NewFS.f_Create(&NewFile, 16384, 1024 * 1024, 1024 * 1024);
 
 			CFSReporter Reporter;
 
@@ -258,7 +254,6 @@ public:
 		return Ret;
 	}
 
-
 	CVirtualFS::ECheckFSError f_CheckFSFix()
 	{
 		CloseFs();
@@ -276,7 +271,6 @@ public:
 		CloseFs();
 		return Ret;
 	}
-
 
 	bool OpenFs()
 	{
@@ -299,13 +293,11 @@ public:
 		}
 		return true;
 	}
-
 };
 
 class CVfsWfx
 {
 public:
-
 	NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare> m_FileSystems;
 
 	void fp_UnloadAll()
@@ -331,7 +323,6 @@ public:
 
 	CVfsWfx()
 	{
-
 	}
 
 	~CVfsWfx()
@@ -346,20 +337,19 @@ public:
 	void f_SaveSettings();
 	void f_LoadSettings();
 
-	CFindInstance *f_FindFirstFile(const ch16 *_pPath);
-	bool f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData);
-	void f_FindClose(CFindInstance * _pInstance);
-	int f_CreateDirectory(const ch16 *_pDirectory);
+	CFindInstance *f_FindFirstFile(ch16 const *_pPath);
+	bool f_FindNextFile(CFindInstance *_pInstance, CFindData &_FindData);
+	void f_FindClose(CFindInstance *_pInstance);
+	int f_CreateDirectory(ch16 const *_pDirectory);
 	int f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb);
-	int f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bool _bMove, bool _bOverWrite);
-	int f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _CopyFlags, RemoteInfoStruct* _RemoteInfo);
-	int f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _CopyFlags);
-	int f_DeleteFile(const ch16 *_pRemoteName);
-	int f_SetAttribs(const ch16 *_pRemoteName, uint32 _Attrib);
-	int f_SetTimeCreation(const ch16 *_pRemoteName, CTime _Time);
-	int f_SetTimeAccess(const ch16 *_pRemoteName, CTime _Time);
-	int f_SetTimeWrite(const ch16 *_pRemoteName, CTime _Time);
-
+	int f_RenMoveFile(ch16 const *_pOldName, ch16 const *_pNewName, bool _bMove, bool _bOverWrite);
+	int f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _CopyFlags, RemoteInfoStruct *_RemoteInfo);
+	int f_PutFile(ch16 const *_pLocalName, ch16 const *_pRemoteName, int _CopyFlags);
+	int f_DeleteFile(ch16 const *_pRemoteName);
+	int f_SetAttribs(ch16 const *_pRemoteName, uint32 _Attrib);
+	int f_SetTimeCreation(ch16 const *_pRemoteName, CTime _Time);
+	int f_SetTimeAccess(ch16 const *_pRemoteName, CTime _Time);
+	int f_SetTimeWrite(ch16 const *_pRemoteName, CTime _Time);
 };
 
 extern CVfsWfx g_VfsWfx;

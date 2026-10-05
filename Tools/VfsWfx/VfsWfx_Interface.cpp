@@ -9,117 +9,112 @@
 
 #define DMibAllowCodeStandardViolations 1
 
-static CStr fg_StrFromWindows(const CWStr &_Str)
+static CStr fg_StrFromWindows(CWStr const &_Str)
 {
 	return _Str;
 }
 
-static CWStr fg_StrToWindows(const CStr &_Str)
+static CWStr fg_StrToWindows(CStr const &_Str)
 {
 	return _Str;
 }
 
-int __stdcall FsInit(int PluginNr,tProgressProc pProgressProc, tLogProc pLogProc,tRequestProc pRequestProc)
+int __stdcall FsInit(int PluginNr, tProgressProc pProgressProc, tLogProc pLogProc, tRequestProc pRequestProc)
 {
 	return 0;
 }
 
-HANDLE __stdcall FsFindFirst(char* Path,WIN32_FIND_DATA *FindData)
-{
-	DMibPDebugBreak;
-	return 0;
-}
-
-BOOL __stdcall FsFindNext(HANDLE Hdl,WIN32_FIND_DATA *FindData)
+HANDLE __stdcall FsFindFirst(char *Path, WIN32_FIND_DATA *FindData)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-BOOL __stdcall FsMkDir(char* Path)
+BOOL __stdcall FsFindNext(HANDLE Hdl, WIN32_FIND_DATA *FindData)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-int __stdcall FsExecuteFile(HWND MainWin,char* RemoteName,char* Verb)
+BOOL __stdcall FsMkDir(char *Path)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-int __stdcall FsRenMovFile(char* OldName,char* NewName,BOOL Move, BOOL OverWrite,RemoteInfoStruct* ri)
+int __stdcall FsExecuteFile(HWND MainWin, char *RemoteName, char *Verb)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-int __stdcall FsGetFile(char* RemoteName,char* LocalName,int CopyFlags, RemoteInfoStruct* ri)
+int __stdcall FsRenMovFile(char *OldName, char *NewName, BOOL Move, BOOL OverWrite, RemoteInfoStruct *ri)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-int __stdcall FsPutFile(char* LocalName,char* RemoteName,int CopyFlags)
+int __stdcall FsGetFile(char *RemoteName, char *LocalName, int CopyFlags, RemoteInfoStruct *ri)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-BOOL __stdcall FsDeleteFile(char* RemoteName)
+int __stdcall FsPutFile(char *LocalName, char *RemoteName, int CopyFlags)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-BOOL __stdcall FsRemoveDir(char* RemoteName)
+BOOL __stdcall FsDeleteFile(char *RemoteName)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-
-BOOL __stdcall FsSetAttr(char* RemoteName,int NewAttr)
+BOOL __stdcall FsRemoveDir(char *RemoteName)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-BOOL __stdcall FsSetTime(char* RemoteName,FILETIME *CreationTime,FILETIME *LastAccessTime,FILETIME *LastWriteTime)
+BOOL __stdcall FsSetAttr(char *RemoteName, int NewAttr)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
+BOOL __stdcall FsSetTime(char *RemoteName, FILETIME *CreationTime, FILETIME *LastAccessTime, FILETIME *LastWriteTime)
+{
+	DMibPDebugBreak;
+	return 0;
+}
 
-void __stdcall FsStatusInfo(char* RemoteDir,int InfoStartEnd,int InfoOperation)
+void __stdcall FsStatusInfo(char *RemoteDir, int InfoStartEnd, int InfoOperation)
 {
 	DMibPDebugBreak;
 	return;
 }
 
-
-int __stdcall FsExtractCustomIcon(char* RemoteName,int ExtractFlags,HICON* TheIcon)
+int __stdcall FsExtractCustomIcon(char *RemoteName, int ExtractFlags, HICON *TheIcon)
 {
 	DMibPDebugBreak;
 	return 0;
 }
 
-
-
-int __stdcall FsInitW(int PluginNr,tProgressProcW pProgressProcW, tLogProcW pLogProcW,tRequestProcW pRequestProcW)
+int __stdcall FsInitW(int PluginNr, tProgressProcW pProgressProcW, tLogProcW pLogProcW, tRequestProcW pRequestProcW)
 {
 	return int(g_VfsWfx.f_Init(pProgressProcW, pLogProcW, pRequestProcW, PluginNr));
 }
 
-HANDLE __stdcall FsFindFirstW(WCHAR* _pPath,WIN32_FIND_DATAW *FindData)
+HANDLE __stdcall FsFindFirstW(WCHAR *_pPath, WIN32_FIND_DATAW *FindData)
 {
 	CWStr Path = _pPath;
 	fg_StrReplaceChar(Path, '\\', '/');
 	if (Path.f_GetLen() > 1)
 	{
-		if (Path[Path.f_GetLen()-1] == '/')
-			Path = Path.f_Left(Path.f_GetLen()-1);
+		if (Path[Path.f_GetLen() - 1] == '/')
+			Path = Path.f_Left(Path.f_GetLen() - 1);
 	}
 	void *pInstance = g_VfsWfx.f_FindFirstFile(Path);
 	if (!pInstance)
@@ -170,7 +165,6 @@ uint32 Win32FileAttribToMalterlibFileAttrib(uint32 _Attrib)
 
 FILETIME MalterlibTimeToFileTime(CTime _Time)
 {
-
 	CTimeConvert::CDateTime DateTime;
 	CTimeConvert(_Time).f_ExtractDateTime(DateTime);
 
@@ -198,12 +192,12 @@ CTime FileTimeToMalterlibTime(FILETIME _Time)
 	return CTimeConvert::fs_CreateTime(Time.wYear, Time.wMonth, Time.wDay, Time.wHour, Time.wMinute, Time.wSecond, Time.wMilliseconds);
 }
 
-BOOL __stdcall FsFindNextW(HANDLE Hdl,WIN32_FIND_DATAW *_pFindData)
+BOOL __stdcall FsFindNextW(HANDLE Hdl, WIN32_FIND_DATAW *_pFindData)
 {
 	CFindData FindData;
 	memset(_pFindData, 0, sizeof(*_pFindData));
 	int bRet = g_VfsWfx.f_FindNextFile((CFindInstance *)Hdl, FindData);
-	fg_StrCopy(_pFindData->cFileName, fg_StrToWindows(FindData.m_FileName), MAX_PATH) ;
+	fg_StrCopy(_pFindData->cFileName, fg_StrToWindows(FindData.m_FileName), MAX_PATH);
 	fg_StrReplaceChar(_pFindData->cFileName, '/', '\\');
 	fg_StrCopy(_pFindData->cAlternateFileName, _pFindData->cFileName, 13);
 	_pFindData->dwFileAttributes = MalterlibFileAttribToWin32FileAttrib(FindData.m_FileAttributes);
@@ -214,9 +208,7 @@ BOOL __stdcall FsFindNextW(HANDLE Hdl,WIN32_FIND_DATAW *_pFindData)
 	_pFindData->nFileSizeHigh = FindData.m_FileSize >> 32;
 
 	if (!bRet)
-	{
 		SetLastError(ERROR_NO_MORE_FILES);
-	}
 
 	return bRet != 0;
 }
@@ -227,14 +219,14 @@ int __stdcall FsFindClose(HANDLE Hdl)
 	return 0;
 }
 
-BOOL __stdcall FsMkDirW(WCHAR* _pPath)
+BOOL __stdcall FsMkDirW(WCHAR *_pPath)
 {
 	CWStr Path = _pPath;
 	fg_StrReplaceChar(Path, '\\', '/');
 	return g_VfsWfx.f_CreateDirectory(Path);
 }
 
-int __stdcall FsExecuteFileW(HWND MainWin,WCHAR* _pRemoteName,WCHAR* Verb)
+int __stdcall FsExecuteFileW(HWND MainWin, WCHAR *_pRemoteName, WCHAR *Verb)
 {
 	CStr RemoteName = fg_StrFromWindows(_pRemoteName);
 	fg_StrReplaceChar(RemoteName, '\\', '/');
@@ -248,7 +240,7 @@ int __stdcall FsExecuteFileW(HWND MainWin,WCHAR* _pRemoteName,WCHAR* Verb)
 	return Ret;
 }
 
-int __stdcall FsRenMovFileW(WCHAR* _pOldName,WCHAR* _pNewName,BOOL Move, BOOL OverWrite,RemoteInfoStruct* ri)
+int __stdcall FsRenMovFileW(WCHAR *_pOldName, WCHAR *_pNewName, BOOL Move, BOOL OverWrite, RemoteInfoStruct *ri)
 {
 	CWStr OldName = _pOldName;
 	fg_StrReplaceChar(OldName, '\\', '/');
@@ -257,7 +249,7 @@ int __stdcall FsRenMovFileW(WCHAR* _pOldName,WCHAR* _pNewName,BOOL Move, BOOL Ov
 	return g_VfsWfx.f_RenMoveFile(OldName, NewName, Move, OverWrite);
 }
 
-int __stdcall FsGetFileW(WCHAR* _pRemoteName,WCHAR* _pLocalName,int CopyFlags,RemoteInfoStruct* ri)
+int __stdcall FsGetFileW(WCHAR *_pRemoteName, WCHAR *_pLocalName, int CopyFlags, RemoteInfoStruct *ri)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
@@ -266,7 +258,7 @@ int __stdcall FsGetFileW(WCHAR* _pRemoteName,WCHAR* _pLocalName,int CopyFlags,Re
 	return g_VfsWfx.f_GetFile(RemoteName, LocalName, CopyFlags, ri);
 }
 
-int __stdcall FsPutFileW(WCHAR* _pLocalName,WCHAR* _pRemoteName,int CopyFlags)
+int __stdcall FsPutFileW(WCHAR *_pLocalName, WCHAR *_pRemoteName, int CopyFlags)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
@@ -275,28 +267,28 @@ int __stdcall FsPutFileW(WCHAR* _pLocalName,WCHAR* _pRemoteName,int CopyFlags)
 	return g_VfsWfx.f_PutFile(LocalName, RemoteName, CopyFlags);
 }
 
-BOOL __stdcall FsDeleteFileW(WCHAR* _pRemoteName)
+BOOL __stdcall FsDeleteFileW(WCHAR *_pRemoteName)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
 	return g_VfsWfx.f_DeleteFile(RemoteName);
 }
 
-BOOL __stdcall FsRemoveDirW(WCHAR* _pRemoteName)
+BOOL __stdcall FsRemoveDirW(WCHAR *_pRemoteName)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
 	return g_VfsWfx.f_DeleteFile(RemoteName);
 }
 
-BOOL __stdcall FsSetAttrW(WCHAR* _pRemoteName,int NewAttr)
+BOOL __stdcall FsSetAttrW(WCHAR *_pRemoteName, int NewAttr)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
 	return g_VfsWfx.f_SetAttribs(RemoteName, Win32FileAttribToMalterlibFileAttrib(NewAttr));
 }
 
-BOOL __stdcall FsSetTimeW(WCHAR* _pRemoteName,FILETIME *CreationTime, FILETIME *LastAccessTime,FILETIME *LastWriteTime)
+BOOL __stdcall FsSetTimeW(WCHAR *_pRemoteName, FILETIME *CreationTime, FILETIME *LastAccessTime, FILETIME *LastWriteTime)
 {
 	CWStr RemoteName = _pRemoteName;
 	fg_StrReplaceChar(RemoteName, '\\', '/');
@@ -311,7 +303,7 @@ BOOL __stdcall FsSetTimeW(WCHAR* _pRemoteName,FILETIME *CreationTime, FILETIME *
 	return true;
 }
 
-void __stdcall FsStatusInfoW(WCHAR* RemoteDir,int InfoStartEnd,int InfoOperation)
+void __stdcall FsStatusInfoW(WCHAR *RemoteDir, int InfoStartEnd, int InfoOperation)
 {
 	// This function may be used to initialize variables and to flush buffers
 
@@ -364,12 +356,12 @@ void __stdcall FsStatusInfoW(WCHAR* RemoteDir,int InfoStartEnd,int InfoOperation
 */
 }
 
-void __stdcall FsGetDefRootName(char* DefRootName,int maxlen)
+void __stdcall FsGetDefRootName(char *DefRootName, int maxlen)
 {
-	fg_StrCopy(DefRootName,"Malterlib File System",maxlen);
+	fg_StrCopy(DefRootName, "Malterlib File System", maxlen);
 }
 
-void __stdcall FsSetDefaultParams(FsDefaultParamStruct* _pDps)
+void __stdcall FsSetDefaultParams(FsDefaultParamStruct *_pDps)
 {
 	CStr Path = _pDps->DefaultIniName;
 	Path = Path.f_ReplaceChar('\\', '/');
@@ -379,22 +371,22 @@ void __stdcall FsSetDefaultParams(FsDefaultParamStruct* _pDps)
 
 extern HINSTANCE g_Instance;
 
-int __stdcall FsExtractCustomIconW(WCHAR* _pRemoteName,int ExtractFlags,HICON* TheIcon)
+int __stdcall FsExtractCustomIconW(WCHAR *_pRemoteName, int ExtractFlags, HICON *TheIcon)
 {
 	CWStr RemoteName = _pRemoteName;
 	if (RemoteName == "\\Add file system")
 	{
-		*TheIcon = LoadIconA(g_Instance,  MAKEINTRESOURCEA(IDI_DRIVE));
+		*TheIcon = LoadIconA(g_Instance, MAKEINTRESOURCEA(IDI_DRIVE));
 		return EIconType_Exracted;
 	}
 	else if (RemoteName == "\\Create file system")
 	{
-		*TheIcon = LoadIconA(g_Instance,  MAKEINTRESOURCEA(IDI_CREATEDRIVE));
+		*TheIcon = LoadIconA(g_Instance, MAKEINTRESOURCEA(IDI_CREATEDRIVE));
 		return EIconType_Exracted;
 	}
 	else if (RemoteName == "\\Unload all file systems")
 	{
-		*TheIcon = LoadIconA(g_Instance,  MAKEINTRESOURCEA(IDI_CLOSEDRIVES));
+		*TheIcon = LoadIconA(g_Instance, MAKEINTRESOURCEA(IDI_CLOSEDRIVES));
 		return EIconType_Exracted;
 	}
 

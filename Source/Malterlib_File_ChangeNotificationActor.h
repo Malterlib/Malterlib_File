@@ -30,6 +30,7 @@ namespace NMib::NFile
 				, CCoalesceSettings _CoalesceSettings
 			)
 		;
+
 	private:
 		class CInternal;
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
