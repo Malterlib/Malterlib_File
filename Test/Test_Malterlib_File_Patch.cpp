@@ -12,12 +12,12 @@ namespace
 			DMibTestSuite("Basic")
 			{
 				NMib::NContainer::CByteVector OrigVector;
-				const ch8 *pStartStr = " nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
-				const ch8 *pEndStr = "khxlheu nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN onethuu athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
-				OrigVector.f_Insert((const uint8 *)pStartStr, NMib::NStr::fg_StrLen(pStartStr));
+				ch8 const *pStartStr = " nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
+				ch8 const *pEndStr = "khxlheu nEHoanTHeus ntHUESanotheuSN thuSNOAtheuSNAOtheuSN onethuu athueSNOAtehuSN thuSNAOteuhNST hanSEUTAOheu";
+				OrigVector.f_Insert((uint8 const *)pStartStr, NMib::NStr::fg_StrLen(pStartStr));
 
 				NMib::NContainer::CByteVector ChangedVector;
-				ChangedVector.f_Insert((const uint8 *)pEndStr, NMib::NStr::fg_StrLen(pEndStr));
+				ChangedVector.f_Insert((uint8 const *)pEndStr, NMib::NStr::fg_StrLen(pEndStr));
 
 				NMib::NContainer::CByteVector PatchData = NMib::NFile::fg_MalterlibPatchEncode(OrigVector, ChangedVector);
 				NMib::NContainer::CByteVector Decoded = NMib::NFile::fg_MalterlibPatchDecode(OrigVector, PatchData);

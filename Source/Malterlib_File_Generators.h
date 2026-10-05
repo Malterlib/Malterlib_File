@@ -25,5 +25,5 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif

@@ -6,11 +6,11 @@
 
 //#	define DMibFileChangeNotificationsDebug
 
-#	if defined(DMibFileChangeNotificationsDebug)
-#		define DMibFileChangeNotificationsDebugOut(...) DMibLog(Info, __VA_ARGS__)
-#	else
-#		define DMibFileChangeNotificationsDebugOut(...)  (void)0
-#	endif
+#if defined(DMibFileChangeNotificationsDebug)
+#	define DMibFileChangeNotificationsDebugOut(...) DMibLog(Info, __VA_ARGS__)
+#else
+#	define DMibFileChangeNotificationsDebugOut(...)  (void)0
+#endif
 
 namespace NMib::NEncoding
 {
@@ -37,7 +37,6 @@ namespace NMib::NFile
 	class CFileProgress
 	{
 	public:
-
 		virtual void f_Progress(CMibFilePos _Position, CMibFilePos _TotalSize) = 0;
 	};
 
@@ -88,113 +87,120 @@ namespace NMib::NFile
 namespace NMib::NSys::NFile
 {
 	NMib::NFile::EFileSystemFeature fg_GetFileSystemFeatures();
-	inline_always bool fg_FileSystemHasDrives() { return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasDrives; }
-	inline_always bool fg_FileSystemHasExecuteAttrib() { return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasExecuteAttrib; }
+	inline_always bool fg_FileSystemHasDrives()
+	{
+		return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasDrives;
+	}
 
-	bool fg_FileExists(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileAttrib _AttribMask);
-	bool fg_FileExists(const NMib::NStr::CStrNonTracked &_FileName, NMib::NFile::EFileAttrib _AttribMask);
+	inline_always bool fg_FileSystemHasExecuteAttrib()
+	{
+		return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasExecuteAttrib;
+	}
 
-	NMib::NFile::ECheckFileRights fg_CheckFileRights( const NMib::NStr::CStr & _File, NMib::NFile::EFileRight _Rights);
+	bool fg_FileExists(NMib::NStr::CStr const &_FileName, NMib::NFile::EFileAttrib _AttribMask);
+	bool fg_FileExists(NMib::NStr::CStrNonTracked const &_FileName, NMib::NFile::EFileAttrib _AttribMask);
 
-	void *fg_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
-	void *fg_Open(const NMib::NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
+	NMib::NFile::ECheckFileRights fg_CheckFileRights(NMib::NStr::CStr const &_File, NMib::NFile::EFileRight _Rights);
+
+	void *fg_Open(NMib::NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
+	void *fg_Open(NMib::NStr::CStrNonTracked const &_FileName, NMib::NFile::EFileOpen _OpenFlags, NMib::NFile::EFileAttrib _Attributes);
 	void fg_Close(void *_pFile);
 	void *fg_GetOSFile(void *_pFile);
-	umint fg_Read(void *_pFile, void *_pData, const CMibFilePos &_Offset, umint _NumBytes); // Returns number of bytes read
-	umint fg_Write(void *_pFile, const void *_pData, const CMibFilePos &_Offset, umint _NumBytes); // Returns number of bytes written
+	umint fg_Read(void *_pFile, void *_pData, CMibFilePos const &_Offset, umint _NumBytes); // Returns number of bytes read
+	umint fg_Write(void *_pFile, void const *_pData, CMibFilePos const &_Offset, umint _NumBytes); // Returns number of bytes written
 	void fg_Flush(void *_pFile); // Returns when all pending bytes are written to disk
-	void fg_LockRange(void *_pFile, const CMibFilePos &_Offset, const CMibFilePos &_NumBytes, NMib::NFile::EFileLock _Flags);
-	void fg_UnlockRange(void *_pFile, const CMibFilePos &_Offset, const CMibFilePos &_NumBytes);
+	void fg_LockRange(void *_pFile, CMibFilePos const &_Offset, CMibFilePos const &_NumBytes, NMib::NFile::EFileLock _Flags);
+	void fg_UnlockRange(void *_pFile, CMibFilePos const &_Offset, CMibFilePos const &_NumBytes);
 
 	NMib::NFile::EFileAttrib fg_GetAttributes(void *_pFile);
 	void fg_SetAttributes(void *_pFile, NMib::NFile::EFileAttrib _Attributes);
 
-	NMib::NFile::EFileAttrib fg_GetAttributes(NMib::NStr::CStr const& _FileName);
-	void fg_SetAttributes(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
+	NMib::NFile::EFileAttrib fg_GetAttributes(NMib::NStr::CStr const &_FileName);
+	void fg_SetAttributes(NMib::NStr::CStr const &_FileName, NMib::NFile::EFileAttrib _Attributes);
 
-	NMib::NFile::EFileAttrib fg_GetAttributesOnLink(NMib::NStr::CStr const& _FileName);
-	void fg_SetAttributesOnLink(NMib::NStr::CStr const& _FileName, NMib::NFile::EFileAttrib _Attributes);
+	NMib::NFile::EFileAttrib fg_GetAttributesOnLink(NMib::NStr::CStr const &_FileName);
+	void fg_SetAttributesOnLink(NMib::NStr::CStr const &_FileName, NMib::NFile::EFileAttrib _Attributes);
 
 	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(void *_pFile);
-	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName);
-	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName);
+	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifier(NMib::NStr::CStr const &_FileName);
+	NMib::NFile::CUniqueFileIdentifier fg_GetUniqueIdentifierOnLink(NMib::NStr::CStr const &_FileName);
 
 	NMib::NFile::EFileAttrib fg_GetSupportedAttributes();
 	NMib::NFile::EFileAttrib fg_GetValidAttributes();
 	umint fg_MaximumPathLength();
 
 	CMibFilePos fg_GetSize(void *_pFile);
-	void fg_SetSize(void *_pFile, const CMibFilePos &_Size);
+	void fg_SetSize(void *_pFile, CMibFilePos const &_Size);
 
-	CMibFilePos fg_GetSize(const NMib::NStr::CStr &_FileName);
+	CMibFilePos fg_GetSize(NMib::NStr::CStr const &_FileName);
 
 	void fg_FileEnumOtherHandles(void *_pFile, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo);
-	void fg_FileEnumOtherHandles(const NMib::NStr::CStr &_FileName, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo);
+	void fg_FileEnumOtherHandles(NMib::NStr::CStr const &_FileName, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo);
 
-	void fg_SetCreationTime(void *_pFile, const NTime::CTime &_Time);
-	void fg_SetAccessTime(void *_pFile, const NTime::CTime &_Time);
-	void fg_SetWriteTime(void *_pFile, const NTime::CTime &_Time);
+	void fg_SetCreationTime(void *_pFile, NTime::CTime const &_Time);
+	void fg_SetAccessTime(void *_pFile, NTime::CTime const &_Time);
+	void fg_SetWriteTime(void *_pFile, NTime::CTime const &_Time);
 	NTime::CTime fg_GetCreationTime(void *_pFile);
 	NTime::CTime fg_GetAccessTime(void *_pFile);
 	NTime::CTime fg_GetWriteTime(void *_pFile);
 
-	void fg_SetCreationTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
-	void fg_SetAccessTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
-	void fg_SetWriteTime(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+	void fg_SetCreationTime(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
+	void fg_SetAccessTime(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
+	void fg_SetWriteTime(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
 	NTime::CTime fg_GetCreationTime(NMib::NStr::CStr const &_FileName);
-	NTime::CTime fg_GetAccessTime(NMib::NStr::CStr const& _FileName);
-	NTime::CTime fg_GetWriteTime(NMib::NStr::CStr const& _FileName);
+	NTime::CTime fg_GetAccessTime(NMib::NStr::CStr const &_FileName);
+	NTime::CTime fg_GetWriteTime(NMib::NStr::CStr const &_FileName);
 
-	void fg_SetCreationTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
-	void fg_SetAccessTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
-	void fg_SetWriteTimeOnLink(NMib::NStr::CStr const &_FileName, const NTime::CTime &_Time);
+	void fg_SetCreationTimeOnLink(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
+	void fg_SetAccessTimeOnLink(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
+	void fg_SetWriteTimeOnLink(NMib::NStr::CStr const &_FileName, NTime::CTime const &_Time);
 	NTime::CTime fg_GetCreationTimeOnLink(NMib::NStr::CStr const &_FileName);
 	NTime::CTime fg_GetAccessTimeOnLink(NMib::NStr::CStr const &_FileName);
 	NTime::CTime fg_GetWriteTimeOnLink(NMib::NStr::CStr const &_FileName);
 
-	NMib::NStr::CStr fg_GetOwner(const NMib::NStr::CStr &_Path);
-	NMib::NStr::CStr fg_GetGroup(const NMib::NStr::CStr &_Path);
-	NMib::NStr::CStr fg_GetOwnerOnLink(const NMib::NStr::CStr &_Path);
-	NMib::NStr::CStr fg_GetGroupOnLink(const NMib::NStr::CStr &_Path);
-	void fg_SetOwner(const NMib::NStr::CStr &_Path, const NMib::NStr::CStr &_Owner);
-	void fg_SetOwnerOnLink(const NMib::NStr::CStr &_Path, const NMib::NStr::CStr &_Owner);
-	void fg_SetGroup(const NMib::NStr::CStr &_Path, const NMib::NStr::CStr &_Group);
-	void fg_SetGroupOnLink(const NMib::NStr::CStr &_Path, const NMib::NStr::CStr &_Group);
-	void fg_SetOwner(void *_pFile, const NMib::NStr::CStr &_Owner);
-	void fg_SetGroup(void *_pFile, const NMib::NStr::CStr &_Group);
+	NMib::NStr::CStr fg_GetOwner(NMib::NStr::CStr const &_Path);
+	NMib::NStr::CStr fg_GetGroup(NMib::NStr::CStr const &_Path);
+	NMib::NStr::CStr fg_GetOwnerOnLink(NMib::NStr::CStr const &_Path);
+	NMib::NStr::CStr fg_GetGroupOnLink(NMib::NStr::CStr const &_Path);
+	void fg_SetOwner(NMib::NStr::CStr const &_Path, NMib::NStr::CStr const &_Owner);
+	void fg_SetOwnerOnLink(NMib::NStr::CStr const &_Path, NMib::NStr::CStr const &_Owner);
+	void fg_SetGroup(NMib::NStr::CStr const &_Path, NMib::NStr::CStr const &_Group);
+	void fg_SetGroupOnLink(NMib::NStr::CStr const &_Path, NMib::NStr::CStr const &_Group);
+	void fg_SetOwner(void *_pFile, NMib::NStr::CStr const &_Owner);
+	void fg_SetGroup(void *_pFile, NMib::NStr::CStr const &_Group);
 
-	void *fg_FindOpen(const NMib::NStr::CStr &_FindPattern);
-	const NMib::NStr::CStr *fg_FindNext(void *_pFindContext, NMib::NFile::EFileAttrib &_FileAttribs); // Returns the fully qualified path. Returns nullptr when no more files are found
+	void *fg_FindOpen(NMib::NStr::CStr const &_FindPattern);
+	NMib::NStr::CStr const *fg_FindNext(void *_pFindContext, NMib::NFile::EFileAttrib &_FileAttribs); // Returns the fully qualified path. Returns nullptr when no more files are found
 	void fg_FindClose(void *_pFindContext);
 
-	void fg_Duplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	bool fg_TryDuplicate(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	bool fg_TryCloneData(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	void fg_Copy(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
-	void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	void fg_Rename(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::CFileProgress &_Progress);
-	void fg_AtomicReplace(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
+	void fg_Duplicate(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	bool fg_TryDuplicate(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	bool fg_TryCloneData(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	void fg_Copy(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	void fg_Copy(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, NMib::NFile::CFileProgress &_Progress);
+	void fg_Rename(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	void fg_Rename(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, NMib::NFile::CFileProgress &_Progress);
+	void fg_AtomicReplace(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
 
-	void fg_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags);
-	void fg_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-	NMib::NStr::CStr fg_ResolveSymbolicLink(const NMib::NStr::CStr &_FileFrom);
+	void fg_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags);
+	void fg_CreateHardLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+	NMib::NStr::CStr fg_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom);
 	bool fg_CanCreateSymbolicLink(NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags);
 
-	void fg_Delete(const NMib::NStr::CStr &_File);
-	void fg_DeleteDirectory(const NMib::NStr::CStr &_File);
-	void fg_CreateDirectory(const NMib::NStr::CStr &_FileDirectory);
-	void fg_Delete(const NMib::NStr::CStrNonTracked &_File);
-	void fg_DeleteDirectory(const NMib::NStr::CStrNonTracked &_File);
-	void fg_CreateDirectory(const NMib::NStr::CStrNonTracked &_FileDirectory);
+	void fg_Delete(NMib::NStr::CStr const &_File);
+	void fg_DeleteDirectory(NMib::NStr::CStr const &_File);
+	void fg_CreateDirectory(NMib::NStr::CStr const &_FileDirectory);
+	void fg_Delete(NMib::NStr::CStrNonTracked const &_File);
+	void fg_DeleteDirectory(NMib::NStr::CStrNonTracked const &_File);
+	void fg_CreateDirectory(NMib::NStr::CStrNonTracked const &_FileDirectory);
 
-	NMib::NStream::CFilePos fg_GetFreeSpace(const NMib::NStr::CStr &_Path);
-	NMib::NStream::CFilePos fg_GetUsedSpace(const NMib::NStr::CStr &_Path);
-	NMib::NStream::CFilePos fg_GetTotalSpace(const NMib::NStr::CStr &_Path);
+	NMib::NStream::CFilePos fg_GetFreeSpace(NMib::NStr::CStr const &_Path);
+	NMib::NStream::CFilePos fg_GetUsedSpace(NMib::NStr::CStr const &_Path);
+	NMib::NStream::CFilePos fg_GetTotalSpace(NMib::NStr::CStr const &_Path);
 
 	NContainer::TCVector<NMib::NStr::CStr> fg_GetMounts(NMib::NFile::EFileMountType _Types);
 
-	void fg_SetCurrentDirectory(const NMib::NStr::CStr &_Directory);
+	void fg_SetCurrentDirectory(NMib::NStr::CStr const &_Directory);
 
 	NMib::NStr::CStr fg_GetProgramPath();
 	NMib::NStr::CStr fg_GetProgramPathForExecutableContents();
@@ -223,10 +229,10 @@ namespace NMib::NSys::NFile
 
 	ch8 const *fg_GetDllExtension();
 
-//			NMib::NStr::CStr fg_GetProgramRootDirectory();		// This defaults to the program directory but can be changed via fg_SetProgramRootDirectory.
-//			void fg_SetProgramRootDirectory(NMib::NStr::CStr const& _Root);
+	// NMib::NStr::CStr fg_GetProgramRootDirectory();		// This defaults to the program directory but can be changed via fg_SetProgramRootDirectory.
+	// void fg_SetProgramRootDirectory(NMib::NStr::CStr const& _Root);
 
-	void *fg_ChangeNotification_Open(const NMib::NStr::CStr &_FileName, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo);
+	void *fg_ChangeNotification_Open(NMib::NStr::CStr const &_FileName, NMib::NFile::EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo);
 	void fg_ChangeNotification_Close(void *_pNotification);
 	bool fg_ChangeNotification_Changed(void *_pNotification);
 	bool fg_ChangeNotification_GetNotification(void *_pNotification, NMib::NStr::CStr &_Path, NMib::NFile::EFileChangeNotification &_Notification, NMib::NStr::CStr &_PathFrom);
@@ -241,8 +247,8 @@ namespace NMib::NFile
 	class CFileChangeNotification
 	{
 		void *mp_pNotification;
-	public:
 
+	public:
 		CFileChangeNotification()
 		{
 			mp_pNotification = nullptr;
@@ -273,7 +279,7 @@ namespace NMib::NFile
 			}
 		}
 
-		void f_Open(const NStr::CStr &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo)
+		void f_Open(NStr::CStr const &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo)
 		{
 			f_Close();
 			mp_pNotification = NSys::NFile::fg_ChangeNotification_Open(_Path, _OpenFlags, _pReportTo);
@@ -320,6 +326,7 @@ namespace NMib::NFile
 		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> m_Notify;
 		aint f_Main();
 		NMib::NStr::CStr f_GetThreadName();
+
 	public:
 		CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);
 		~CFileChangeNotifier();
@@ -328,7 +335,6 @@ namespace NMib::NFile
 	class CFile
 	{
 	public:
-
 		template <typename tf_CHash>
 		struct TCFileChecksumState
 		{
@@ -347,7 +353,7 @@ namespace NMib::NFile
 			~CSetAttributeEmulationScope();
 			void f_Suspend() noexcept override;
 			void f_ResumeNoExcept() noexcept override;
-			void operator ()();
+			void operator () ();
 
 			static bool fs_IsEmulationEnabled();
 
@@ -431,7 +437,7 @@ namespace NMib::NFile
 
 		enum
 		{
-			EDefaultCacheSize = 16*1024
+			EDefaultCacheSize = 16 * 1024
 		};
 
 		inline_small void fp_CheckOpen() const
@@ -444,7 +450,7 @@ namespace NMib::NFile
 		void *fp_GetCache(CMibFilePos _CurrentPos, umint &_nBytesAvailable);
 		CMibFilePos fp_GetLength() const;
 
-		static bool fsp_OpenFile(NFile::CFile &_File, const NStr::CStr &_FileName, EFileOpen _Open, const NTime::CTime &_FileTime);
+		static bool fsp_OpenFile(NFile::CFile &_File, NStr::CStr const &_FileName, EFileOpen _Open, NTime::CTime const &_FileTime);
 		static NTime::CTimeSpan fsp_GetDefaultFileChangedMargin();
 
 		static bool fsp_DiffCopyFileOrDirectory
@@ -456,38 +462,31 @@ namespace NMib::NFile
 			)
 		;
 		static bool fsp_CopyFileDiff
-				(
-					const NContainer::CByteVector &_SourceData
-					, const NStr::CStr &_FromFileName
-					, const NStr::CStr &_ToFileName
-					, const NTime::CTime &_FileTime
-					, EFileAttrib _AddAttribs
-					, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
-					, bool _bRemoveWriteProtection = false
-					, bool _bSourceDataValid = true
-					, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
-					, bool _bFileTimeIsNow = false
-				)
-		;
-		static bool fsp_CopyFileDiffDate
 			(
-				const NContainer::CByteVector &_SourceData
-				, const NStr::CStr &_ToFileName
-				, const NTime::CTime &_FileTime
+				NContainer::CByteVector const &_SourceData
+				, NStr::CStr const &_FromFileName
+				, NStr::CStr const &_ToFileName
+				, NTime::CTime const &_FileTime
 				, EFileAttrib _AddAttribs
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, bool _bRemoveWriteProtection = false
+				, bool _bSourceDataValid = true
+				, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
+				, bool _bFileTimeIsNow = false
 			)
 		;
+		static bool fsp_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs);
 		static bool fsp_CopyFileDiff
 			(
-				const NStr::CStr &_FromFileName
-				, const NStr::CStr &_ToFileName
+				NStr::CStr const &_FromFileName
+				, NStr::CStr const &_ToFileName
 				, bool _bCopyDate
 				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
 				, bool _bRemoveWriteProtection = false
 			)
 		;
-		static bool fsp_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName);
-		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName);
+		static bool fsp_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName);
+		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName);
 
 	public:
 		CFile(CFile const &) = delete;
@@ -495,29 +494,29 @@ namespace NMib::NFile
 		CFile(CFile &&);
 		CFile &operator = (CFile &&);
 		CFile();
-		CFile(const NStr::CStr &_FileName, EFileOpen _OpenFlags);
-		CFile(const NStr::CStrNonTracked &_FileName, EFileOpen _OpenFlags);
+		CFile(NStr::CStr const &_FileName, EFileOpen _OpenFlags);
+		CFile(NStr::CStrNonTracked const &_FileName, EFileOpen _OpenFlags);
 		~CFile();
 
 		bool f_IsValid() const;
 
 		void f_Close(bool _bCanThrow = true);
-		void f_Open(const NStr::CStr &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
-		void f_Open(const NStr::CStrNonTracked &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
+		void f_Open(NStr::CStr const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
+		void f_Open(NStr::CStrNonTracked const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
 		enum ESysFileTag
 		{
 		};
-		void f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags);
 
+		void f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags);
 
 		void f_Read(void *_pDest, umint _nBytes);
 		void f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, umint _nBytes);
-		void f_Write(const void *_pSrc, umint _nBytes);
+		void f_Write(void const *_pSrc, umint _nBytes);
 		void f_WriteNoLocalCache(CMibFilePos _Position, void const *_pSrc, umint _nBytes);
 
 		void f_FileEnumOtherHandles(NContainer::TCVector<CFileHandle> &_HandleInfo);
 
-		static void fs_FileEnumOtherHandles(const NStr::CStr &_FileName, NContainer::TCVector<CFileHandle> &_HandleInfo);
+		static void fs_FileEnumOtherHandles(NStr::CStr const &_FileName, NContainer::TCVector<CFileHandle> &_HandleInfo);
 
 		void f_FlushCache();
 
@@ -527,11 +526,11 @@ namespace NMib::NFile
 
 		void f_Flush(bool _bLocalCacheOnly);
 		bool f_IsAtEndOfFile() const;
-		void f_SetLength(const CMibFilePos &_Length);
+		void f_SetLength(CMibFilePos const &_Length);
 		CMibFilePos f_GetLength() const;
-		void f_SetCreationTime(const NTime::CTime &_Time);
-		void f_SetAccessTime(const NTime::CTime &_Time);
-		void f_SetWriteTime(const NTime::CTime &_Time);
+		void f_SetCreationTime(NTime::CTime const &_Time);
+		void f_SetAccessTime(NTime::CTime const &_Time);
+		void f_SetWriteTime(NTime::CTime const &_Time);
 		NTime::CTime f_GetCreationTime();
 		NTime::CTime f_GetAccessTime();
 		NTime::CTime f_GetWriteTime();
@@ -541,64 +540,81 @@ namespace NMib::NFile
 		void f_SetPositionFromEnd(NStream::CFilePos _Pos);
 		void f_AddPosition(NStream::CFilePos _Pos);
 		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
-		void f_LockRange(const CMibFilePos &_Offset, const CMibFilePos &_NumBytes, EFileLock _Flags);
-		void f_UnlockRange(const CMibFilePos &_Offset, const CMibFilePos &_NumBytes);
+		void f_LockRange(CMibFilePos const &_Offset, CMibFilePos const &_NumBytes, EFileLock _Flags);
+		void f_UnlockRange(CMibFilePos const &_Offset, CMibFilePos const &_NumBytes);
 		NStream::CFilePos f_GetPosition() const;
-		void f_SetOwner(NStr::CStr const & _Owner);
-		void f_SetGroup(NStr::CStr const & _Group);
+		void f_SetOwner(NStr::CStr const &_Owner);
+		void f_SetGroup(NStr::CStr const &_Group);
 
 		CUniqueFileIdentifier f_GetUniqueIdentifier() const;
 
 		static umint fs_MaximumPathLength();
 
 		// Static functions
-		static bool fs_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable = true);
-		static bool fs_IsFileWritable(const NStr::CStr &_LocalPath);
-		static void fs_DeleteDirectoryRecursive(const NStr::CStr &_File, bool _bRemoveWriteProtection = false);
-		static void fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress);
-		static void fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
-		static void fs_CopyFileRaw(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+		static bool fs_MakeFileWritable(NStr::CStr const &_LocalPath, bool _bWritable = true);
+		static bool fs_IsFileWritable(NStr::CStr const &_LocalPath);
+		static void fs_DeleteDirectoryRecursive(NStr::CStr const &_File, bool _bRemoveWriteProtection = false);
+		static void fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo, CFileProgress &_Progress);
+		static void fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
+		static void fs_CopyFileRaw(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
 		static void fs_CopyFileRaw(CFile &_FileFrom, CFile &_FileTo);
 
-		static void fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
-		static bool fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
-		static bool fs_TryCloneFileData(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
+		static void fs_DuplicateFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
+		static bool fs_TryDuplicateFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
+		static bool fs_TryCloneFileData(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
 
-		static void fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
-		static void fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo);
-		static NMib::NStr::CStr fs_ResolveSymbolicLink(const NMib::NStr::CStr &_FileFrom);
+		static void fs_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
+		static void fs_CreateHardLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
+		static NMib::NStr::CStr fs_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom);
 		static bool fs_CanCreateSymbolicLink(EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 
+		static void fs_CopyFiles
+			(
+				NStr::CStr const &_FindPath
+				, NStr::CStr const &_ToPath
+				, bool _bRecursive = true
+				, bool _bRaw = false
+				, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File
+			)
+		;
+		static bool fs_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName);
+		static bool fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName);
+		static NContainer::CByteVector fs_ReadFileTry(NStr::CStr const &_ToFileName);
+		static bool fs_CopyFileDiff
+			(
+				NContainer::CByteVector const &_SourceData
+				, NStr::CStr const &_ToFileName
+				, NTime::CTime const &_FileTime
+				, EFileAttrib _AddAttribs = EFileAttrib_None
+				, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
+				const &_OnChange = {}
+			)
+		;
+		static bool fs_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);
+		static bool fs_CopyFileDiff(NStr::CStr const &_FromFileName, NStr::CStr const &_ToFileName, bool _bCopyDate);
+		static void fs_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
+		static void fs_AtomicReplaceFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);
+		static void fs_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo, CFileProgress &_Progress);
+		static void fs_SetCurrentDirectory(NStr::CStr const &_Directory);
 
-		static void fs_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bool _bRecursive = true, bool _bRaw = false, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
-		static bool fs_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName);
-		static bool fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName);
-		static NContainer::CByteVector fs_ReadFileTry(const NStr::CStr &_ToFileName);
-		static bool fs_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange = {});
-		static bool fs_CopyFileDiffDate(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs = EFileAttrib_None);
-		static bool fs_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate);
-		static void fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
-		static void fs_AtomicReplaceFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo);
-		static void fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress);
-		static void fs_SetCurrentDirectory(const NStr::CStr &_Directory);
+		static void fs_CreateDirectory(NStr::CStr const &_Path);
+		static void fs_CreateDirectoryForFile(NStr::CStr const &_Path);
+		static void fs_DeleteFile(NStr::CStr const &_File);
+		static void fs_DeleteDirectory(NStr::CStr const &_File);
 
-		static void fs_CreateDirectory(const NStr::CStr &_Path);
-		static void fs_CreateDirectoryForFile(const NStr::CStr &_Path);
-		static void fs_DeleteFile(const NStr::CStr &_File);
-		static void fs_DeleteDirectory(const NStr::CStr &_File);
+		static void fs_CreateDirectory(NStr::CStrNonTracked const &_Path);
+		static void fs_DeleteFile(NStr::CStrNonTracked const &_File);
+		static void fs_DeleteDirectory(NStr::CStrNonTracked const &_File);
 
-		static void fs_CreateDirectory(const NStr::CStrNonTracked &_Path);
-		static void fs_DeleteFile(const NStr::CStrNonTracked &_File);
-		static void fs_DeleteDirectory(const NStr::CStrNonTracked &_File);
-
-		static void fs_Touch(const NStr::CStr &_File);
+		static void fs_Touch(NStr::CStr const &_File);
 
 		static bool fs_RemoveIncompatible
 			(
 				EFileAttrib _SourceAttribs
 				, NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
-				, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
+				const &_OnChange
 			)
 		;
 
@@ -647,144 +663,162 @@ namespace NMib::NFile
 		{
 			return fs_GetProgramPathNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramPath()
 		{
 			return fs_GetProgramPath();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramDirectory()
 		{
 			return fs_GetProgramDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramDirectory()
 		{
 			return fs_GetProgramDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetCurrentDirectory()
 		{
 			return fs_GetCurrentDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetCurrentDirectory()
 		{
 			return fs_GetCurrentDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserProgramDirectory()
 		{
 			return fs_GetUserProgramDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserProgramDirectory()
 		{
 			return fs_GetUserProgramDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserLocalProgramDirectory()
 		{
 			return fs_GetUserLocalProgramDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetUserLocalProgramDirectory()
 		{
 			return fs_GetUserLocalProgramDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetTemporaryDirectory()
 		{
 			return fs_GetTemporaryDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetRawTemporaryDirectory()
 		{
 			return fs_GetRawTemporaryDirectoryNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetTemporaryDirectory()
 		{
 			return fs_GetTemporaryDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetRawTemporaryDirectory()
 		{
 			return fs_GetRawTemporaryDirectory();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetModulePath(void *_pCode)
 		{
 			return fs_GetModulePathNonTracked(_pCode);
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetModulePath(void *_pCode)
 		{
 			return fs_GetModulePath(_pCode);
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramRoot()
 		{
 			return fs_GetProgramRootNonTracked();
 		}
+
 		template <typename tf_CStr>
 		static TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> fs_GetProgramRoot()
 		{
 			return fs_GetProgramRoot();
 		}
 
-
-		static NMib::NStream::CFilePos fs_GetFreeSpace(const NMib::NStr::CStr &_Path);
-		static NMib::NStream::CFilePos fs_GetUsedSpace(const NMib::NStr::CStr &_Path);
-		static NMib::NStream::CFilePos fs_GetTotalSpace(const NMib::NStr::CStr &_Path);
+		static NMib::NStream::CFilePos fs_GetFreeSpace(NMib::NStr::CStr const &_Path);
+		static NMib::NStream::CFilePos fs_GetUsedSpace(NMib::NStr::CStr const &_Path);
+		static NMib::NStream::CFilePos fs_GetTotalSpace(NMib::NStr::CStr const &_Path);
 		static NContainer::TCVector<NStr::CStr> fs_GetMounts(EFileMountType _Types);
 
 		static void fs_FindFilesGeneral
 			(
-				const NStr::CStr &_FindPath
+				NStr::CStr const &_FindPath
 				, NFunction::TCFunction<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile // Return true to recurse into directory
 				, bool _bRecursive = false
 			)
 		;
-		static NContainer::TCVector<NStr::CStr>
-		fs_FindFiles(const NStr::CStr &_FindPath, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true);
-		static NContainer::TCVector<CFoundFile>
-		fs_FindFilesEx(const NStr::CStr &_FindPath, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true);
+		static auto fs_FindFiles(NStr::CStr const &_FindPath, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true)
+			-> NContainer::TCVector<NStr::CStr>
+		;
+		static auto fs_FindFilesEx(NStr::CStr const &_FindPath, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false, bool _bFollowLinks = true)
+			-> NContainer::TCVector<CFoundFile>
+		;
 		static NContainer::TCVector<CFoundFile> fs_FindFiles(CFindFilesOptions const &_Options);
 
-		static bool fs_FileExists(const NStr::CStr &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
-		static bool fs_FileExists(const NStr::CStrNonTracked &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
-		static ECheckFileRights fs_CheckFileRights(NStr::CStr const& _File, EFileRight _Rights);
-		static NCryptography::CHashDigest_MD5 fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
-		static NCryptography::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
-		static NCryptography::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+		static bool fs_FileExists(NStr::CStr const &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
+		static bool fs_FileExists(NStr::CStrNonTracked const &_File, EFileAttrib _AttribMask = EFileAttrib_Directory | EFileAttrib_File);
+		static ECheckFileRights fs_CheckFileRights(NStr::CStr const &_File, EFileRight _Rights);
+		static NCryptography::CHashDigest_MD5 fs_GetFileChecksum(NStr::CStr const &_Path, CFileChecksumState_MD5 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+		static NCryptography::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(NStr::CStr const &_Path, CFileChecksumState_SHA256 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
+		static NCryptography::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(NStr::CStr const &_Path, CFileChecksumState_SHA512 *o_pState = nullptr, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_SHA256 fs_GetFileChecksum_SHA256(CFile &_File, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_SHA512 fs_GetFileChecksum_SHA512(CFile &_File, NStream::CFilePos _FileLength = -1);
 		static NCryptography::CHashDigest_MD5 fs_GetDirectoryChecksum
 			(
-				const NStr::CStr &_Path
+				NStr::CStr const &_Path
 				, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_ExcludeFile
 				, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_GetHash = fg_Default()
 			)
 		;
-		static void fs_WriteFile(const NStr::CStr &_Path, NContainer::CByteVector const &_Data);
-		static void fs_WriteFileSecure(const NStr::CStr &_Path, NContainer::CSecureByteVector const &_Data);
-		static NContainer::CByteVector fs_ReadFile(const NStr::CStr &_Path);
-		static NContainer::CSecureByteVector fs_ReadFileSecure(const NStr::CStr &_Path);
+		static void fs_WriteFile(NStr::CStr const &_Path, NContainer::CByteVector const &_Data);
+		static void fs_WriteFileSecure(NStr::CStr const &_Path, NContainer::CSecureByteVector const &_Data);
+		static NContainer::CByteVector fs_ReadFile(NStr::CStr const &_Path);
+		static NContainer::CSecureByteVector fs_ReadFileSecure(NStr::CStr const &_Path);
 
-		static void fs_WriteFile(NContainer::CByteVector const &_FileFrom, const NStr::CStr &_FileTo);
-		static void fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, const NStr::CStr &_FileTo);
+		static void fs_WriteFile(NContainer::CByteVector const &_FileFrom, NStr::CStr const &_FileTo);
+		static void fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, NStr::CStr const &_FileTo);
 
-		static const ch8 *fs_GetInvalidFileNameChars(bool _bPath);
-		static const ch8 **fs_GetInvalidFileNameNames();
+		static ch8 const *fs_GetInvalidFileNameChars(bool _bPath);
+		static ch8 const **fs_GetInvalidFileNameNames();
 		static void fs_SetAttributes(NStr::CStr const &_FileName, EFileAttrib _Attribs);
 		static EFileAttrib fs_GetAttributes(NStr::CStr const &_FileName);
 		static void fs_SetAttributesOnLink(NStr::CStr const &_FileName, EFileAttrib _Attribs);
 		static EFileAttrib fs_GetAttributesOnLink(NStr::CStr const &_FileName);
 		static bool fs_SetUnixAttributesRecursive(NStr::CStr const &_Path, EFileAttrib _FileAttributes, EFileAttrib _DirectoryAttributes, bool _bFollowLinks = false);
 
-		static CUniqueFileIdentifier fs_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName);
-		static CUniqueFileIdentifier fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName);
+		static CUniqueFileIdentifier fs_GetUniqueIdentifier(NMib::NStr::CStr const &_FileName);
+		static CUniqueFileIdentifier fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const &_FileName);
 
 		static NTime::CTime fs_GetCreationTime(NStr::CStr const &_FileName);
 		static NTime::CTime fs_GetAccessTime(NStr::CStr const &_FileName);
@@ -793,14 +827,14 @@ namespace NMib::NFile
 		static NTime::CTime fs_GetAccessTimeOnLink(NStr::CStr const &_FileName);
 		static NTime::CTime fs_GetWriteTimeOnLink(NStr::CStr const &_FileName);
 
-		static void fs_SetCreationTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
-		static void fs_SetAccessTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
-		static void fs_SetWriteTime(NStr::CStr const& _FileName, NTime::CTime const &_Time);
-		static void fs_SetCreationTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
-		static void fs_SetAccessTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
-		static void fs_SetWriteTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time);
+		static void fs_SetCreationTime(NStr::CStr const &_FileName, NTime::CTime const &_Time);
+		static void fs_SetAccessTime(NStr::CStr const &_FileName, NTime::CTime const &_Time);
+		static void fs_SetWriteTime(NStr::CStr const &_FileName, NTime::CTime const &_Time);
+		static void fs_SetCreationTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time);
+		static void fs_SetAccessTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time);
+		static void fs_SetWriteTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time);
 
-		static CMibFilePos fs_GetFileSize(const NStr::CStr &_Path);
+		static CMibFilePos fs_GetFileSize(NStr::CStr const &_Path);
 
 		static EFileAttrib fs_GetSupportedAttributes();
 		static EFileAttrib fs_GetValidAttributes();
@@ -817,54 +851,54 @@ namespace NMib::NFile
 		static bool fs_SetGroupRecursive(NStr::CStr const &_Path, NStr::CStr const &_Group, bool _bFollowLinks = false);
 		static bool fs_SetOwnerAndGroupRecursive(NStr::CStr const &_Path, NStr::CStr const &_Owner, NStr::CStr const &_Group, bool _bFollowLinks = false);
 
-		static void fs_WriteStringToVector(NContainer::CByteVector &_File, const NStr::CStr &_ToWrite, bool _bAddBOM = true);
-		static NStr::CStr fs_ReadStringFromVector(const NContainer::CByteVector &_File, bool _bAssumeUTF8 = false);
+		static void fs_WriteStringToVector(NContainer::CByteVector &_File, NStr::CStr const &_ToWrite, bool _bAddBOM = true);
+		static NStr::CStr fs_ReadStringFromVector(NContainer::CByteVector const &_File, bool _bAssumeUTF8 = false);
 
-		static void fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bool _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
-		static NStr::CStr fs_ReadStringFromFile(const NStr::CStr &_Path, bool _bAssumeUTF8 = false);
+		static void fs_WriteStringToFile(NStr::CStr const &_Path, NStr::CStr const &_ToWrite, bool _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
+		static NStr::CStr fs_ReadStringFromFile(NStr::CStr const &_Path, bool _bAssumeUTF8 = false);
 
-		static void fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bool _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
-		static NStr::CStrNonTracked fs_ReadStringFromFile(const NStr::CStrNonTracked &_Path, bool _bAssumeUTF8 = false);
+		static void fs_WriteStringToFile(NStr::CStrNonTracked const &_Path, NStr::CStrNonTracked const &_ToWrite, bool _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
+		static NStr::CStrNonTracked fs_ReadStringFromFile(NStr::CStrNonTracked const &_Path, bool _bAssumeUTF8 = false);
 
 		static NStr::CStr fs_CondensePath(NStr::CStr _Path);
-		static NStr::CStr fs_MakeNiceFilename(const NStr::CStr &_CurrentName);
+		static NStr::CStr fs_MakeNiceFilename(NStr::CStr const &_CurrentName);
 
 		template <typename tf_CStr>
-		static tf_CStr fs_GetFullPath(const tf_CStr &_Path, const tf_CStr &_Base);
+		static tf_CStr fs_GetFullPath(tf_CStr const &_Path, tf_CStr const &_Base);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetExpandedPath(const tf_CStr &_Path, bool _bAddCurrentDir = true);
+		static tf_CStr fs_GetExpandedPath(tf_CStr const &_Path, bool _bAddCurrentDir = true);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetExpandedPath(const tf_CStr &_Path, const tf_CStr &_BasePath);
+		static tf_CStr fs_GetExpandedPath(tf_CStr const &_Path, tf_CStr const &_BasePath);
 
 		template <typename tf_CStr>
-		static bool fs_HasRelativeComponents(const tf_CStr &_Path);
+		static bool fs_HasRelativeComponents(tf_CStr const &_Path);
 
 		template <typename tf_CStr>
 		static bool fs_IsPathAbsolute(tf_CStr _Path);
 		template <typename tf_CStr>
-		static tf_CStr fs_MakePathRelative(tf_CStr const& _AbsolutePath, tf_CStr const& _AbsoluteBase);
+		static tf_CStr fs_MakePathRelative(tf_CStr const &_AbsolutePath, tf_CStr const &_AbsoluteBase);
 
 		template <typename tf_CStr>
-		static tf_CStr fs_GetCommonPathAndMakeRelative(tf_CStr & _oPath0, tf_CStr & _oPath1);
+		static tf_CStr fs_GetCommonPathAndMakeRelative(tf_CStr &_oPath0, tf_CStr &_oPath1);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetCommonPath(tf_CStr const& _oPath0, tf_CStr const& _oPath1);
+		static tf_CStr fs_GetCommonPath(tf_CStr const &_oPath0, tf_CStr const &_oPath1);
 
 		template <typename tf_CStr>
-		static tf_CStr fs_GetPath(const tf_CStr &_File);
+		static tf_CStr fs_GetPath(tf_CStr const &_File);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetMalterlibPath(const tf_CStr &_File);
+		static tf_CStr fs_GetMalterlibPath(tf_CStr const &_File);
 		template <typename tf_CStr, typename tf_CToAppend>
-		static tf_CStr fs_AppendPath(const tf_CStr &_Path, tf_CToAppend &&_Append);
+		static tf_CStr fs_AppendPath(tf_CStr const &_Path, tf_CToAppend &&_Append);
 		template <typename tf_CStr>
-		static tf_CStr fs_RemovePathTopLevels(const tf_CStr &_Path, umint _Levels);
+		static tf_CStr fs_RemovePathTopLevels(tf_CStr const &_Path, umint _Levels);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetFile(const tf_CStr &_File);
+		static tf_CStr fs_GetFile(tf_CStr const &_File);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetExtension(const tf_CStr &_File);
+		static tf_CStr fs_GetExtension(tf_CStr const &_File);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetDrive(const tf_CStr &_File);
+		static tf_CStr fs_GetDrive(tf_CStr const &_File);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetFileNoExt(const tf_CStr &_File);
+		static tf_CStr fs_GetFileNoExt(tf_CStr const &_File);
 
 		static EFileAttrib fs_AttribFromJson(NEncoding::CEJsonSorted const &_Json);
 		static NEncoding::CEJsonSorted fs_AttribToJson(EFileAttrib _Attribs);
@@ -872,8 +906,9 @@ namespace NMib::NFile
 	private:
 		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
 		static auto fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr;
+
 	public:
-		static NStr::CStr fs_MakeNiceUniqueFilename(const NStr::CStr &_CurrentName);
+		static NStr::CStr fs_MakeNiceUniqueFilename(NStr::CStr const &_CurrentName);
 
 		enum EInvalidPathReason
 		{
@@ -881,15 +916,15 @@ namespace NMib::NFile
 			, EInvalidPathReason_Empty
 			, EInvalidPathReason_ControlCharacters
 			, EInvalidPathReason_SpecificCharacter // Character returned separately
-			, EInvalidPathReason_SpecificWord // Word returned separately
+			, EInvalidPathReason_SpecificWord      // Word returned separately
 			, EInvalidPathReason_EndWithSpace
 			, EInvalidPathReason_EndWithDot
 			, EInvalidPathReason_EndWithSlash
 		};
 
-		static bool fs_IsValidFilePath(const NStr::CStr &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart);
-		static bool fs_IsValidFilePath(const NStr::CStr &_File, NStr::CStr &_Error);
-		static bool fs_IsSafeRelativePath(const NStr::CStr &_File, NStr::CStr &o_Error);
+		static bool fs_IsValidFilePath(NStr::CStr const &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart);
+		static bool fs_IsValidFilePath(NStr::CStr const &_File, NStr::CStr &_Error);
+		static bool fs_IsSafeRelativePath(NStr::CStr const &_File, NStr::CStr &o_Error);
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
@@ -897,6 +932,7 @@ namespace NMib::NFile
 	{
 	protected:
 		DMibStreamImplementProtected(TCBinaryStreamFile);
+
 	public:
 		DMibStreamImplementOperators(TCBinaryStreamFile);
 
@@ -917,13 +953,7 @@ namespace NMib::NFile
 		}
 
 		template <typename tf_CType, typename tf_CStr>
-		static void fs_WriteFile
-			(
-				tf_CType const &_Data
-				, tf_CStr const &_FileName
-				, EFileOpen _OpenFlags = EFileOpen_Write | EFileOpen_ShareAll
-				, EFileAttrib _Attributes = EFileAttrib_None
-			)
+		static void fs_WriteFile(tf_CType const &_Data, tf_CStr const &_FileName, EFileOpen _OpenFlags = EFileOpen_Write | EFileOpen_ShareAll, EFileAttrib _Attributes = EFileAttrib_None)
 		{
 			TCBinaryStreamFile Stream;
 			Stream.f_Open(_FileName, _OpenFlags, _Attributes);
@@ -931,7 +961,7 @@ namespace NMib::NFile
 		}
 
 		template <typename tf_CStr>
-		void f_Open(const tf_CStr &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None)
+		void f_Open(tf_CStr const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None)
 		{
 			m_File.f_Open(_FileName, _OpenFlags, _Attributes);
 		}
@@ -947,7 +977,7 @@ namespace NMib::NFile
 			m_File.f_SetLength(0);
 		}
 
-		void f_FeedBytes(const void *_pMem, umint _nBytes)
+		void f_FeedBytes(void const *_pMem, umint _nBytes)
 		{
 			m_File.f_Write(_pMem, _nBytes);
 		}
@@ -1016,15 +1046,16 @@ namespace NMib::NFile
 		{
 			return m_File.f_SetLength(_Length);
 		}
-
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
 	class TCBinaryStreamFilePtr : public t_CStreamType
 	{
 		CFile *mp_pFile;
+
 	protected:
 		DMibStreamImplementProtected(TCBinaryStreamFilePtr);
+
 	public:
 		DMibStreamImplementOperators(TCBinaryStreamFilePtr);
 
@@ -1052,6 +1083,7 @@ namespace NMib::NFile
 		{
 			mp_pFile = &_File;
 		}
+
 		void f_Close()
 		{
 			mp_pFile = nullptr;
@@ -1063,7 +1095,7 @@ namespace NMib::NFile
 			mp_pFile->f_Flush(false);
 		}
 
-		void f_FeedBytes(const void *_pMem, umint _nBytes)
+		void f_FeedBytes(void const *_pMem, umint _nBytes)
 		{
 			mp_pFile->f_Write(_pMem, _nBytes);
 		}
@@ -1132,7 +1164,6 @@ namespace NMib::NFile
 		{
 			return mp_pFile->f_SetLength(_Length);
 		}
-
 	};
 
 	class CLockFile
@@ -1142,40 +1173,40 @@ namespace NMib::NFile
 		NFile::CFile mp_LockFile;
 		NFile::EFileOpen mp_LockFlags;
 
-		CLockFile(CLockFile const& _ToCopy); // delete
-		CLockFile(CLockFile&& _ToMove); // delete
-		CLockFile& operator=(CLockFile const& _ToCopy); // delete
-		CLockFile& operator=(CLockFile&& _ToMove); // delete
+		CLockFile(CLockFile const &_ToCopy); // delete
+		CLockFile(CLockFile &&_ToMove); // delete
+		CLockFile &operator = (CLockFile const &_ToCopy); // delete
+		CLockFile &operator = (CLockFile &&_ToMove);      // delete
 
 	public:
 		enum ELockResult
 		{
-			ELockResult_Locked,
-			ELockResult_TimedOut,
-			ELockResult_NoAccess,
-			ELockResult_DoesNotExist,	// Only ever returned if your lockflags do not permit creating the lock file...
-										// ...OR if the file can be created but the path does not exist.
+			ELockResult_Locked
+			, ELockResult_TimedOut
+			, ELockResult_NoAccess
+			, ELockResult_DoesNotExist // Only ever returned if your lockflags do not permit creating the lock file...
+									   // ...OR if the file can be created but the path does not exist.
 
-			ELockResult_Unlocked,	// Only ever returned by f_GetLockStatus()
+			, ELockResult_Unlocked // Only ever returned by f_GetLockStatus()
 		};
 
 		CLockFile();
-		CLockFile(NStr::CStr const& _FilePath, NFile::EFileOpen _LockFlags = NFile::EFileOpen_Write);
+		CLockFile(NStr::CStr const &_FilePath, NFile::EFileOpen _LockFlags = NFile::EFileOpen_Write);
 		~CLockFile();
 
-		void f_SetLockFile(NStr::CStr const& _FilePath, NFile::EFileOpen _LockFlags = NFile::EFileOpen_Write);
+		void f_SetLockFile(NStr::CStr const &_FilePath, NFile::EFileOpen _LockFlags = NFile::EFileOpen_Write);
 		NStr::CStr f_GetLockFile() const;
 
 		ELockResult f_Lock(fp64 _TimeoutSeconds = -1, NStr::CStr *o_pLastError = nullptr); // _TimeoutSeconds < 0 == Forever
 		void f_LockWithException(fp64 _TimeoutSeconds = -1); // _TimeoutSeconds < 0 == Forever
 		void f_Unlock();
 
-		bool f_HasLock() const;	// Do I have the lock?
+		bool f_HasLock() const; // Do I have the lock?
 	};
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif
 
 #include "Malterlib_File.hpp"

@@ -31,7 +31,6 @@ namespace NMib::NFile
 
 	CDirectorySyncReceive::CInternal::CRunningSyncState::~CRunningSyncState() = default;
 
-
 	auto CDirectorySyncReceive::CInternal::CRunningSyncState::f_Destroy() -> TCUnsafeFuture<void>
 	{
 		CLogError LogError("DirectorySyncReceive");

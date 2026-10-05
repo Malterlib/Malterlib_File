@@ -88,9 +88,8 @@ namespace NMib::NFile
 			}
 		;
 
-
-		m_FileOptions.m_fOpenStream = [_Destination, _Flags](CStr const &_FileName, EDirectorySyncStreamType _FileType, EFileOpen _OpenFlags, EFileAttrib _Attributes)
-			-> NStorage::TCUniquePointer<NStream::CBinaryStream>
+		m_FileOptions.m_fOpenStream = [_Destination, _Flags]
+			(CStr const &_FileName, EDirectorySyncStreamType _FileType, EFileOpen _OpenFlags, EFileAttrib _Attributes) -> NStorage::TCUniquePointer<NStream::CBinaryStream>
 			{
 				if (!(_FileType & (EDirectorySyncStreamType_Temp | EDirectorySyncStreamType_Manifest)))
 				{

@@ -87,12 +87,6 @@ namespace NMib::NFile
 		umint m_nRunningSyncs = 0;
 
 	private:
-		static void fsp_RunRSyncProtocol
-			(
-				TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
-				, CIOByteVector &&_ServerPacket
-				, TCPromise<CByteStats> const &_Promise
-			)
-		;
+		static void fsp_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState, CIOByteVector &&_ServerPacket, TCPromise<CByteStats> const &_Promise);
 	};
 }

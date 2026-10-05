@@ -5,30 +5,25 @@
 #define DMibAllowCodeStandardViolations 1
 
 #ifndef NTDDI_VERSION
-#if defined(_M_X64)
-#define _WIN32_WINNT _WIN32_WINNT_WS03
-#define NTDDI_VERSION NTDDI_WS03
-#else
-#define _WIN32_WINNT _WIN32_WINNT_WINXP
-#define NTDDI_VERSION NTDDI_WINXPSP2
-#endif
-#include <sdkddkver.h>
+#	if defined(_M_X64)
+#		define _WIN32_WINNT _WIN32_WINNT_WS03
+#		define NTDDI_VERSION NTDDI_WS03
+#	else
+#		define _WIN32_WINNT _WIN32_WINNT_WINXP
+#		define NTDDI_VERSION NTDDI_WINXPSP2
+#	endif
+#	include <sdkddkver.h>
 #endif
 
 #include "windows.h"
 #include "Proj/Msvc/resource.h"
 
 HINSTANCE g_Instance = nullptr;
-BOOL APIENTRY DllMain( HANDLE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-					 )
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
 	if (ul_reason_for_call == DLL_PROCESS_ATTACH)
-	{
 		g_Instance = (HINSTANCE)hModule;
-	}
-    return TRUE;
+	return TRUE;
 }
 
 INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -41,8 +36,7 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 			switch (wParam)
 			{
 			case SC_CLOSE:
-
-                EndDialog(hwndDlg, 0);
+				EndDialog(hwndDlg, 0);
 				return 1;
 			};
 		}
@@ -86,7 +80,7 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 			if (pThis->m_GrowSize < 0)
 				EnableWindow(Temp, false);
 
-			SetWindowPos(hwndDlg, nullptr, MonInfo.rcWork.left + MonWidth / 2 - Width / 2, MonInfo.rcWork.top + MonHeight / 2 - Height / 2, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
+			SetWindowPos(hwndDlg, nullptr, MonInfo.rcWork.left + MonWidth / 2 - Width / 2, MonInfo.rcWork.top + MonHeight / 2 - Height / 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 			return 1;
 		}
 		break;
@@ -94,7 +88,7 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 		{
 			int Control = LOWORD(wParam);
 			int Message = HIWORD(wParam);
-//			HWND Window = (HWND)lParam;
+			// HWND Window = (HWND)lParam;
 			if (Message == BN_CLICKED)
 			{
 				if (Control == IDC_CHECKFS)
@@ -111,15 +105,20 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 				{
 					CStr TempStr;
 					HWND Temp = GetDlgItem(hwndDlg, IDC_EditFileName);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024); pThis->m_FilePath = TempStr;
+					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pThis->m_FilePath = TempStr;
 					Temp = GetDlgItem(hwndDlg, IDC_EditVolumeName);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024); pThis->m_VolumeName = TempStr;
+					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pThis->m_VolumeName = TempStr;
 					Temp = GetDlgItem(hwndDlg, IDC_EditClusterSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024); pThis->m_ClusterSize = fg_StrToInt(TempStr.f_GetStr(), 16384);
+					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pThis->m_ClusterSize = fg_StrToInt(TempStr.f_GetStr(), 16384);
 					Temp = GetDlgItem(hwndDlg, IDC_EditInitialSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024); pThis->m_InitialSize = fg_StrToInt(TempStr.f_GetStr(), 1024*1024);
+					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pThis->m_InitialSize = fg_StrToInt(TempStr.f_GetStr(), 1024 * 1024);
 					Temp = GetDlgItem(hwndDlg, IDC_EditGrowSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024); pThis->m_GrowSize = fg_StrToInt(TempStr.f_GetStr(), 1024*1024);
+					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pThis->m_GrowSize = fg_StrToInt(TempStr.f_GetStr(), 1024 * 1024);
 					if (!pThis->m_FilePath)
 					{
 						MessageBoxA(hwndDlg, "You have to choose the file where you\nwant the file system to be stored.", "Error", MB_OK | MB_ICONERROR);
@@ -152,14 +151,12 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 					}
 				}
 			}
-
 		}
 		break;
 	}
 
 	return false;
 }
-
 
 aint fg_EditFileSystem(CEditFileSystemClass &_Params)
 {
@@ -168,7 +165,7 @@ aint fg_EditFileSystem(CEditFileSystemClass &_Params)
 	return bRet;
 }
 
-void fg_ErrorBox(void *_pParent, const ch8 *_pMessage)
+void fg_ErrorBox(void *_pParent, ch8 const *_pMessage)
 {
 	MessageBoxA((HWND)_pParent, _pMessage, "Error", MB_OK | MB_ICONERROR);
 }
