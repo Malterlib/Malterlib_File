@@ -28,15 +28,16 @@ namespace
 		using CStorage = t_CVector;
 
 		DMibStreamImplementProtected(CBinaryStreamMemorySequential);
+
 	public:
 		DMibStreamImplementOperators(CBinaryStreamMemorySequential);
 
-		CBinaryStreamMemorySequential(CStorage const& _Buffer)
+		CBinaryStreamMemorySequential(CStorage const &_Buffer)
 			: CParent(_Buffer)
 		{
 		}
 
-		CBinaryStreamMemorySequential(CStorage && _Buffer)
+		CBinaryStreamMemorySequential(CStorage &&_Buffer)
 			: CParent(fg_Move(_Buffer))
 		{
 		}
@@ -154,7 +155,6 @@ namespace
 						if (!Temp.f_IsEmpty())
 							ServerData.f_Insert(fg_Move(Temp));
 					}
-
 				}
 				nRawBytes = RSyncClient.f_GetRawBytes();
 				if (_bEncrypt)
@@ -171,7 +171,8 @@ namespace
 					Synced = ClientNewStream.f_MoveVector();
 			}
 			Timer.f_Stop();
-//			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient, TotalSizeServer, nRawBytes, (TotalSizeClient + TotalSizeServer), fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)), Timer.f_GetTime() * 1000.0);
+//			DMibTrace("Protocol: C {} + S {} ({} raw)= {} bytes = {fe2} speedup {fe2} ms\r\n", TotalSizeClient, TotalSizeServer, nRawBytes, (TotalSizeClient + TotalSizeServer),
+//				fp64(_New.f_GetLen()) / fp64((TotalSizeClient + TotalSizeServer)), Timer.f_GetTime() * 1000.0);
 			DMibTest(DMibExpr(bServerDone) == DMibExpr(true));
 
 			ETestFlag TestFlags = ETestFlag_NoValuesOnSuccess;
@@ -179,7 +180,8 @@ namespace
 				TestFlags |= ETestFlag_NoValues;
 			DMibTest(DMibExpr(Synced) == DMibExpr(_New))(TestFlags);
 		}
-		static CIOByteVector fs_ToVector(const ch8 *_pStr)
+
+		static CIOByteVector fs_ToVector(ch8 const *_pStr)
 		{
 			umint Len = NStr::fg_StrLen(_pStr);
 			CIOByteVector Ret;
@@ -187,6 +189,7 @@ namespace
 
 			return Ret;
 		}
+
 		static void fs_DoTests(uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			DMibTestPath(NStr::CStr(NStr::CStr::CFormat("{} -> {}{}{}") << _MaxChunk << _MinChunk << (_bInPlace ? " In place" : "") << (_bEncrypt ? "Encrypted stream" : "")));
@@ -214,28 +217,29 @@ namespace
 				{
 					DMibTestPath("Long");
 					NStr::CStr LongStr;
-					LongStr.f_AddChars('a', 256*1000);
+					LongStr.f_AddChars('a', 256 * 1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector(""), CRSync_Tests::fs_ToVector(LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				}
 				{
 					DMibTestPath("Long Before");
 					NStr::CStr LongStr;
-					LongStr.f_AddChars('a', 256*1000);
+					LongStr.f_AddChars('a', 256 * 1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("456"), CRSync_Tests::fs_ToVector(LongStr + "456"), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				}
 				{
 					DMibTestPath("Long After");
 					NStr::CStr LongStr;
-					LongStr.f_AddChars('a', 256*1000);
+					LongStr.f_AddChars('a', 256 * 1000);
 					CRSync_Tests::fs_DoRSync(CRSync_Tests::fs_ToVector("Testing 123"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr), _MinChunk, _MaxChunk, _bInPlace, _bEncrypt);
 				}
 				{
 					DMibTestPath("Long Middle");
 					NStr::CStr LongStr;
-					LongStr.f_AddChars('a', 256*1000);
+					LongStr.f_AddChars('a', 256 * 1000);
 					CRSync_Tests::fs_DoRSync
 						(
-							CRSync_Tests::fs_ToVector("Testing 123456"), CRSync_Tests::fs_ToVector("Testing 123" + LongStr + "456")
+							CRSync_Tests::fs_ToVector("Testing 123456")
+							, CRSync_Tests::fs_ToVector("Testing 123" + LongStr + "456")
 							, _MinChunk
 							, _MaxChunk
 							, _bInPlace
@@ -278,7 +282,7 @@ namespace
 						CIOByteVector::fs_AllowInsecureConversion(NFile::CFile::fs_ReadFile(StartFileName))
 						, CIOByteVector::fs_AllowInsecureConversion(NFile::CFile::fs_ReadFile(EndFileName))
 						, 128
-						, 1024*1024
+						, 1024 * 1024
 						, false
 						, false
 					)

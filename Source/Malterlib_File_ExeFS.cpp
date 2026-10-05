@@ -6,7 +6,7 @@
 namespace NAOCC
 {
 	umint g_ExeFS_nBytes = 0;
-	uint8 const* g_ExeFS_pBytes = nullptr;
+	uint8 const *g_ExeFS_pBytes = nullptr;
 
 	void fg_SetExeFSData(int _nBytes, void const *_pData)
 	{
@@ -28,7 +28,7 @@ namespace NMib::NFile
 				_FS.m_FileSystem.f_Open(&_FS.m_InProcStream);
 				return true;
 			}
-			catch(NException::CException)
+			catch (NException::CException)
 			{
 				return false;
 			}
@@ -36,7 +36,7 @@ namespace NMib::NFile
 
 #if defined(DCompiler_GCC)
 		unsigned long long nDataBytes;
-		void* pData = NMib::NSys::fg_GetExeData("HS","ExeFs", nDataBytes);
+		void *pData = NMib::NSys::fg_GetExeData("HS", "ExeFs", nDataBytes);
 
 		if (!pData)
 			return false;
@@ -47,7 +47,7 @@ namespace NMib::NFile
 			_FS.m_FileSystem.f_Open(&_FS.m_InProcStream);
 			return true;
 		}
-		catch(NException::CException)
+		catch (NException::CException)
 		{
 		}
 		return false;
@@ -57,21 +57,21 @@ namespace NMib::NFile
 		{
 			NStr::CStr FileName = NFile::CFile::fs_GetModulePath(NMisc::fg_FunctionPtrToVoidPtr(&fg_ReadExeFSFile));
 
-			_FS.m_ExeFile.f_Open(FileName, EFileOpen_Read|EFileOpen_ShareAll);
+			_FS.m_ExeFile.f_Open(FileName, EFileOpen_Read | EFileOpen_ShareAll);
 			int32 ClusterSize = 1024;
 
 			int32 nClustersToSearch = 1024;
-			CMibFilePos FileSize = fg_AlignDown(_FS.m_ExeFile.f_GetLength() -(sizeof(int64) + 8), ClusterSize);
+			CMibFilePos FileSize = fg_AlignDown(_FS.m_ExeFile.f_GetLength() - (sizeof(int64) + 8), ClusterSize);
 
-			const ch8 *pSigOrig = "SFEXESDI";
+			ch8 const *pSigOrig = "SFEXESDI";
 			ch8 Temp[9];
 			for (umint i = 0; i < 8; ++i)
-				Temp[i] = pSigOrig[7-i];
+				Temp[i] = pSigOrig[7 - i];
 			Temp[8] = 0;
-			const ch8 *pSig = Temp;
+			ch8 const *pSig = Temp;
 
-			const umint SigSize = 8;
-			ch8 Signature[SigSize+1];
+			umint const SigSize = 8;
+			ch8 Signature[SigSize + 1];
 			Signature[SigSize] = 0;
 
 			while (nClustersToSearch && FileSize > 0)
@@ -93,9 +93,7 @@ namespace NMib::NFile
 					return true;
 				}
 				else
-				{
 					FileSize -= ClusterSize;
-				}
 			}
 		}
 		catch (NException::CException)

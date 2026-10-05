@@ -5,7 +5,6 @@
 
 #define DMibAllowCodeStandardViolations 1
 
-
 void fg_PropertiesWindow();
 
 class CEditFileSystemClass
@@ -24,5 +23,5 @@ public:
 };
 
 aint fg_EditFileSystem(CEditFileSystemClass &_Params);
-void fg_ErrorBox(void *_pParent, const ch8 *_pMessage);
+void fg_ErrorBox(void *_pParent, ch8 const *_pMessage);
 

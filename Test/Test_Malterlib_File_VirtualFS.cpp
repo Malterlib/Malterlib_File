@@ -7,8 +7,6 @@
 class CTestVirtualFS : public CMalterlibTest
 {
 public:
-
-
 	NMib::NStr::CStr Certify(CTestInterface &_Interface)
 	{
 //		DMibTrace("\n\nVirtualFS\n\n", 0);
@@ -17,12 +15,11 @@ public:
 		NMib::NFile::TCBinaryStreamFile<> File;
 		NMib::NFile::CVirtualFS VirtualFS;
 
-
 		{
 			NMib::NFile::TCBinaryStreamFile<> File;
 			NMib::NFile::CVirtualFS VirtualFS;
 			File.f_Open(FileName, NMib::NFile::EFileOpen_Write | NMib::NFile::EFileOpen_Read);
-			VirtualFS.f_Create(&File, 128, 512*1024, 1024*1024);
+			VirtualFS.f_Create(&File, 128, 512 * 1024, 1024 * 1024);
 		}
 
 		{
@@ -45,10 +42,7 @@ public:
 
 		return ("");
 	}
-
-
 };
-
 
 DMibRuntimeClass(CMalterlibTest, CTestVirtualFS);
 #endif

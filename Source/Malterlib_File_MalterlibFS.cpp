@@ -9,8 +9,8 @@ namespace NMib::NFile
 	{
 		CVirtualFS::CCheckReporter *mp_pReporter;
 		uint32 mp_Version;
-	public:
 
+	public:
 		CVirtualFS_FixFSFileTree(CVirtualFS::CCheckReporter *_pReporter, uint32 _Version)
 		{
 			mp_pReporter = _pReporter;
@@ -23,7 +23,6 @@ namespace NMib::NFile
 			CVirtualFS::CDirectoryID m_DirectoryID;
 			CVirtualFS::CClusterID m_ClusterID;
 		};
-
 
 		class CFile
 		{
@@ -39,6 +38,7 @@ namespace NMib::NFile
 				m_pParent = nullptr;
 				m_pTree = _pTree;
 			}
+
 			~CFile()
 			{
 				f_SetParent(nullptr);
@@ -88,7 +88,7 @@ namespace NMib::NFile
 			class CCompareFileClusterID
 			{
 			public:
-				inline_small const CVirtualFS::CClusterID &operator () (CFile const &_Node) const
+				inline_small CVirtualFS::CClusterID const &operator () (CFile const &_Node) const
 				{
 					return _Node.m_FileClusterID;
 				}
@@ -109,7 +109,8 @@ namespace NMib::NFile
 				}
 				return nullptr;
 			}
-			CFile *f_GetFileByName(const NStr::CStr &_Name)
+
+			CFile *f_GetFileByName(NStr::CStr const &_Name)
 			{
 				DMibListLinkDS_Iter(CFile, m_ChildLink) Iter = m_Children;
 
@@ -132,13 +133,15 @@ namespace NMib::NFile
 						return Result;
 					return _Left.m_FileClusterID <=> _Right.m_FileClusterID;
 				}
-				inline_small COrdering_Partial operator () (CFile const &_Left, const CDirectoryKey &_Right) const
+
+				inline_small COrdering_Partial operator () (CFile const &_Left, CDirectoryKey const &_Right) const
 				{
 					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
 						return Result;
 					return _Left.m_FileClusterID <=> _Right.m_ClusterID;
 				}
-				inline_small COrdering_Partial operator () (const CDirectoryKey &_Left, CFile const &_Right) const
+
+				inline_small COrdering_Partial operator () (CDirectoryKey const &_Left, CFile const &_Right) const
 				{
 					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
 						return Result;
@@ -159,7 +162,16 @@ namespace NMib::NFile
 
 			while (Iter)
 			{
-				NStr::CStr ToTrace = NStr::CStr::CFormat("{sj*6}{}: Dir: {} Cluster: {}    Parent: {}     FileSize: {}") << "" << NStr::CStr(Iter->m_FileName) << Iter->m_DirectoryID << Iter->m_FileClusterID << Iter->m_ParentID << Iter->m_FileSize << _Depth * 3;
+				NStr::CStr ToTrace
+					= NStr::CStr::CFormat("{sj*6}{}: Dir: {} Cluster: {}    Parent: {}     FileSize: {}")
+					<< ""
+					<< NStr::CStr(Iter->m_FileName)
+					<< Iter->m_DirectoryID
+					<< Iter->m_FileClusterID
+					<< Iter->m_ParentID
+					<< Iter->m_FileSize
+					<< _Depth * 3
+				;
 				if (1)
 					DMibDTrace("{}" DMibNewLine, ToTrace);
 				else
@@ -168,13 +180,16 @@ namespace NMib::NFile
 				++Iter;
 			}
 		}
+
 		void f_TraceTree(CVirtualFS::CCheckReporter *_pReporter)
 		{
 			DMibListLinkDS_Iter(CFile, m_RootLink) Iter = m_Roots;
 
 			while (Iter)
 			{
-				NStr::CStr ToTrace = NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}") << Iter->m_DirectoryID << Iter->m_FileClusterID <<  Iter->m_ParentID << Iter->m_FileSize;
+				NStr::CStr ToTrace
+					= NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}") << Iter->m_DirectoryID << Iter->m_FileClusterID << Iter->m_ParentID << Iter->m_FileSize
+				;
 				if (1)
 					DMibDTrace("{}" DMibNewLine, ToTrace);
 				else
@@ -202,7 +217,6 @@ namespace NMib::NFile
 			}
 			return pFile;
 		}
-
 
 		CFile *f_GetDirectory(CVirtualFS::CDirectoryID _DirID)
 		{
@@ -307,7 +321,6 @@ namespace NMib::NFile
 		NIntrusive::TCAVLTree<&CFile::m_DirectoryIDLink, CFile::CCompareDirectoryID> m_Directories;
 	};
 
-
 	void CVirtualFS::f_Open(NStream::CBinaryStream *_pStorageStream)
 	{
 		fp_Close();
@@ -320,7 +333,7 @@ namespace NMib::NFile
 
 		mp_pStorageStream->f_SetCacheSize(mp_RootData.m_ClusterSize);
 
-		mp_ClusterIDsPerCluster = (mp_RootData.m_ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID)*2 + sizeof(uint64))) / sizeof(CClusterID);
+		mp_ClusterIDsPerCluster = (mp_RootData.m_ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID) * 2 + sizeof(uint64))) / sizeof(CClusterID);
 		mp_DirectoryCache.f_SetCacheSize(mp_RootData.m_DirectoryCacheSize);
 		mp_ClusterCache.f_SetCacheSize(mp_RootData.m_ClusterCacheSize);
 	}
@@ -332,7 +345,6 @@ namespace NMib::NFile
 		if (mp_pStorageStream)
 			mp_pStorageStream->f_Flush(false);
 	}
-
 
 	CVirtualFS::CDirectoryCacheEntry *CVirtualFS::CDirectoryCache::f_GetNewCacheEntry(CDirectoryCacheEntry *_pParent, NStr::CStr const &_Path)
 	{
@@ -421,12 +433,10 @@ namespace NMib::NFile
 	void CVirtualFS::f_Close()
 	{
 		fp_Close();
-
 	}
 
 	void CVirtualFS_FixFSFileTree::f_FindRoots()
 	{
-
 		// Start by removing invalid entries so they are roots
 		auto Iter = m_FileClusters.f_GetIterator();
 
@@ -434,9 +444,7 @@ namespace NMib::NFile
 		{
 			CFile *pIter = Iter;
 			if (pIter->m_FileName.f_IsEmpty())
-			{
 				pIter->f_SetParent(nullptr);
-			}
 			++Iter;
 		}
 
@@ -447,9 +455,7 @@ namespace NMib::NFile
 		{
 			CFile *pRoot = Iter;
 			while (pRoot->m_pParent)
-			{
 				pRoot = pRoot->m_pParent;
-			}
 			m_Roots.f_Insert(pRoot);
 			++Iter;
 		}
@@ -523,7 +529,14 @@ namespace NMib::NFile
 		}
 	}
 
-	void CVirtualFS_FixFSFileTree::f_CopyFile(CVirtualFS::CFileRecord &_FileRecord, CVirtualFS::CFile &_File, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream)
+	void CVirtualFS_FixFSFileTree::f_CopyFile
+		(
+			CVirtualFS::CFileRecord &_FileRecord
+			, CVirtualFS::CFile &_File
+			, uint64 _ClusterSize
+			, uint64 _ClusterIDsPerCluster
+			, NStream::CBinaryStream *_pStorageStream
+		)
 	{
 		mp_pReporter->f_StepDown(_FileRecord.m_FileSize);
 		try
@@ -572,7 +585,15 @@ namespace NMib::NFile
 		}
 	}
 
-	void CVirtualFS_FixFSFileTree::fr_CopyTree(NStr::CStr const &_Path, CFile *_pFile, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS *_pFixDestinationFS)
+	void CVirtualFS_FixFSFileTree::fr_CopyTree
+		(
+			NStr::CStr const &_Path
+			, CFile *_pFile
+			, uint64 _ClusterSize
+			, uint64 _ClusterIDsPerCluster
+			, NStream::CBinaryStream *_pStorageStream
+			, CVirtualFS *_pFixDestinationFS
+		)
 	{
 		CVirtualFS::CClusterID Cluster = _pFile->m_FileClusterID;
 		_pStorageStream->f_SetPosition(Cluster * _ClusterSize);
@@ -590,9 +611,7 @@ namespace NMib::NFile
 			{
 				CVirtualFS::CFile File;
 				if (bIsDir)
-				{
 					File.f_Open(*_pFixDestinationFS, _Path + "/Recovered." + FileRecord.m_MD5Checksum.f_GetString(), EFileOpen_Write);
-				}
 				else
 					File.f_Open(*_pFixDestinationFS, _Path, EFileOpen_Write);
 
@@ -633,7 +652,6 @@ namespace NMib::NFile
 
 	void CVirtualFS_FixFSFileTree::f_CopyTree(uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS *_pFixDestinationFS)
 	{
-
 		uint64 iCurrentRecover = 0;
 
 		mp_pReporter->f_StepDown(m_Roots.f_GetLen());
@@ -644,7 +662,6 @@ namespace NMib::NFile
 
 			while (Iter)
 			{
-
 				CFile *pFile = Iter;
 
 				if (pFile->m_FileClusterID == 1 && pFile->m_bIsDir && pFile->m_DirectoryID == 1)
@@ -741,7 +758,6 @@ namespace NMib::NFile
 							}
 							if (iLoop < 13)
 								_pReporter->f_IncreaseProgress(1);
-
 						}
 
 						if (iLoop < 13)
@@ -779,7 +795,7 @@ namespace NMib::NFile
 				}
 
 				umint ClusterSize = BestClusterSize;
-				uint64 ClusterIDsPerCluster = (ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID)*2 + sizeof(uint64))) / sizeof(CClusterID);
+				uint64 ClusterIDsPerCluster = (ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID) * 2 + sizeof(uint64))) / sizeof(CClusterID);
 				uint64 nClusters = FileLenth / ClusterSize;
 
 				// First lets build up the directory tree
@@ -827,7 +843,7 @@ namespace NMib::NFile
 								if (FileRecord.m_ParentDirectory == 0 && Dir.m_DirectoryID != 1) // Only root dir can have parent dir 0
 									continue;
 							}
-							catch(NException::CException)
+							catch (NException::CException)
 							{
 								continue;
 							}
@@ -893,7 +909,6 @@ namespace NMib::NFile
 				ECheckFSError Ret = ECheckFSError_None;
 				for (int i = 0; i < 2; ++i)
 				{
-
 					_pStorageStream->f_SetPosition(0);
 
 					CCheckFSContext Context(_pStorageStream, _pReporter, _bFix, _pFixDestinationFS);
@@ -918,9 +933,7 @@ namespace NMib::NFile
 					if (Context.mp_RootData.m_Version < 0x102)
 					{
 						if (_bFix)
-						{
 							Context.mp_pReporter->f_ReportError("Upgrading file system version");
-						}
 						else
 						{
 							Context.mp_pReporter->f_ReportError("File system version upgrade needed");
@@ -930,9 +943,9 @@ namespace NMib::NFile
 
 					uint64 ClusterSize = Context.mp_RootData.m_ClusterSize;
 
-					Context.mp_ClusterIDsPerCluster = (ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID)*2 + sizeof(uint64))) / sizeof(CClusterID);
+					Context.mp_ClusterIDsPerCluster = (ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID) * 2 + sizeof(uint64))) / sizeof(CClusterID);
 
-					CClusterID nClusters = ((_pStorageStream->f_GetLength() + ClusterSize -1) / ClusterSize );
+					CClusterID nClusters = ((_pStorageStream->f_GetLength() + ClusterSize - 1) / ClusterSize);
 					CMibFilePos Size = CMibFilePos(nClusters) * CMibFilePos(ClusterSize);
 					if (Size != _pStorageStream->f_GetLength())
 					{
@@ -994,7 +1007,6 @@ namespace NMib::NFile
 				}
 				return Ret;
 			}
-
 		}
 		catch (NException::CException &_Exception)
 		{
@@ -1007,11 +1019,8 @@ namespace NMib::NFile
 				return ECheckFSError_NotFixable;
 			else
 				return ECheckFSError_NewFSFixable;
-
 		}
 	}
-
-
 
 	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::f_UpdateFreeClusters()
 	{
@@ -1070,9 +1079,7 @@ namespace NMib::NFile
 		if (_Cluster > mp_ClusterMap.f_GetLen())
 		{
 			if (mp_pReporter)
-			{
 				mp_pReporter->f_ReportError("Cluster Map: Cluster is invalid");
-			}
 			return EClusterCheckFlag_Invalid; // Unrecoverable
 		}
 
@@ -1114,9 +1121,7 @@ namespace NMib::NFile
 			if (!FreeCluster.f_Validate(Cluster, mp_RootData.m_Version))
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError("Free Cluster Failed Validation");
-				}
 
 				// We need to exit here because we cannot trust the data
 				if (mp_bFix)
@@ -1129,9 +1134,7 @@ namespace NMib::NFile
 			if (f_AddClusterID(Cluster, 1, EClusterCheckFlag_Free, true))
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError("Failed to add free cluster to cluster map, aborting");
-				}
 
 				// We need to exit here in case we are in an circular loop
 				if (mp_bFix)
@@ -1145,9 +1148,7 @@ namespace NMib::NFile
 		if (nFreeClusters != mp_RootData.m_nFreeClusters)
 		{
 			if (mp_pReporter)
-			{
 				mp_pReporter->f_ReportError(NStr::CStr::CFormat("Number of free  clusters does not match {} != {}") << nFreeClusters << mp_RootData.m_nFreeClusters);
-			}
 			return ECheckFSError_InplaceFixable;
 		}
 		else
@@ -1224,7 +1225,15 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CVirtualFS::CCheckFSContext::fs_ReadFileData(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord, NContainer::CByteVector &_Data)
+	bool CVirtualFS::CCheckFSContext::fs_ReadFileData
+		(
+			uint32 _Version
+			, uint64 _ClusterSize
+			, uint64 _ClusterIDsPerCluster
+			, NStream::CBinaryStream *_pStorageStream
+			, CVirtualFS::CFileRecord &_FileRecord
+			, NContainer::CByteVector &_Data
+		)
 	{
 		_Data.f_SetLen(_FileRecord.m_FileSize);
 
@@ -1263,7 +1272,14 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CVirtualFS::CCheckFSContext::fs_CheckClusterChain(uint32 _Version, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS::CFileRecord &_FileRecord)
+	bool CVirtualFS::CCheckFSContext::fs_CheckClusterChain
+		(
+			uint32 _Version
+			, uint64 _ClusterSize
+			, uint64 _ClusterIDsPerCluster
+			, NStream::CBinaryStream *_pStorageStream
+			, CVirtualFS::CFileRecord &_FileRecord
+		)
 	{
 		CClusterChain Chain;
 		Chain.m_ClusterIDs.f_SetLen(_ClusterIDsPerCluster);
@@ -1334,7 +1350,6 @@ namespace NMib::NFile
 	{
 		ECheckFSError Ret = ECheckFSError_None;
 
-
 		umint nClusters = mp_ClusterMap.f_GetLen();
 
 		mp_pReporter->f_StepDown(nClusters * 2);
@@ -1356,9 +1371,7 @@ namespace NMib::NFile
 				{
 					++nFiles;
 					if (mp_bFix)
-					{
 						f_FreeCluster(i);
-					}
 					else
 					{
 						ECheckFSError TreeCheck = f_CheckFSTree(i, false);
@@ -1402,13 +1415,9 @@ namespace NMib::NFile
 				{
 					++nOrphan;
 					if (mp_bFix)
-					{
 						f_FreeCluster(i);
-					}
 					else
-					{
 						Ret = fg_Max(Ret, ECheckFSError_InplaceFixable); // We can just return the data
-					}
 				}
 			}
 			mp_pReporter->f_IncreaseProgress(1);
@@ -1437,7 +1446,15 @@ namespace NMib::NFile
 		return Ret;
 	}
 
-	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName)
+	CVirtualFS::ECheckFSError CVirtualFS::CCheckFSContext::fr_CheckFSTree
+		(
+			CClusterID _ClusterID
+			, CCircularChecker &_CircularChecker
+			, bool &_bRemove
+			, bool _bMap
+			, CDirectoryID _ParentDir
+			, NStr::CStr const &_FileName
+		)
 	{
 		DMibSafeCheck(!_CircularChecker.f_AlreadyInList(_ClusterID), "We should make sure this does not happen in the directory iterator");
 
@@ -1458,24 +1475,20 @@ namespace NMib::NFile
 			if (AddResult & EClusterCheckFlag_FileRecord)
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: This file record is already referenced somewhere else ") << _FileName);
-				}
 				return fg_Max(Ret, ECheckFSError_NewFSFixable);
 			}
 
 			if (AddResult & EClusterCheckFlag_Invalid)
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: The file record cluster is invalid (outside of the file stream)") << _FileName);
-				}
 				return fg_Max(Ret, ECheckFSError_NewFSFixable);
 			}
 
 			if (AddResult & EClusterCheckFlag_Free)
 
-			Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
+				Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 		}
 
 		CVirtualFS::CFileRecord FileRecord;
@@ -1512,9 +1525,7 @@ namespace NMib::NFile
 		if (FileRecord.m_ParentDirectory != _ParentDir)
 		{
 			if (mp_pReporter)
-			{
 				mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: File record parent directory ID mismatch") << _FileName);
-			}
 
 			if (mp_bFix)
 			{
@@ -1578,18 +1589,14 @@ namespace NMib::NFile
 			if (AddResult)
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: File cluster chain cluster used somewhere else") << _FileName);
-				}
 				Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 			}
 
 			if (iCluster >= iEndCluster)
 			{
 				if (mp_pReporter)
-				{
 					mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: File id chain contains too many ids") << _FileName);
-				}
 				if (mp_bFix)
 				{
 					f_FreeCluster(Current);
@@ -1601,7 +1608,6 @@ namespace NMib::NFile
 
 			// Add all custers to the cluster map
 
-
 			uint64 nClusterIDs = Chain.m_nClusterIDs;
 			for (uint64 i = 0; i < nClusterIDs; ++i)
 			{
@@ -1610,7 +1616,6 @@ namespace NMib::NFile
 					f_FreeCluster(Chain.m_ClusterIDs[i]);
 					Changed = fg_Max(Changed, 1);
 					--Chain.m_nClusterIDs;
-
 				}
 				else
 				{
@@ -1620,9 +1625,7 @@ namespace NMib::NFile
 					if (AddResult)
 					{
 						if (mp_pReporter)
-						{
 							mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: File data cluster used somewhere else") << _FileName);
-						}
 						Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 					}
 
@@ -1637,9 +1640,7 @@ namespace NMib::NFile
 				if (Chain.m_NextChainCluster != 0)
 				{
 					if (mp_pReporter)
-					{
 						mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: Cluster chain error") << _FileName);
-					}
 					if (mp_bFix)
 					{
 						Chain.m_NextChainCluster = 0;
@@ -1647,7 +1648,6 @@ namespace NMib::NFile
 					}
 					else
 						Ret = fg_Max(Ret, ECheckFSError_InplaceFixable);
-
 				}
 			}
 
@@ -1665,9 +1665,7 @@ namespace NMib::NFile
 		if (FileRecord.m_FileSize > FileSize || iCluster > iEndCluster || bChangedFileRecord)
 		{
 			if (mp_pReporter)
-			{
 				mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: File cluster data size mismatch") << _FileName);
-			}
 			if (mp_bFix)
 			{
 				FileRecord.m_FileSize = fg_Min(FileRecord.m_FileSize, FileSize);
@@ -1676,9 +1674,7 @@ namespace NMib::NFile
 				FileRecord.f_Write(*mp_pStorageStream);
 			}
 			else
-			{
 				Ret = fg_Max(Ret, ECheckFSError_InplaceFixable);
-			}
 		}
 
 		if (FileRecord.m_FileAttributes & NFile::EFileAttrib_Directory)
@@ -1721,9 +1717,7 @@ namespace NMib::NFile
 					if (_CircularChecker.f_AlreadyInList(ClusterID))
 					{
 						if (mp_pReporter)
-						{
 							mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: Circular directory dependency found") << _FileName);
-						}
 						Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 					}
 					else
@@ -1755,17 +1749,11 @@ namespace NMib::NFile
 				{
 					//DMibSafeCheck((uint64)Stream.f_GetLength() < FileRecord.m_FileSize, "Should not happen");
 					if (mp_pReporter)
-					{
 						mp_pReporter->f_ReportError(NStr::CStr::CFormat("{}: Error: Directory file length not correct") << _FileName);
-					}
 					if (mp_bFix)
-					{
 						bChanged = true;
-					}
 					else
-					{
 						Ret = fg_Max(Ret, ECheckFSError_InplaceFixable);
-					}
 				}
 			}
 
@@ -1808,11 +1796,11 @@ namespace NMib::NFile
 		mp_RootData.m_nFreeClusters = 0;
 		mp_RootData.m_DirectoryCacheSize = 256;
 		mp_RootData.m_CurrentDirectoryID = 0;
-		mp_RootData.m_ClusterCacheSize = (8*1024*1024 + _ClusterSize - 1) / _ClusterSize; // Cache 8 MiB of data as default
+		mp_RootData.m_ClusterCacheSize = (8 * 1024 * 1024 + _ClusterSize - 1) / _ClusterSize; // Cache 8 MiB of data as default
 		mp_DirectoryCache.f_SetCacheSize(mp_RootData.m_DirectoryCacheSize);
 		mp_ClusterCache.f_SetCacheSize(mp_RootData.m_ClusterCacheSize);
 
-		mp_ClusterIDsPerCluster = (mp_RootData.m_ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID)*2 + sizeof(uint64))) / sizeof(CClusterID);
+		mp_ClusterIDsPerCluster = (mp_RootData.m_ClusterSize - (sizeof(NCryptography::CHashDigest_MD5) + sizeof(CClusterID) * 2 + sizeof(uint64))) / sizeof(CClusterID);
 		CClusterID InitialClusters = _InitialSize / _ClusterSize;
 
 		if (InitialClusters < 4)
@@ -1849,8 +1837,8 @@ namespace NMib::NFile
 			for (CClusterID i = 0; i < NumFreeClusters; ++i)
 			{
 				CFreeCluster NewFreeCluster;
-				if (i < (NumFreeClusters-1))
-					NewFreeCluster.m_NextFreeCluster = mp_RootData.m_FirstFreeCluster + i+1;
+				if (i < (NumFreeClusters - 1))
+					NewFreeCluster.m_NextFreeCluster = mp_RootData.m_FirstFreeCluster + i + 1;
 				else
 					NewFreeCluster.m_NextFreeCluster = 0; // No more free
 				NewFreeCluster.f_GenerateChecksum(mp_RootData.m_FirstFreeCluster + i, mp_RootData.m_Version);
@@ -1885,6 +1873,7 @@ namespace NMib::NFile
 
 		fp_SaveRootData();
 	}
+
 	void CVirtualFS::f_SetCacheSizes(umint _nDirectories, umint _nClusterBytes)
 	{
 		umint nClusters = fg_Max((_nClusterBytes + mp_RootData.m_ClusterSize - 1) / mp_RootData.m_ClusterSize, umint(1));
@@ -1912,9 +1901,7 @@ namespace NMib::NFile
 		mp_ClusterCache.f_Destroy();
 
 		if (mp_pStorageStream)
-		{
 			mp_pStorageStream = nullptr;
-		}
 	}
 
 	void CVirtualFS::fp_SaveRootData()
@@ -1946,8 +1933,8 @@ namespace NMib::NFile
 				for (CClusterID i = 0; i < NumFreeClusters; ++i)
 				{
 					CFreeCluster NewFreeCluster;
-					if (i < (NumFreeClusters-1))
-						NewFreeCluster.m_NextFreeCluster = mp_RootData.m_FirstFreeCluster + i+1;
+					if (i < (NumFreeClusters - 1))
+						NewFreeCluster.m_NextFreeCluster = mp_RootData.m_FirstFreeCluster + i + 1;
 					else
 						NewFreeCluster.m_NextFreeCluster = 0; // No more free
 					NewFreeCluster.f_GenerateChecksum(mp_RootData.m_FirstFreeCluster + i, mp_RootData.m_Version);
@@ -1960,7 +1947,6 @@ namespace NMib::NFile
 				}
 
 				fp_SaveRootData();
-
 			}
 			catch (CExceptionFile)
 			{
@@ -1981,9 +1967,7 @@ namespace NMib::NFile
 			mp_ClusterCache.f_ReturnCluster(pCluster);
 
 			if (!FreeCluster.f_Validate(mp_RootData.m_FirstFreeCluster, mp_RootData.m_Version))
-			{
 				DMibErrorFile("Free cluster record checksum failure");
-			}
 
 			mp_RootData.m_FirstFreeCluster = FreeCluster.m_NextFreeCluster;
 			--mp_RootData.m_nFreeClusters;
@@ -2037,9 +2021,7 @@ namespace NMib::NFile
 						if (m_ClusterChain.m_ClusterFirstIDIndex * ClusterSize >= _Length)
 						{
 							for (uint64 i = 0; i < m_ClusterChain.m_nClusterIDs; ++i)
-							{
 								m_pVirtualFS->fp_ReturnCluster(m_ClusterChain.m_ClusterIDs[i]);
-							}
 							m_pVirtualFS->fp_ReturnCluster(CurrentID);
 							m_bClusterChainDirty = false;
 							m_bValidClusterChain = false;
@@ -2053,9 +2035,7 @@ namespace NMib::NFile
 						{
 							int64 nNewClusterIDs = ((_Length + ClusterSize - 1) / ClusterSize) - m_ClusterChain.m_ClusterFirstIDIndex;
 							for (uint64 i = nNewClusterIDs; i < m_ClusterChain.m_nClusterIDs; ++i)
-							{
 								m_pVirtualFS->fp_ReturnCluster(m_ClusterChain.m_ClusterIDs[i]);
-							}
 							m_ClusterChain.m_nClusterIDs = nNewClusterIDs;
 							m_ClusterChain.m_NextChainCluster = 0;
 							m_bClusterChainDirty = true;
@@ -2081,10 +2061,8 @@ namespace NMib::NFile
 		}
 	}
 
-
 	CVirtualFS::CFileInternal *CVirtualFS::fp_OpenNewFile()
 	{
-
 		CVirtualFS::CClusterID FileCluster = 0;
 		CVirtualFS::CClusterID FileChainCluster = 0;
 		CFileInternal *pFile = nullptr;
@@ -2163,7 +2141,6 @@ namespace NMib::NFile
 			_pFile->f_Destroy();
 			fg_DeleteObject(NMemory::CDefaultAllocator(), _pFile);
 		}
-
 	}
 
 	void CVirtualFS::f_EnumFiles(NStr::CStr const &_Path, NContainer::TCVector<NStr::CStr> &_Files)
@@ -2172,9 +2149,7 @@ namespace NMib::NFile
 		CDirectoryCacheEntry *pEntry = mp_DirectoryCache.f_GetDirectory(_Path);
 
 		if (!pEntry)
-		{
 			DMibErrorFile("No such directory");
-		}
 
 		_Files.f_SetLen(pEntry->m_Directory.m_Files.f_GetLen());
 
@@ -2184,12 +2159,12 @@ namespace NMib::NFile
 		mp_DirectoryCache.f_ReturnDirectory(pEntry);
 	}
 
-	static bool fsg_MatchPattern(const ch8 *_pStr, const ch8 *_pPattern)
+	static bool fsg_MatchPattern(ch8 const *_pStr, ch8 const *_pPattern)
 	{
 		NStr::CStr Temp0 = NStr::CStr(_pStr).f_UpperCase();
 		NStr::CStr Temp1 = NStr::CStr(_pPattern).f_UpperCase();
-		const char *pParse = Temp0;
-		const char *pPattern = Temp1;
+		char const *pParse = Temp0;
+		char const *pPattern = Temp1;
 
 		while (*pParse && *pPattern)
 		{
@@ -2222,7 +2197,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	static void fsg_FindFilesRecursive(CVirtualFS *_pFS, const NStr::CStr &_Path, const NStr::CStr &_Pattern, uint32 _AttribMask, bool _bRecursive, NContainer::TCVector<NStr::CStr> &_Files)
+	static void fsg_FindFilesRecursive(CVirtualFS *_pFS, NStr::CStr const &_Path, NStr::CStr const &_Pattern, uint32 _AttribMask, bool _bRecursive, NContainer::TCVector<NStr::CStr> &_Files)
 	{
 		NContainer::TCVector<NStr::CStr> Files;
 		if (!_Path.f_IsEmpty() && !_pFS->f_FileExists(_Path, EFileAttrib_Directory))
@@ -2244,13 +2219,12 @@ namespace NMib::NFile
 				if (Attribs & NFile::EFileAttrib_Directory)
 				{
 					if (_bRecursive)
-					{
 						fsg_FindFilesRecursive(_pFS, FullFileName, _Pattern, _AttribMask, _bRecursive, _Files);
-					}
 				}
 			}
 		}
 	}
+
 	NContainer::TCVector<NStr::CStr> CVirtualFS::f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask, bool _bRecursive)
 	{
 		NStr::CStr Pattern = NFile::CFile::fs_GetFile(_Path);
@@ -2346,7 +2320,6 @@ namespace NMib::NFile
 
 		_File.f_Close();
 		_File.mp_pInternalFile = pFile;
-
 	}
 
 	void CVirtualFS::f_DeleteFile(NStr::CStr const &_File)
@@ -2425,9 +2398,7 @@ namespace NMib::NFile
 			File = _FileTo.f_Extract(iPath + 1);
 		}
 		else
-		{
 			File = _FileTo;
-		}
 
 		CDirectoryCacheEntry *pDir = mp_DirectoryCache.f_GetDirectory(ParentPath);
 		if (pDir)
@@ -2461,7 +2432,6 @@ namespace NMib::NFile
 					mp_DirectoryCache.m_Tree.f_Insert(pCache);
 				}
 
-
 				fp_CloseFile(pFile);
 			}
 			else
@@ -2472,11 +2442,9 @@ namespace NMib::NFile
 
 			mp_DirectoryCache.f_ReturnCacheEntry(pDir);
 		}
-
-
 	}
 
-	void CVirtualFS::fp_CheckPath(const NStr::CStr &_Path, bool _bCanBeEmpty)
+	void CVirtualFS::fp_CheckPath(NStr::CStr const &_Path, bool _bCanBeEmpty)
 	{
 		if (_Path.f_Find("//") >= 0)
 			DMibErrorFile("Invalid path: An empty component found ('//').");
@@ -2490,7 +2458,7 @@ namespace NMib::NFile
 			if (_Path[0] == '/')
 				DMibErrorFile("Invalid path: Path cannot start with '/'.");
 			uint32 Pathlen = _Path.f_GetLen();
-			if (_Path[Pathlen-1] == '/')
+			if (_Path[Pathlen - 1] == '/')
 				DMibErrorFile("Invalid path: Path cannot end with '/'.");
 		}
 	}
@@ -2502,9 +2470,7 @@ namespace NMib::NFile
 		CDirectoryCacheEntry *pCacheEntry = mp_DirectoryCache.f_GetNewDirectory(_Path);
 
 		if (!pCacheEntry)
-		{
 			DMibErrorFile("Failed to create directory");
-		}
 		mp_DirectoryCache.f_ReturnDirectory(pCacheEntry);
 	}
 
@@ -2521,9 +2487,7 @@ namespace NMib::NFile
 			File = _Path.f_Extract(iPath + 1);
 		}
 		else
-		{
 			File = _Path;
-		}
 
 		CDirectoryCacheEntry *pDir = mp_DirectoryCache.f_GetDirectory(ParentPath);
 		if (pDir)
@@ -2584,7 +2548,6 @@ namespace NMib::NFile
 		return nullptr;
 	}
 
-
 	void CVirtualFS::f_SetAttributes(NStr::CStr const &_Path, uint64 _Attribs)
 	{
 		CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
@@ -2611,7 +2574,7 @@ namespace NMib::NFile
 		fp_CloseFile(pFile);
 	}
 
-	void CVirtualFS::f_SetCreationTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
+	void CVirtualFS::f_SetCreationTime(NStr::CStr const &_Path, NTime::CTime const &_Time)
 	{
 		CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 		if (!pFile)
@@ -2623,7 +2586,7 @@ namespace NMib::NFile
 		fp_CloseFile(pFile);
 	}
 
-	void CVirtualFS::f_SetAccessTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
+	void CVirtualFS::f_SetAccessTime(NStr::CStr const &_Path, NTime::CTime const &_Time)
 	{
 		CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 		if (!pFile)
@@ -2635,7 +2598,7 @@ namespace NMib::NFile
 		fp_CloseFile(pFile);
 	}
 
-	void CVirtualFS::f_SetWriteTime(NStr::CStr const &_Path, const NTime::CTime &_Time)
+	void CVirtualFS::f_SetWriteTime(NStr::CStr const &_Path, NTime::CTime const &_Time)
 	{
 		CFileInternal *pFile = fp_OpenFileFromPath(_Path, false, false, true);
 		if (!pFile)
@@ -2707,7 +2670,6 @@ namespace NMib::NFile
 		return Ret;
 	}
 
-
 	bool CVirtualFS::f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data)
 	{
 		try
@@ -2739,9 +2701,7 @@ namespace NMib::NFile
 			File = _Path.f_Extract(iPath + 1);
 		}
 		else
-		{
 			File = _Path;
-		}
 
 		CDirectoryCacheEntry *pDir = mp_DirectoryCache.f_GetDirectory(ParentPath);
 		if (pDir)
@@ -2774,9 +2734,7 @@ namespace NMib::NFile
 			File = _Path.f_Extract(iPath + 1);
 		}
 		else
-		{
 			File = _Path;
-		}
 
 		CDirectoryCacheEntry *pDir = mp_DirectoryCache.f_GetDirectory(ParentPath);
 		if (pDir)
@@ -2814,7 +2772,7 @@ namespace NMib::NFile
 		if (FileAttribs & NFile::EFileAttrib_Link)
 		{
 			auto LinkDestination = NFile::CFile::fs_ResolveSymbolicLink(_FromFile);
-			CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
+			CFile ToFile(*this, _ToFile, EFileOpen_Write | EFileOpen_ShareAll);
 			NContainer::CByteVector Data;
 			NFile::CFile::fs_WriteStringToVector(Data, LinkDestination);
 			ToFile.f_Write(Data.f_GetArray(), Data.f_GetLen());
@@ -2822,8 +2780,8 @@ namespace NMib::NFile
 		else
 		{
 			NFile::CFile FromFile;
-			CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
-			FromFile.f_Open(_FromFile, EFileOpen_Read|EFileOpen_ShareAll);
+			CFile ToFile(*this, _ToFile, EFileOpen_Write | EFileOpen_ShareAll);
+			FromFile.f_Open(_FromFile, EFileOpen_Read | EFileOpen_ShareAll);
 
 			CFileIoTempBuffer Buffer;
 
@@ -2844,8 +2802,8 @@ namespace NMib::NFile
 	void CVirtualFS::f_CopyFileFromFS(NStr::CStr const &_FromFile, NStr::CStr const &_ToFile)
 	{
 		NFile::CFile ToFile;
-		CFile FromFile(*this, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
-		ToFile.f_Open(_ToFile, EFileOpen_Write|EFileOpen_ShareAll);
+		CFile FromFile(*this, _FromFile, EFileOpen_Read | EFileOpen_ShareAll);
+		ToFile.f_Open(_ToFile, EFileOpen_Write | EFileOpen_ShareAll);
 
 		CFileIoTempBuffer Buffer;
 
@@ -2862,8 +2820,8 @@ namespace NMib::NFile
 
 	void CVirtualFS::f_CopyFileToFS(CVirtualFS &_OtherFS, NStr::CStr const &_FromFile, NStr::CStr const &_ToFile)
 	{
-		CFile FromFile(_OtherFS, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
-		CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
+		CFile FromFile(_OtherFS, _FromFile, EFileOpen_Read | EFileOpen_ShareAll);
+		CFile ToFile(*this, _ToFile, EFileOpen_Write | EFileOpen_ShareAll);
 
 		CFileIoTempBuffer Buffer;
 
@@ -2880,8 +2838,8 @@ namespace NMib::NFile
 
 	void CVirtualFS::f_CopyFileInFS(NStr::CStr const &_FromFile, NStr::CStr const &_ToFile)
 	{
-		CFile FromFile(*this, _FromFile, EFileOpen_Read|EFileOpen_ShareAll);
-		CFile ToFile(*this, _ToFile, EFileOpen_Write|EFileOpen_ShareAll);
+		CFile FromFile(*this, _FromFile, EFileOpen_Read | EFileOpen_ShareAll);
+		CFile ToFile(*this, _ToFile, EFileOpen_Write | EFileOpen_ShareAll);
 
 		CFileIoTempBuffer Buffer;
 
@@ -2918,9 +2876,7 @@ namespace NMib::NFile
 	void CVirtualFS::CFile::fp_CheckValid() const
 	{
 		if (!f_IsValid())
-		{
 			DMibErrorFile("File is not open");
-		}
 	}
 
 	bool CVirtualFS::CFile::f_IsValid() const
@@ -2953,7 +2909,7 @@ namespace NMib::NFile
 		mp_Position += _nBytes;
 	}
 
-	void CVirtualFS::CFile::f_Write(const void *_pSrc, umint _nBytes)
+	void CVirtualFS::CFile::f_Write(void const *_pSrc, umint _nBytes)
 	{
 		fp_CheckValid();
 		mp_pInternalFile->f_Write(_pSrc, mp_Position, _nBytes);
@@ -2968,7 +2924,6 @@ namespace NMib::NFile
 
 	void CVirtualFS::CFile::f_SetCacheSize(umint _CacheSize)
 	{
-
 	}
 
 	bool CVirtualFS::CFile::f_IsAtEndOfFile() const
@@ -2977,7 +2932,7 @@ namespace NMib::NFile
 		return mp_Position == mp_pInternalFile->m_FileRecord.m_FileSize;
 	}
 
-	void CVirtualFS::CFile::f_SetLength(const CMibFilePos &_Length)
+	void CVirtualFS::CFile::f_SetLength(CMibFilePos const &_Length)
 	{
 		fp_CheckValid();
 		mp_pInternalFile->f_SetLength(_Length);

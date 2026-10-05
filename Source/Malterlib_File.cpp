@@ -67,14 +67,13 @@ namespace NMib::NFile
 	{
 		void fg_FindFilesLeaf
 			(
-				const NStr::CStr &_FindPath
+				NStr::CStr const &_FindPath
 				, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 				, bool _bCatchExceptions
 				, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
 			)
 		{
-			auto fDoFind
-				= [&]
+			auto fDoFind = [&]
 				{
 					void *pFind = nullptr;
 					pFind = NSys::NFile::fg_FindOpen(_FindPath);
@@ -85,13 +84,13 @@ namespace NMib::NFile
 					;
 
 					EFileAttrib Attribs;
-					const NStr::CStr *pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
+					NStr::CStr const *pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 					while (pPath)
 					{
 						if ((Attribs & EFileAttrib_Directory) && !(Attribs & EFileAttrib_Link))
 						{
-							 _fFoundFile(*pPath, Attribs, true);
-							 _fFoundFile(*pPath, Attribs, false);
+							_fFoundFile(*pPath, Attribs, true);
+							_fFoundFile(*pPath, Attribs, false);
 						}
 						else
 							_fFoundFile(*pPath, Attribs, false);
@@ -99,7 +98,6 @@ namespace NMib::NFile
 							_fCheckAbort();
 						pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 					}
-
 				}
 			;
 			if (_bCatchExceptions)
@@ -118,8 +116,8 @@ namespace NMib::NFile
 
 		void fg_FindFilesRecurse
 			(
-				const NStr::CStr &_Path
-				, const NStr::CStr &_Pattern
+				NStr::CStr const &_Path
+				, NStr::CStr const &_Pattern
 				, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 				, bool _bCatchExceptions
 				, NFunction::TCFunctionNoAlloc<void ()> const &_fCheckAbort
@@ -137,7 +135,7 @@ namespace NMib::NFile
 							}
 						;
 						EFileAttrib Attribs;
-						const NStr::CStr *pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
+						NStr::CStr const *pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
 
 						while (pPath)
 						{
@@ -149,14 +147,8 @@ namespace NMib::NFile
 									_fFoundFile(*pPath, Attribs, false);
 								}
 							}
-							else if
-								(
-									NStr::fg_StrMatchWildcard(CFile::fs_GetFile(*pPath).f_GetStr(), _Pattern.f_GetStr())
-									== NStr::EMatchWildcardResult_WholeStringMatchedAndPatternExhausted
-								)
-							{
+							else if (NStr::fg_StrMatchWildcard(CFile::fs_GetFile(*pPath).f_GetStr(), _Pattern.f_GetStr()) == NStr::EMatchWildcardResult_WholeStringMatchedAndPatternExhausted)
 								_fFoundFile(*pPath, Attribs, false);
-							}
 							if (_fCheckAbort)
 								_fCheckAbort();
 							pPath = NSys::NFile::fg_FindNext(pFind, Attribs);
@@ -181,7 +173,7 @@ namespace NMib::NFile
 
 		void fg_FindFiles
 			(
-				const NStr::CStr &_FindPath
+				NStr::CStr const &_FindPath
 				, NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 				, bool _bCatchExceptions
 				, bool _bRecursive
@@ -198,13 +190,11 @@ namespace NMib::NFile
 			}
 			else
 				fg_FindFilesLeaf(_FindPath, _fFoundFile, _bCatchExceptions, _fCheckAbort);
-
 		}
 	}
 
-	void CFile::fs_CopyFiles(const NStr::CStr &_FindPath, const NStr::CStr &_ToPath, bool _bRecursive, bool _bRaw, EFileAttrib _AttribMask)
+	void CFile::fs_CopyFiles(NStr::CStr const &_FindPath, NStr::CStr const &_ToPath, bool _bRecursive, bool _bRaw, EFileAttrib _AttribMask)
 	{
-
 		NContainer::TCVector<NStr::CStr> Paths;
 		if (_AttribMask & EFileAttrib_Directory)
 			Paths = fs_FindFiles(_FindPath, EFileAttrib_Directory, _bRecursive);
@@ -239,7 +229,7 @@ namespace NMib::NFile
 		}
 	}
 
-	NStr::CStr CFile::fs_ReadStringFromVector(const NContainer::CByteVector &_File, bool _bAssumeUTF8)
+	NStr::CStr CFile::fs_ReadStringFromVector(NContainer::CByteVector const &_File, bool _bAssumeUTF8)
 	{
 		NStr::CStr FileData;
 		NStream::CBinaryStreamMemoryPtr<> Stream;
@@ -263,7 +253,6 @@ namespace NMib::NFile
 		else
 			return mp_CacheBuffer.f_GetLen();
 	}
-
 
 	void CFile::fp_FlushCache()
 	{
@@ -391,7 +380,7 @@ namespace NMib::NFile
 			DMibErrorFile("Not all bytes were written");
 	}
 
-	void CFile::f_Write(const void *_pSrc, umint _nBytes)
+	void CFile::f_Write(void const *_pSrc, umint _nBytes)
 	{
 		fp_CheckOpen();
 
@@ -410,7 +399,7 @@ namespace NMib::NFile
 		else
 		{
 			umint ToCopy = _nBytes;
-			const uint8 *pSrc = (uint8 *)_pSrc;
+			uint8 const *pSrc = (uint8 *)_pSrc;
 			while (ToCopy)
 			{
 				umint nBytesAvailable;
@@ -459,13 +448,13 @@ namespace NMib::NFile
 		return *this;
 	}
 
-	CFile::CFile(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags)
+	CFile::CFile(NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags)
 	{
 		mp_pFile = nullptr;
 		f_Open(_FileName, _OpenFlags);
 	}
 
-	CFile::CFile(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags)
+	CFile::CFile(NStr::CStrNonTracked const &_FileName, NMib::NFile::EFileOpen _OpenFlags)
 	{
 		mp_pFile = nullptr;
 		f_Open(_FileName, _OpenFlags);
@@ -491,7 +480,7 @@ namespace NMib::NFile
 				NSys::NFile::fg_Close(mp_pFile);
 				mp_pFile = nullptr;
 			}
-			catch (const CExceptionFile &)
+			catch (CExceptionFile const &)
 			{
 				NSys::NFile::fg_Close(mp_pFile);
 				mp_pFile = nullptr;
@@ -521,7 +510,7 @@ namespace NMib::NFile
 			mp_CachedFileLen = -1;
 	}
 
-	void CFile::f_Open(const NStr::CStr &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
+	void CFile::f_Open(NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 	{
 		NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
 		if (OpenFlags & EFileOpen_Directory || (OpenFlags & (EFileOpen_Read | EFileOpen_Write)) == EFileOpen_None)
@@ -545,7 +534,7 @@ namespace NMib::NFile
 			mp_CachedFileLen = -1;
 	}
 
-	void CFile::f_Open(const NStr::CStrNonTracked &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
+	void CFile::f_Open(NStr::CStrNonTracked const &_FileName, NMib::NFile::EFileOpen _OpenFlags, EFileAttrib _Attributes)
 	{
 		NMib::NFile::EFileOpen OpenFlags = _OpenFlags;
 		if ((_OpenFlags & EFileOpen_Directory) || !(_OpenFlags & (EFileOpen_Read | EFileOpen_Write)))
@@ -570,14 +559,13 @@ namespace NMib::NFile
 			mp_CachedFileLen = -1;
 	}
 
-
 	void CFile::f_FileEnumOtherHandles(NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_FileEnumOtherHandles(mp_pFile, _HandleInfo);
 	}
 
-	void CFile::fs_FileEnumOtherHandles(const NStr::CStr &_FileName, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo)
+	void CFile::fs_FileEnumOtherHandles(NStr::CStr const &_FileName, NContainer::TCVector<NMib::NFile::CFileHandle> &_HandleInfo)
 	{
 		NSys::NFile::fg_FileEnumOtherHandles(_FileName, _HandleInfo);
 	}
@@ -603,7 +591,6 @@ namespace NMib::NFile
 		}
 	}
 
-
 	void CFile::f_Flush(bool _bLocalCacheOnly)
 	{
 		fp_CheckOpen();
@@ -618,7 +605,7 @@ namespace NMib::NFile
 		return mp_FilePos >= fp_GetLength();
 	}
 
-	void CFile::f_SetLength(const CMibFilePos &_Length)
+	void CFile::f_SetLength(CMibFilePos const &_Length)
 	{
 		fp_CheckOpen();
 		fp_FlushCache();
@@ -635,19 +622,19 @@ namespace NMib::NFile
 		return fp_GetLength();
 	}
 
-	void CFile::f_SetCreationTime(const NTime::CTime &_Time)
+	void CFile::f_SetCreationTime(NTime::CTime const &_Time)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_SetCreationTime(mp_pFile, _Time);
 	}
 
-	void CFile::f_SetAccessTime(const NTime::CTime &_Time)
+	void CFile::f_SetAccessTime(NTime::CTime const &_Time)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_SetAccessTime(mp_pFile, _Time);
 	}
 
-	void CFile::f_SetWriteTime(const NTime::CTime &_Time)
+	void CFile::f_SetWriteTime(NTime::CTime const &_Time)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_SetWriteTime(mp_pFile, _Time);
@@ -693,6 +680,7 @@ namespace NMib::NFile
 	{
 		return NSys::NFile::fg_SetAttributes(_FileName, _Attribs);
 	}
+
 	EFileAttrib CFile::fs_GetAttributes(NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetAttributes(_FileName);
@@ -702,32 +690,33 @@ namespace NMib::NFile
 	{
 		return NSys::NFile::fg_SetAttributesOnLink(_FileName, _Attribs);
 	}
+
 	EFileAttrib CFile::fs_GetAttributesOnLink(NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetAttributesOnLink(_FileName);
 	}
 
-	CUniqueFileIdentifier CFile::fs_GetUniqueIdentifier(NMib::NStr::CStr const& _FileName)
+	CUniqueFileIdentifier CFile::fs_GetUniqueIdentifier(NMib::NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetUniqueIdentifier(_FileName);
 	}
 
-	CUniqueFileIdentifier CFile::fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const& _FileName)
+	CUniqueFileIdentifier CFile::fs_GetUniqueIdentifierOnLink(NMib::NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetUniqueIdentifierOnLink(_FileName);
 	}
 
-	NTime::CTime CFile::fs_GetCreationTime(NStr::CStr const& _FileName)
+	NTime::CTime CFile::fs_GetCreationTime(NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetCreationTime(_FileName);
 	}
 
-	NTime::CTime CFile::fs_GetAccessTime(NStr::CStr const& _FileName)
+	NTime::CTime CFile::fs_GetAccessTime(NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetAccessTime(_FileName);
 	}
 
-	NTime::CTime CFile::fs_GetWriteTime(NStr::CStr const& _FileName)
+	NTime::CTime CFile::fs_GetWriteTime(NStr::CStr const &_FileName)
 	{
 		return NSys::NFile::fg_GetWriteTime(_FileName);
 	}
@@ -747,32 +736,32 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetWriteTimeOnLink(_FileName);
 	}
 
-	void CFile::fs_SetCreationTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetCreationTime(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetCreationTime(_FileName, _Time);
 	}
 
-	void CFile::fs_SetAccessTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetAccessTime(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetAccessTime(_FileName, _Time);
 	}
 
-	void CFile::fs_SetWriteTime(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetWriteTime(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetWriteTime(_FileName, _Time);
 	}
 
-	void CFile::fs_SetCreationTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetCreationTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetCreationTimeOnLink(_FileName, _Time);
 	}
 
-	void CFile::fs_SetAccessTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetAccessTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetAccessTimeOnLink(_FileName, _Time);
 	}
 
-	void CFile::fs_SetWriteTimeOnLink(NStr::CStr const& _FileName, NTime::CTime const &_Time)
+	void CFile::fs_SetWriteTimeOnLink(NStr::CStr const &_FileName, NTime::CTime const &_Time)
 	{
 		return NSys::NFile::fg_SetWriteTimeOnLink(_FileName, _Time);
 	}
@@ -791,6 +780,7 @@ namespace NMib::NFile
 	{
 		NSys::NFile::fg_SetOwner(mp_pFile, _Owner);
 	}
+
 	void CFile::f_SetGroup(NStr::CStr const &_Group)
 	{
 		NSys::NFile::fg_SetGroup(mp_pFile, _Group);
@@ -841,18 +831,17 @@ namespace NMib::NFile
 		return _Pos >= 0 && _Pos < fp_GetLength();
 	}
 
-	void CFile::f_LockRange(const CMibFilePos &_Offset, const CMibFilePos &_NumBytes, EFileLock _Flags)
+	void CFile::f_LockRange(CMibFilePos const &_Offset, CMibFilePos const &_NumBytes, EFileLock _Flags)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_LockRange(mp_pFile, _Offset, _NumBytes, _Flags);
 	}
 
-	void CFile::f_UnlockRange(const CMibFilePos &_Offset, const CMibFilePos &_NumBytes)
+	void CFile::f_UnlockRange(CMibFilePos const &_Offset, CMibFilePos const &_NumBytes)
 	{
 		fp_CheckOpen();
 		NSys::NFile::fg_UnlockRange(mp_pFile, _Offset, _NumBytes);
 	}
-
 
 	NStream::CFilePos CFile::f_GetPosition() const
 	{
@@ -860,7 +849,7 @@ namespace NMib::NFile
 		return mp_FilePos;
 	}
 
-	bool CFile::fs_MakeFileWritable(const NStr::CStr &_LocalPath, bool _bWritable)
+	bool CFile::fs_MakeFileWritable(NStr::CStr const &_LocalPath, bool _bWritable)
 	{
 		try
 		{
@@ -870,7 +859,7 @@ namespace NMib::NFile
 			if (_bWritable)
 			{
 				if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
-					CFile::fs_SetAttributes(_LocalPath, (Attributes & ~EFileAttrib_ReadOnly)  | (SupportedAttributes & EFileAttrib_UserWrite) | ValidAttributes);
+					CFile::fs_SetAttributes(_LocalPath, (Attributes & ~EFileAttrib_ReadOnly) | (SupportedAttributes & EFileAttrib_UserWrite) | ValidAttributes);
 			}
 			else
 			{
@@ -885,12 +874,12 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CFile::fs_IsFileWritable(const NStr::CStr &_LocalPath)
+	bool CFile::fs_IsFileWritable(NStr::CStr const &_LocalPath)
 	{
 		try
 		{
 			EFileAttrib SupportedAttributes = CFile::fs_GetSupportedAttributes();
-			EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);;
+			EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);
 			if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
 				return false;
 			else
@@ -902,7 +891,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void fgr_DeleteFilesInDirs(const NStr::CStr &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors)
+	void fgr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors)
 	{
 		NContainer::TCVector<CFile::CFoundFile> Files;
 		auto Attribs = CFile::fs_GetAttributes(_File);
@@ -938,9 +927,7 @@ namespace NMib::NFile
 				}
 			}
 			else if (iFile->m_Attribs & EFileAttrib_Directory)
-			{
 				fgr_DeleteFilesInDirs(iFile->m_Path, _bRemoveWriteProtection, _Errors);
-			}
 		}
 		try
 		{
@@ -953,7 +940,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void CFile::fs_DeleteDirectoryRecursive(const NStr::CStr &_File, bool _bRemoveWriteProtection)
+	void CFile::fs_DeleteDirectoryRecursive(NStr::CStr const &_File, bool _bRemoveWriteProtection)
 	{
 		NStr::CStr Errors;
 		fgr_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
@@ -962,28 +949,28 @@ namespace NMib::NFile
 			DMibErrorFile(Errors);
 	}
 
-	void CFile::fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress)
+	void CFile::fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo, CFileProgress &_Progress)
 	{
 		NSys::NFile::fg_Copy(_FileFrom, _FileTo, _Progress);
 	}
 
-	void CFile::fs_CopyFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		NSys::NFile::fg_Copy(_FileFrom, _FileTo);
 	}
 
-	void CFile::fs_DuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_DuplicateFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		NSys::NFile::fg_Duplicate(_FileFrom, _FileTo);
 	}
 
-	bool CFile::fs_TryDuplicateFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	bool CFile::fs_TryDuplicateFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		return NSys::NFile::fg_TryDuplicate(_FileFrom, _FileTo);
 	}
 
 	// Clones data blocks with fresh-file metadata. Returns false if cloning is unsupported.
-	bool CFile::fs_TryCloneFileData(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	bool CFile::fs_TryCloneFileData(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		return NSys::NFile::fg_TryCloneData(_FileFrom, _FileTo);
 	}
@@ -1002,7 +989,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void CFile::fs_CopyFileRaw(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_CopyFileRaw(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		CFile InFile;
 		CFile OutFile;
@@ -1011,17 +998,17 @@ namespace NMib::NFile
 		fs_CopyFileRaw(InFile, OutFile);
 	}
 
-	void CFile::fs_CreateSymbolicLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags)
+	void CFile::fs_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags)
 	{
 		return NSys::NFile::fg_CreateSymbolicLink(_FileFrom, _FileTo, _Type, _Flags);
 	}
 
-	void CFile::fs_CreateHardLink(const NMib::NStr::CStr &_FileFrom, const NMib::NStr::CStr &_FileTo)
+	void CFile::fs_CreateHardLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo)
 	{
 		return NSys::NFile::fg_CreateHardLink(_FileFrom, _FileTo);
 	}
 
-	NMib::NStr::CStr CFile::fs_ResolveSymbolicLink(const NMib::NStr::CStr &_FileFrom)
+	NMib::NStr::CStr CFile::fs_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom)
 	{
 		return NSys::NFile::fg_ResolveSymbolicLink(_FileFrom);
 	}
@@ -1031,22 +1018,21 @@ namespace NMib::NFile
 		return NSys::NFile::fg_CanCreateSymbolicLink(_Type, _Flags);
 	}
 
-
-	void CFile::fs_WriteFile(NContainer::CByteVector const &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_WriteFile(NContainer::CByteVector const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		CFile OutFile;
 		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
 
-	void CFile::fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		CFile OutFile;
 		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
 
-	bool CFile::fs_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fs_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1064,7 +1050,7 @@ namespace NMib::NFile
 		}
 	}
 
-	bool CFile::fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fs_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1082,7 +1068,7 @@ namespace NMib::NFile
 		}
 	}
 
-	bool CFile::fsp_FileIsSame(NContainer::CByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fsp_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName)
 	{
 		NFile::CFile File;
 		bool bChanged = false;
@@ -1109,7 +1095,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CFile::fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, const NStr::CStr &_ToFileName)
+	bool CFile::fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName)
 	{
 		NFile::CFile File;
 		bool bChanged = false;
@@ -1136,7 +1122,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	NContainer::CByteVector CFile::fs_ReadFileTry(const NStr::CStr &_ToFileName)
+	NContainer::CByteVector CFile::fs_ReadFileTry(NStr::CStr const &_ToFileName)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1159,11 +1145,18 @@ namespace NMib::NFile
 					throw;
 				NSys::fg_Thread_Sleep(NMisc::fg_GetRandomFloat() * 0.100);
 			}
-
 		}
-
 	}
-	bool CFile::fs_CopyFileDiff(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange)
+
+	bool CFile::fs_CopyFileDiff
+		(
+			NContainer::CByteVector const &_SourceData
+			, NStr::CStr const &_ToFileName
+			, NTime::CTime const &_FileTime
+			, EFileAttrib _AddAttribs
+			, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
+			const &_OnChange
+		)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1181,16 +1174,15 @@ namespace NMib::NFile
 		}
 	}
 
-
 	// When _bSourceDataValid is false, _SourceData is empty and the differing source is read lazily if needed.
 	// _pExpectedSourceIdentity binds reopened data to the caller's metadata; mismatches throw for caller retry.
 	// _bFileTimeIsNow stamps after the data is secured, rather than using _FileTime.
 	auto CFile::fsp_CopyFileDiff
 		(
-			const NContainer::CByteVector &_SourceData
-			, const NStr::CStr &_FromFileName
-			, const NStr::CStr &_ToFileName
-			, const NTime::CTime &_FileTime
+			NContainer::CByteVector const &_SourceData
+			, NStr::CStr const &_FromFileName
+			, NStr::CStr const &_ToFileName
+			, NTime::CTime const &_FileTime
 			, EFileAttrib _AddAttribs
 			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
 			, bool _bRemoveWriteProtection
@@ -1250,10 +1242,7 @@ namespace NMib::NFile
 
 			{
 				// Cloning shares data blocks but must leave fresh-file metadata, matching the write fallback.
-				bool bCloned =
-					!_FromFileName.f_IsEmpty()
-					&& CFile::fs_TryCloneFileData(_FromFileName, TempFileName)
-				;
+				bool bCloned = !_FromFileName.f_IsEmpty() && CFile::fs_TryCloneFileData(_FromFileName, TempFileName);
 
 				// Reject path replacement between the metadata read and the clone. Callers must coordinate
 				// in-place writes and ABA replacements themselves when they need a consistent snapshot.
@@ -1267,15 +1256,7 @@ namespace NMib::NFile
 					File.f_Open(TempFileName, EFileOpen_ReadAttribs | EFileOpen_WriteAttribs | EFileOpen_ShareRead);
 
 					// Match the fixed default permissions applied by the fallback write open.
-					File.f_SetAttributes
-						(
-							EFileAttrib_UnixAttributesValid
-							| EFileAttrib_UserRead
-							| EFileAttrib_UserWrite
-							| EFileAttrib_GroupRead
-							| EFileAttrib_EveryoneRead
-						)
-					;
+					File.f_SetAttributes(EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_GroupRead | EFileAttrib_EveryoneRead);
 				}
 				else
 				{
@@ -1323,7 +1304,7 @@ namespace NMib::NFile
 		return NTime::CTimeSpanConvert::fs_CreateSpanFromSeconds(2.05);
 	}
 
-	bool CFile::fsp_OpenFile(NFile::CFile &_File, const NStr::CStr &_FileName, EFileOpen _Open, const NTime::CTime &_FileTime)
+	bool CFile::fsp_OpenFile(NFile::CFile &_File, NStr::CStr const &_FileName, EFileOpen _Open, NTime::CTime const &_FileTime)
 	{
 		_File.f_Open(NStr::CStr(_FileName), _Open);
 		if (_File.f_GetLength() > 0 && (_File.f_GetWriteTime() - _FileTime) >= -fsp_GetDefaultFileChangedMargin())
@@ -1331,7 +1312,7 @@ namespace NMib::NFile
 		return true;
 	};
 
-	bool CFile::fs_CopyFileDiffDate(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs)
+	bool CFile::fs_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1348,7 +1329,8 @@ namespace NMib::NFile
 			}
 		}
 	}
-	bool CFile::fsp_CopyFileDiffDate(const NContainer::CByteVector &_SourceData, const NStr::CStr &_ToFileName, const NTime::CTime &_FileTime, EFileAttrib _AddAttribs)
+
+	bool CFile::fsp_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs)
 	{
 		NFile::CFile File;
 		NTime::CTime OldTime;
@@ -1390,7 +1372,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CFile::fs_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate)
+	bool CFile::fs_CopyFileDiff(NStr::CStr const &_FromFileName, NStr::CStr const &_ToFileName, bool _bCopyDate)
 	{
 		int32 nTimes = 20 * 30; // 30 seconds
 		while (1)
@@ -1407,17 +1389,22 @@ namespace NMib::NFile
 			}
 		}
 	}
-	bool CFile::fsp_CopyFileDiff(const NStr::CStr &_FromFileName, const NStr::CStr &_ToFileName, bool _bCopyDate, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange, bool _bRemoveWriteProtection)
+
+	bool CFile::fsp_CopyFileDiff
+		(
+			NStr::CStr const &_FromFileName
+			, NStr::CStr const &_ToFileName
+			, bool _bCopyDate
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, bool _bRemoveWriteProtection
+		)
 	{
 		NFile::CFile File;
 		File.f_Open(_FromFileName, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 		umint FileLen = File.f_GetLength();
 		EFileAttrib Attribs = File.f_GetAttributes() & EFileAttrib_Executable;
 
-		bool bSourceDataValid =
-			CFile::fs_FileExists(_ToFileName, EFileAttrib_File)
-			&& CMibFilePos(FileLen) == CFile::fs_GetFileSize(_ToFileName)
-		;
+		bool bSourceDataValid = CFile::fs_FileExists(_ToFileName, EFileAttrib_File) && CMibFilePos(FileLen) == CFile::fs_GetFileSize(_ToFileName);
 
 		NContainer::CByteVector SourceData;
 		if (bSourceDataValid)
@@ -1435,7 +1422,7 @@ namespace NMib::NFile
 			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime(), Attribs, _OnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity, true);
 	}
 
-	void CFile::fs_Touch(const NStr::CStr &_File)
+	void CFile::fs_Touch(NStr::CStr const &_File)
 	{
 		if (CFile::fs_FileExists(_File))
 		{
@@ -1450,56 +1437,57 @@ namespace NMib::NFile
 		}
 	}
 
-	void CFile::fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		NSys::NFile::fg_Rename(_FileFrom, _FileTo);
 	}
 
-	void CFile::fs_AtomicReplaceFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo)
+	void CFile::fs_AtomicReplaceFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		NSys::NFile::fg_AtomicReplace(_FileFrom, _FileTo);
 	}
 
-	void CFile::fs_RenameFile(const NStr::CStr &_FileFrom, const NStr::CStr &_FileTo, CFileProgress &_Progress)
+	void CFile::fs_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo, CFileProgress &_Progress)
 	{
 		NSys::NFile::fg_Rename(_FileFrom, _FileTo, _Progress);
 	}
 
-	void CFile::fs_CreateDirectory(const NStr::CStr &_Path)
+	void CFile::fs_CreateDirectory(NStr::CStr const &_Path)
 	{
 		NSys::NFile::fg_CreateDirectory(_Path);
 	}
 
-	void CFile::fs_CreateDirectoryForFile(const NStr::CStr &_Path)
+	void CFile::fs_CreateDirectoryForFile(NStr::CStr const &_Path)
 	{
 		NSys::NFile::fg_CreateDirectory(CFile::fs_GetPath(_Path));
 	}
 
-	void CFile::fs_DeleteFile(const NStr::CStr &_File)
+	void CFile::fs_DeleteFile(NStr::CStr const &_File)
 	{
 		NSys::NFile::fg_Delete(_File);
 	}
 
-	void CFile::fs_DeleteDirectory(const NStr::CStr &_File)
+	void CFile::fs_DeleteDirectory(NStr::CStr const &_File)
 	{
 		NSys::NFile::fg_DeleteDirectory(_File);
 	}
 
-	void CFile::fs_CreateDirectory(const NStr::CStrNonTracked &_Path)
+	void CFile::fs_CreateDirectory(NStr::CStrNonTracked const &_Path)
 	{
 		NSys::NFile::fg_CreateDirectory(_Path);
 	}
-	void CFile::fs_DeleteFile(const NStr::CStrNonTracked &_File)
+
+	void CFile::fs_DeleteFile(NStr::CStrNonTracked const &_File)
 	{
 		NSys::NFile::fg_Delete(_File);
 	}
-	void CFile::fs_DeleteDirectory(const NStr::CStrNonTracked &_File)
+
+	void CFile::fs_DeleteDirectory(NStr::CStrNonTracked const &_File)
 	{
 		NSys::NFile::fg_DeleteDirectory(_File);
 	}
 
-
-	void CFile::fs_SetCurrentDirectory(const NStr::CStr &_Directory)
+	void CFile::fs_SetCurrentDirectory(NStr::CStr const &_Directory)
 	{
 		return NSys::NFile::fg_SetCurrentDirectory(_Directory);
 	}
@@ -1649,18 +1637,17 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetLogDirectoryNonTracked();
 	}
 
-
-	NMib::NStream::CFilePos CFile::fs_GetFreeSpace(const NMib::NStr::CStr &_Path)
+	NMib::NStream::CFilePos CFile::fs_GetFreeSpace(NMib::NStr::CStr const &_Path)
 	{
 		return NSys::NFile::fg_GetFreeSpace(_Path);
 	}
 
-	NMib::NStream::CFilePos CFile::fs_GetUsedSpace(const NMib::NStr::CStr &_Path)
+	NMib::NStream::CFilePos CFile::fs_GetUsedSpace(NMib::NStr::CStr const &_Path)
 	{
 		return NSys::NFile::fg_GetUsedSpace(_Path);
 	}
 
-	NMib::NStream::CFilePos CFile::fs_GetTotalSpace(const NMib::NStr::CStr &_Path)
+	NMib::NStream::CFilePos CFile::fs_GetTotalSpace(NMib::NStr::CStr const &_Path)
 	{
 		return NSys::NFile::fg_GetTotalSpace(_Path);
 	}
@@ -1670,27 +1657,25 @@ namespace NMib::NFile
 		return NSys::NFile::fg_GetMounts(_Types);
 	}
 
-	bool CFile::fs_FileExists(const NStr::CStr &_File, EFileAttrib _AttribMask)
-	{
-		return NSys::NFile::fg_FileExists(_File, _AttribMask);
-	}
-	bool CFile::fs_FileExists(const NStr::CStrNonTracked &_File, EFileAttrib _AttribMask)
+	bool CFile::fs_FileExists(NStr::CStr const &_File, EFileAttrib _AttribMask)
 	{
 		return NSys::NFile::fg_FileExists(_File, _AttribMask);
 	}
 
-	ECheckFileRights CFile::fs_CheckFileRights(NStr::CStr const& _File, EFileRight _Rights)
+	bool CFile::fs_FileExists(NStr::CStrNonTracked const &_File, EFileAttrib _AttribMask)
+	{
+		return NSys::NFile::fg_FileExists(_File, _AttribMask);
+	}
+
+	ECheckFileRights CFile::fs_CheckFileRights(NStr::CStr const &_File, EFileRight _Rights)
 	{
 		return NSys::NFile::fg_CheckFileRights(_File, _Rights);
 	}
 
 	namespace
 	{
-		NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> fg_DefaultFindFilter
-			(
-				CFile::CFindFilesOptions const *_pOptions
-				, NFunction::TCFunctionNoAlloc<void (NStr::CStr const& _Path, EFileAttrib _Attribs)> const *_pOnAdd
-			)
+		auto fg_DefaultFindFilter(CFile::CFindFilesOptions const *_pOptions, NFunction::TCFunctionNoAlloc<void (NStr::CStr const &_Path, EFileAttrib _Attribs)> const *_pOnAdd)
+			-> NFunction::TCFunctionNoAlloc<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)>
 		{
 			NStr::CStr Pattern = CFile::fs_GetFile(_pOptions->m_Path);
 			return [=](NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse) -> bool
@@ -1710,10 +1695,9 @@ namespace NMib::NFile
 							if (_bPreRecurse == !(_pOptions->m_AttribMask & EFileAttrib_FindDirectoryLast))
 							{
 								if
-									(
-										NStr::fg_StrMatchWildcard(CFile::fs_GetFile(_FileName).f_GetStr(), Pattern.f_GetStr())
-										== NStr::EMatchWildcardResult_WholeStringMatchedAndPatternExhausted
-									)
+								(
+									NStr::fg_StrMatchWildcard(CFile::fs_GetFile(_FileName).f_GetStr(), Pattern.f_GetStr()) == NStr::EMatchWildcardResult_WholeStringMatchedAndPatternExhausted
+								)
 								{
 									(*_pOnAdd)(_FileName, _Attribs);
 								}
@@ -1732,11 +1716,11 @@ namespace NMib::NFile
 		}
 	}
 
-	NContainer::TCVector<NStr::CStr> CFile::fs_FindFiles(const NStr::CStr &_FindPath, EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks)
+	NContainer::TCVector<NStr::CStr> CFile::fs_FindFiles(NStr::CStr const &_FindPath, EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks)
 	{
 		NContainer::TCVector<NStr::CStr> Files;
 
-		NFunction::TCFunctionNoAlloc<void (NStr::CStr const& _Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const& _Path, EFileAttrib _Attribs)
+		NFunction::TCFunctionNoAlloc<void (NStr::CStr const &_Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const &_Path, EFileAttrib _Attribs)
 			{
 				Files.f_Insert(_Path);
 			}
@@ -1746,14 +1730,7 @@ namespace NMib::NFile
 		Options.m_AttribMask = _AttribMask;
 		Options.m_bFollowLinks = _bFollowLinks;
 
-		fg_FindFiles
-			(
-				_FindPath
-				, fg_DefaultFindFilter(&Options, &fFoundFile)
-				, true
-				, _bRecursive
-			)
-		;
+		fg_FindFiles(_FindPath, fg_DefaultFindFilter(&Options, &fFoundFile), true, _bRecursive);
 
 		return Files;
 	}
@@ -1762,35 +1739,26 @@ namespace NMib::NFile
 	{
 		NContainer::TCVector<CFoundFile> Files;
 
-		NFunction::TCFunctionNoAlloc<void (NStr::CStr const& _Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const& _Path, EFileAttrib _Attribs)
+		NFunction::TCFunctionNoAlloc<void (NStr::CStr const &_Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const &_Path, EFileAttrib _Attribs)
 			{
-				CFoundFile& Found = Files.f_Insert();
+				CFoundFile &Found = Files.f_Insert();
 				Found.m_Path = _Path;
 				Found.m_Attribs = EFileAttrib(_Attribs);
 			}
 		;
 
-		fg_FindFiles
-			(
-				_Options.m_Path
-				, fg_DefaultFindFilter(&_Options, &fFoundFile)
-				, true
-				, _Options.m_bRecursive
-				, _Options.m_fCheckAbort
-			)
-		;
+		fg_FindFiles(_Options.m_Path, fg_DefaultFindFilter(&_Options, &fFoundFile), true, _Options.m_bRecursive, _Options.m_fCheckAbort);
 
 		return Files;
 	}
 
-
-	NContainer::TCVector<CFile::CFoundFile> CFile::fs_FindFilesEx(const NStr::CStr &_FindPath, EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks)
+	NContainer::TCVector<CFile::CFoundFile> CFile::fs_FindFilesEx(NStr::CStr const &_FindPath, EFileAttrib _AttribMask, bool _bRecursive, bool _bFollowLinks)
 	{
 		NContainer::TCVector<CFoundFile> Files;
 
-		NFunction::TCFunctionNoAlloc<void (NStr::CStr const& _Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const& _Path, EFileAttrib _Attribs)
+		NFunction::TCFunctionNoAlloc<void (NStr::CStr const &_Path, EFileAttrib _Attribs)> fFoundFile = [&](NStr::CStr const &_Path, EFileAttrib _Attribs)
 			{
-				CFoundFile& Found = Files.f_Insert();
+				CFoundFile &Found = Files.f_Insert();
 				Found.m_Path = _Path;
 				Found.m_Attribs = EFileAttrib(_Attribs);
 			}
@@ -1800,21 +1768,14 @@ namespace NMib::NFile
 		Options.m_AttribMask = _AttribMask;
 		Options.m_bFollowLinks = _bFollowLinks;
 
-		fg_FindFiles
-			(
-				_FindPath
-				, fg_DefaultFindFilter(&Options, &fFoundFile)
-				, true
-				, _bRecursive
-			)
-		;
+		fg_FindFiles(_FindPath, fg_DefaultFindFilter(&Options, &fFoundFile), true, _bRecursive);
 
 		return Files;
 	}
 
 	void CFile::fs_FindFilesGeneral
 		(
-			const NStr::CStr &_FindPath
+			NStr::CStr const &_FindPath
 			, NFunction::TCFunction<bool (NStr::CStr const &_FileName, EFileAttrib _Attribs, bool _bPreRecurse)> const &_fFoundFile
 			, bool _bRecurse
 		)
@@ -1831,7 +1792,6 @@ namespace NMib::NFile
 			)
 		;
 	}
-
 
 	NStr::CStr CFile::fs_CondensePath(NStr::CStr _Path)
 	{
@@ -1856,28 +1816,30 @@ namespace NMib::NFile
 		umint SectionsCharCount = 0;
 		NContainer::TCVector<NStr::CStr> lSections;
 
-		auto fl_Push = [&](NStr::CStr && _Section)
-		{
-			if (lSections.f_GetLen() == iHead)
-				lSections.f_Insert(fg_Move(_Section));
-			else
-				lSections[iHead] = fg_Move(_Section);
+		auto fl_Push = [&](NStr::CStr &&_Section)
+			{
+				if (lSections.f_GetLen() == iHead)
+					lSections.f_Insert(fg_Move(_Section));
+				else
+					lSections[iHead] = fg_Move(_Section);
 
-			SectionsCharCount += lSections[iHead].f_GetLen();
+				SectionsCharCount += lSections[iHead].f_GetLen();
 
-			++iHead;
-		};
+				++iHead;
+			}
+		;
 
 		auto fl_Pop = [&]()
-		{
-			if (iHead)
 			{
-				--iHead;
-				SectionsCharCount -= lSections[iHead].f_GetLen();
+				if (iHead)
+				{
+					--iHead;
+					SectionsCharCount -= lSections[iHead].f_GetLen();
+				}
 			}
-		};
+		;
 
-		while(!Path.f_IsEmpty())
+		while (!Path.f_IsEmpty())
 		{
 			Portion = NStr::fg_GetStrSep(Path, "/");
 
@@ -1892,9 +1854,7 @@ namespace NMib::NFile
 			{
 			}
 			else
-			{
 				fl_Push(fg_Move(Portion));
-			}
 		}
 
 		if (iHead == 0)
@@ -1902,18 +1862,19 @@ namespace NMib::NFile
 
 		NStr::CStr Out;
 		umint const nOutChars = Prefix.f_GetLen() + SectionsCharCount + (iHead - 1) + Suffix.f_GetLen();
-		NStr::CStr::CChar* pOut = Out.f_GetStr(nOutChars);
-		NStr::CStr::CChar* pEnd = pOut + nOutChars;
+		NStr::CStr::CChar *pOut = Out.f_GetStr(nOutChars);
+		NStr::CStr::CChar *pEnd = pOut + nOutChars;
 		(void)pEnd;
 
-		auto fl_WriteStr = [&](NStr::CStr const& _Str)
-		{
-			umint const nChars = _Str.f_GetLen();
-			umint const nBytes = nChars * sizeof(NStr::CStr::CChar);
-			DMibSafeCheck((pOut + nChars) <= (pOut + nOutChars), "Buffer overrun.");
-			NMemory::fg_MemCopy(pOut, _Str.f_GetStr(), nBytes);
-			pOut += nChars;
-		};
+		auto fl_WriteStr = [&](NStr::CStr const &_Str)
+			{
+				umint const nChars = _Str.f_GetLen();
+				umint const nBytes = nChars * sizeof(NStr::CStr::CChar);
+				DMibSafeCheck((pOut + nChars) <= (pOut + nOutChars), "Buffer overrun.");
+				NMemory::fg_MemCopy(pOut, _Str.f_GetStr(), nBytes);
+				pOut += nChars;
+			}
+		;
 
 		if (!Prefix.f_IsEmpty())
 			fl_WriteStr(Prefix);
@@ -1938,8 +1899,7 @@ namespace NMib::NFile
 		return fg_Move(Out);
 	}
 
-
-	CMibFilePos CFile::fs_GetFileSize(const NStr::CStr &_Path)
+	CMibFilePos CFile::fs_GetFileSize(NStr::CStr const &_Path)
 	{
 		return NSys::NFile::fg_GetSize(_Path);
 	}
@@ -2065,8 +2025,7 @@ namespace NMib::NFile
 
 		bool bRet = false;
 
-		auto fl_GetOwner
-			= [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fl_GetOwner = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2079,8 +2038,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetGroup
-			= [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fl_GetGroup = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2093,8 +2051,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetOwnerOnLink
-			= [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fl_GetOwnerOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2107,8 +2064,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetGroupOnLink
-			= [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fl_GetGroupOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2122,8 +2078,7 @@ namespace NMib::NFile
 			}
 		;
 
-		auto fl_SetOwnerAndGroup =
-			[&](NStr::CStr const &_Path)
+		auto fl_SetOwnerAndGroup = [&](NStr::CStr const &_Path)
 			{
 				if (!_Owner.f_IsEmpty())
 				{
@@ -2144,8 +2099,7 @@ namespace NMib::NFile
 			}
 		;
 
-		auto fl_SetOwnerAndGroupOnLink =
-			[&](NStr::CStr const &_Path)
+		auto fl_SetOwnerAndGroupOnLink = [&](NStr::CStr const &_Path)
 			{
 				if (!_Owner.f_IsEmpty())
 				{
@@ -2210,7 +2164,6 @@ namespace NMib::NFile
 			{
 				if (CFile::fs_FileExists(_Path, EFileAttrib_File))
 					fl_SetOwnerAndGroup(_Path);
-
 			}
 		}
 		return bRet;
@@ -2244,7 +2197,7 @@ namespace NMib::NFile
 	}
 
 	template <typename tf_CHash>
-	static typename tf_CHash::CMessageDigest fg_GetFileChecksum(const NStr::CStr &_Path, CFile::TCFileChecksumState<tf_CHash> *o_pState, NStream::CFilePos _FileLength)
+	static typename tf_CHash::CMessageDigest fg_GetFileChecksum(NStr::CStr const &_Path, CFile::TCFileChecksumState<tf_CHash> *o_pState, NStream::CFilePos _FileLength)
 	{
 		CFile *pFile = nullptr;
 		CFile LocalFile;
@@ -2278,17 +2231,17 @@ namespace NMib::NFile
 		return Hash;
 	}
 
-	NCryptography::CHashDigest_MD5 CFile::fs_GetFileChecksum(const NStr::CStr &_Path, CFileChecksumState_MD5 *o_pState, NStream::CFilePos _FileLength)
+	NCryptography::CHashDigest_MD5 CFile::fs_GetFileChecksum(NStr::CStr const &_Path, CFileChecksumState_MD5 *o_pState, NStream::CFilePos _FileLength)
 	{
 		return fg_GetFileChecksum<NCryptography::CHash_MD5>(_Path, o_pState, _FileLength);
 	}
 
-	NCryptography::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(const NStr::CStr &_Path, CFileChecksumState_SHA256 *o_pState, NStream::CFilePos _FileLength)
+	NCryptography::CHashDigest_SHA256 CFile::fs_GetFileChecksum_SHA256(NStr::CStr const &_Path, CFileChecksumState_SHA256 *o_pState, NStream::CFilePos _FileLength)
 	{
 		return fg_GetFileChecksum<NCryptography::CHash_SHA256>(_Path, o_pState, _FileLength);
 	}
 
-	NCryptography::CHashDigest_SHA512 CFile::fs_GetFileChecksum_SHA512(const NStr::CStr &_Path, CFileChecksumState_SHA512 *o_pState, NStream::CFilePos _FileLength)
+	NCryptography::CHashDigest_SHA512 CFile::fs_GetFileChecksum_SHA512(NStr::CStr const &_Path, CFileChecksumState_SHA512 *o_pState, NStream::CFilePos _FileLength)
 	{
 		return fg_GetFileChecksum<NCryptography::CHash_SHA512>(_Path, o_pState, _FileLength);
 	}
@@ -2319,12 +2272,12 @@ namespace NMib::NFile
 
 	NCryptography::CHashDigest_MD5 CFile::fs_GetDirectoryChecksum
 		(
-			const NStr::CStr &_Path
+			NStr::CStr const &_Path
 			, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_ExcludeFile
 			, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_GetHash
 		)
 	{
-		NContainer::TCVector<NStr::CStr> Files = fs_FindFiles(_Path + "/*", EFileAttrib_File|EFileAttrib_Directory, true);
+		NContainer::TCVector<NStr::CStr> Files = fs_FindFiles(_Path + "/*", EFileAttrib_File | EFileAttrib_Directory, true);
 		NCryptography::CHash_MD5 Checksum;
 
 		for (auto FIter = Files.f_GetIterator(); FIter; ++FIter)
@@ -2344,13 +2297,13 @@ namespace NMib::NFile
 			}
 
 			NStr::CStr FileName = CFile::fs_GetFile(*FIter);
-			Checksum.f_AddData((uint8*)FileName.f_GetStr(), FileName.f_GetLen());
+			Checksum.f_AddData((uint8 *)FileName.f_GetStr(), FileName.f_GetLen());
 		}
 
 		return Checksum;
 	}
 
-	void CFile::fs_WriteStringToFile(const NStr::CStr &_Path, const NStr::CStr &_ToWrite, bool _bAddBOM, EFileAttrib _Attributes)
+	void CFile::fs_WriteStringToFile(NStr::CStr const &_Path, NStr::CStr const &_ToWrite, bool _bAddBOM, EFileAttrib _Attributes)
 	{
 		uint8 BOM[] = {0xEF, 0xBB, 0xBF};
 		NStr::CStr UTF8 = _ToWrite;
@@ -2361,17 +2314,16 @@ namespace NMib::NFile
 		File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());
 	}
 
-	NStr::CStr CFile::fs_ReadStringFromFile(const NStr::CStr &_Path, bool _bAssumeUTF8)
+	NStr::CStr CFile::fs_ReadStringFromFile(NStr::CStr const &_Path, bool _bAssumeUTF8)
 	{
 		NStr::CStr FileData;
 		TCBinaryStreamFile<> Stream;
-		Stream.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
+		Stream.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
 		FileData = NStr::CStr::fs_ReadTextStream(Stream, _bAssumeUTF8);
 		return FileData;
 	}
 
-
-	void CFile::fs_WriteStringToFile(const NStr::CStrNonTracked &_Path, const NStr::CStrNonTracked &_ToWrite, bool _bAddBOM, EFileAttrib _Attributes)
+	void CFile::fs_WriteStringToFile(NStr::CStrNonTracked const &_Path, NStr::CStrNonTracked const &_ToWrite, bool _bAddBOM, EFileAttrib _Attributes)
 	{
 		uint8 BOM[] = {0xEF, 0xBB, 0xBF};
 
@@ -2384,54 +2336,53 @@ namespace NMib::NFile
 		File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());
 	}
 
-
-	NStr::CStrNonTracked CFile::fs_ReadStringFromFile(const NStr::CStrNonTracked &_Path, bool _bAssumeUTF8)
+	NStr::CStrNonTracked CFile::fs_ReadStringFromFile(NStr::CStrNonTracked const &_Path, bool _bAssumeUTF8)
 	{
 		NStr::CStrNonTracked FileData;
 		TCBinaryStreamFile<> Stream;
-		Stream.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
+		Stream.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
 		FileData = NStr::CStrNonTracked::fs_ReadTextStream(Stream, _bAssumeUTF8);
 		return FileData;
 	}
 
-	void CFile::fs_WriteStringToVector(NContainer::CByteVector &_File, const NStr::CStr &_ToWrite, bool _bAddBOM)
+	void CFile::fs_WriteStringToVector(NContainer::CByteVector &_File, NStr::CStr const &_ToWrite, bool _bAddBOM)
 	{
 		uint8 BOM[] = {0xEF, 0xBB, 0xBF};
 		NStr::CStr UTF8 = _ToWrite;
 		if (_bAddBOM)
 			_File.f_Insert(BOM, 3);
-		_File.f_Insert((const uint8 *)UTF8.f_GetStr(), UTF8.f_GetLen());
+		_File.f_Insert((uint8 const *)UTF8.f_GetStr(), UTF8.f_GetLen());
 	}
 
-	void CFile::fs_WriteFile(const NStr::CStr &_Path, NContainer::CByteVector const &_Data)
+	void CFile::fs_WriteFile(NStr::CStr const &_Path, NContainer::CByteVector const &_Data)
 	{
 		CFile File;
 		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
 		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
 	}
 
-	NContainer::CByteVector CFile::fs_ReadFile(const NStr::CStr &_Path)
+	NContainer::CByteVector CFile::fs_ReadFile(NStr::CStr const &_Path)
 	{
 		NContainer::CByteVector FileData;
 		CFile File;
-		File.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
+		File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
 		FileData.f_SetLen(File.f_GetLength());
 		File.f_Read(FileData.f_GetArray(), FileData.f_GetLen());
 		return fg_Move(FileData);
 	}
 
-	void CFile::fs_WriteFileSecure(const NStr::CStr &_Path, NContainer::CSecureByteVector const &_Data)
+	void CFile::fs_WriteFileSecure(NStr::CStr const &_Path, NContainer::CSecureByteVector const &_Data)
 	{
 		CFile File;
 		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
 		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
 	}
 
-	NContainer::CSecureByteVector CFile::fs_ReadFileSecure(const NStr::CStr &_Path)
+	NContainer::CSecureByteVector CFile::fs_ReadFileSecure(NStr::CStr const &_Path)
 	{
 		NContainer::CSecureByteVector FileData;
 		CFile File;
-		File.f_Open(_Path, EFileOpen_Read|EFileOpen_ShareAll);
+		File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
 		FileData.f_SetLen(File.f_GetLength());
 		File.f_Read(FileData.f_GetArray(), FileData.f_GetLen());
 		return fg_Move(FileData);
@@ -2442,28 +2393,54 @@ namespace NMib::NFile
 		return NSys::NFile::fg_MaximumPathLength();
 	}
 
-	const ch8 *CFile::fs_GetInvalidFileNameChars(bool _bPath)
+	ch8 const *CFile::fs_GetInvalidFileNameChars(bool _bPath)
 	{
 		if (_bPath)
 		{
-			static const ch8 s_pInvalidChars[] = {'<', '>',':','"','\\','|', '*', '?', 0};
+			static ch8 const s_pInvalidChars[] = {'<', '>', ':', '"', '\\', '|', '*', '?', 0};
 			return s_pInvalidChars;
 		}
 		else
 		{
-			static const ch8 s_pInvalidChars[] = {'<', '>',':','"','/', '\\','|', '*', '?', 0};
+			static ch8 const s_pInvalidChars[] = {'<', '>', ':', '"', '/', '\\', '|', '*', '?', 0};
 			return s_pInvalidChars;
 		}
 	}
 
-	const ch8 **CFile::fs_GetInvalidFileNameNames()
+	ch8 const **CFile::fs_GetInvalidFileNameNames()
 	{
-		static const ch8 *s_pInvalidNames[] = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", nullptr};
+		static ch8 const *s_pInvalidNames[] =
+			{
+				"CON"
+				, "PRN"
+				, "AUX"
+				, "NUL"
+				, "COM1"
+				, "COM2"
+				, "COM3"
+				, "COM4"
+				, "COM5"
+				, "COM6"
+				, "COM7"
+				, "COM8"
+				, "COM9"
+				, "LPT1"
+				, "LPT2"
+				, "LPT3"
+				, "LPT4"
+				, "LPT5"
+				, "LPT6"
+				, "LPT7"
+				, "LPT8"
+				, "LPT9"
+				, nullptr
+			}
+		;
 
 		return s_pInvalidNames;
 	}
 
-	NStr::CStr CFile::fs_MakeNiceFilename(const NStr::CStr &_CurrentName)
+	NStr::CStr CFile::fs_MakeNiceFilename(NStr::CStr const &_CurrentName)
 	{
 		ch8 const *InvalidChars = fs_GetInvalidFileNameChars(false);
 
@@ -2474,9 +2451,7 @@ namespace NMib::NFile
 		while (*pStr)
 		{
 			if (*pStr >= 1 && *pStr <= 31)
-			{
 				*pStr = '_';
-			}
 			else
 			{
 				NTraits::TCUnsigned<ch8> const *pInv = pInvalidChars;
@@ -2503,20 +2478,16 @@ namespace NMib::NFile
 			NTraits::TCUnsigned<ch32> const *pParseStart = pStr;
 
 			while (*pStr && *pStr != '.' && *pStr != '/')
-			{
 				++pStr;
-			}
 			umint Len = pStr - pParseStart;
 			bool bValid = true;
 			if (Len)
 			{
-				const ch8 **pInv = pInvalidNames;
+				ch8 const **pInv = pInvalidNames;
 				while (*pInv)
 				{
 					if (NStr::fg_StrCmpNoCase(pParseStart, *pInv, Len) == 0)
-					{
 						bValid = false;
-					}
 					++pInv;
 				}
 			}
@@ -2540,7 +2511,7 @@ namespace NMib::NFile
 			Output2 = "_";
 		else
 		{
-			ch32 LastChar = Output2[Output2.f_GetLen()-1];
+			ch32 LastChar = Output2[Output2.f_GetLen() - 1];
 			if (LastChar == '.' || LastChar == ' ')
 				Output2.f_AddChar('_');
 		}
@@ -2555,6 +2526,7 @@ namespace NMib::NFile
 			return str_utf16("$$");
 		return NStr::CFWStr16::CFormat(str_utf16("${nfh}")) << _Char;
 	}
+
 	auto CFile::fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr
 	{
 		NStr::CUStr Ret;
@@ -2564,9 +2536,10 @@ namespace NMib::NFile
 
 		return Ret;
 	}
-	NStr::CStr CFile::fs_MakeNiceUniqueFilename(const NStr::CStr &_CurrentName)
+
+	NStr::CStr CFile::fs_MakeNiceUniqueFilename(NStr::CStr const &_CurrentName)
 	{
-		const ch8 *InvalidChars = fs_GetInvalidFileNameChars(false);
+		ch8 const *InvalidChars = fs_GetInvalidFileNameChars(false);
 
 		NStr::CUStr Input = _CurrentName;
 		NStr::CUStr Output;
@@ -2575,9 +2548,7 @@ namespace NMib::NFile
 		while (*pStr)
 		{
 			if ((*pStr >= 1 && *pStr <= 31) || *pStr == '$')
-			{
 				Output += fsp_EncodeChar(*pStr);
-			}
 			else
 			{
 				bool bFound = false;
@@ -2599,7 +2570,7 @@ namespace NMib::NFile
 			++pStr;
 		}
 
-		const ch8 **pInvalidNames = fs_GetInvalidFileNameNames();
+		ch8 const **pInvalidNames = fs_GetInvalidFileNameNames();
 
 		pStr = (NTraits::TCUnsigned<ch32> const *)Output.f_GetStr();
 		NStr::CUStr Output2;
@@ -2608,20 +2579,16 @@ namespace NMib::NFile
 			NTraits::TCUnsigned<ch32> const *pParseStart = pStr;
 
 			while (*pStr && *pStr != '.' && *pStr != '/')
-			{
 				++pStr;
-			}
 			umint Len = pStr - pParseStart;
 			bool bValid = true;
 			if (Len)
 			{
-				const ch8 **pInv = pInvalidNames;
+				ch8 const **pInv = pInvalidNames;
 				while (*pInv)
 				{
 					if (NStr::fg_StrCmpNoCase(pParseStart, *pInv, Len) == 0)
-					{
 						bValid = false;
-					}
 					++pInv;
 				}
 			}
@@ -2645,7 +2612,7 @@ namespace NMib::NFile
 			Output2 = "_";
 		else
 		{
-			ch32 LastChar = Output2[Output2.f_GetLen()-1];
+			ch32 LastChar = Output2[Output2.f_GetLen() - 1];
 			if (LastChar == '.' || LastChar == ' ')
 				Output2.f_AddChar('_');
 		}
@@ -2655,10 +2622,10 @@ namespace NMib::NFile
 		return Output;
 	}
 
-	bool CFile::fs_IsValidFilePath(const NStr::CStr &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart)
+	bool CFile::fs_IsValidFilePath(NStr::CStr const &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart)
 	{
 		_InvalidReason = EInvalidPathReason_Valid;
-		const ch8 *pInvalidChars = fs_GetInvalidFileNameChars(true);
+		ch8 const *pInvalidChars = fs_GetInvalidFileNameChars(true);
 
 		NStr::CStr File = _File;
 
@@ -2668,7 +2635,7 @@ namespace NMib::NFile
 			return false;
 		}
 
-		const ch8 *pParse = File;
+		ch8 const *pParse = File;
 		auto fParsePrefix = [&]
 			{
 				if (NStr::fg_CharIsAnsiAlphabetical(pParse[0]) && pParse[1] == ':')
@@ -2686,7 +2653,7 @@ namespace NMib::NFile
 				_InvalidReason = EInvalidPathReason_ControlCharacters;
 				return false;
 			}
-			const ch8 *pInv = pInvalidChars;
+			ch8 const *pInv = pInvalidChars;
 			while (*pInv)
 			{
 				if (*pParse == *pInv)
@@ -2702,21 +2669,19 @@ namespace NMib::NFile
 			}
 			++pParse;
 		}
-		const ch8 **pInvalidNames = fs_GetInvalidFileNameNames();
+		ch8 const **pInvalidNames = fs_GetInvalidFileNameNames();
 
 		pParse = File;
 		while (*pParse)
 		{
-			const ch8 *pParseStart = pParse;
+			ch8 const *pParseStart = pParse;
 
 			while (*pParse && *pParse != '.' && *pParse != '/')
-			{
 				++pParse;
-			}
 			umint Len = pParse - pParseStart;
 			if (Len)
 			{
-				const ch8 **pInv = pInvalidNames;
+				ch8 const **pInv = pInvalidNames;
 				while (*pInv)
 				{
 					if (NStr::fg_StrLen(*pInv) == Len && NStr::fg_StrCmpNoCase(pParseStart, *pInv, Len) == 0)
@@ -2748,12 +2713,10 @@ namespace NMib::NFile
 
 		while (*pParse)
 		{
-			const ch8 *pParseStart = pParse;
+			ch8 const *pParseStart = pParse;
 
 			while (*pParse && *pParse != '/')
-			{
 				++pParse;
-			}
 
 			umint Len = pParse - pParseStart;
 			if (Len)
@@ -2769,7 +2732,6 @@ namespace NMib::NFile
 					_InvalidReason = EInvalidPathReason_EndWithDot;
 					return false;
 				}
-
 			}
 			else
 			{
@@ -2790,7 +2752,7 @@ namespace NMib::NFile
 		return true;
 	}
 
-	bool CFile::fs_IsValidFilePath(const NStr::CStr &_File, NStr::CStr &_Error)
+	bool CFile::fs_IsValidFilePath(NStr::CStr const &_File, NStr::CStr &_Error)
 	{
 		EInvalidPathReason Reason;
 		NStr::CStr InvalidPart;
@@ -2833,16 +2795,14 @@ namespace NMib::NFile
 					_Error = "end with a /";
 				}
 				break;
-			default:
-				DMibNeverGetHere;
-				break;
+			default: DMibNeverGetHere; break;
 			}
 			return false;
 		}
 		return true;
 	}
 
-	bool CFile::fs_IsSafeRelativePath(const NStr::CStr &_String, NStr::CStr &o_Error)
+	bool CFile::fs_IsSafeRelativePath(NStr::CStr const &_String, NStr::CStr &o_Error)
 	{
 		if (fs_IsPathAbsolute(_String))
 		{
@@ -2881,7 +2841,8 @@ namespace NMib::NFile
 			EFileAttrib _SourceAttribs
 			, NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
-			, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
+			const &_OnChange
 		)
 	{
 		bool bChanged = false;
@@ -3229,8 +3190,7 @@ namespace NMib::NFile
 	{
 	}
 
-
-	CLockFile::CLockFile(NStr::CStr const& _FilePath, NFile::EFileOpen _LockFlags)
+	CLockFile::CLockFile(NStr::CStr const &_FilePath, NFile::EFileOpen _LockFlags)
 	{
 		f_SetLockFile(_FilePath, _LockFlags);
 	}
@@ -3240,7 +3200,7 @@ namespace NMib::NFile
 		f_Unlock();
 	}
 
-	void CLockFile::f_SetLockFile(NStr::CStr const& _FilePath, NFile::EFileOpen _LockFlags)
+	void CLockFile::f_SetLockFile(NStr::CStr const &_FilePath, NFile::EFileOpen _LockFlags)
 	{
 		f_Unlock();
 		mp_FilePath = _FilePath;
@@ -3286,25 +3246,22 @@ namespace NMib::NFile
 			return ELockResult_NoAccess;
 		else if (RightResult == ECheckFileRights_DoesNotExist)
 		{
-			if ( (mp_LockFlags & EFileOpen_Write) && !(mp_LockFlags & EFileOpen_DontCreate) )
+			if ((mp_LockFlags & EFileOpen_Write) && !(mp_LockFlags & EFileOpen_DontCreate))
 			{
 				// So we are going to attempt to create the file.
-				RightResult = CFile::fs_CheckFileRights( CFile::fs_GetPath(mp_FilePath), EFileRight_Read | EFileRight_Write);
+				RightResult = CFile::fs_CheckFileRights(CFile::fs_GetPath(mp_FilePath), EFileRight_Read | EFileRight_Write);
 				if (RightResult == ECheckFileRights_NoAccess)
 					return ELockResult_NoAccess;
 				else if (RightResult == ECheckFileRights_DoesNotExist)
 					return ELockResult_DoesNotExist;
 			}
 			else
-			{
 				return ELockResult_DoesNotExist;
-			}
 		}
-
 
 		NTime::CStopwatch Timer(true);
 
-		while(1)
+		while (1)
 		{
 			try
 			{
@@ -3318,11 +3275,13 @@ namespace NMib::NFile
 			}
 
 			if (_TimeoutSeconds < 0.0)
-				{}
+			{
+			}
 			else if (_TimeoutSeconds == 0.0)
 				break;
 			else if (Timer.f_GetTime() < _TimeoutSeconds)
-				{}
+			{
+			}
 			else
 				break;
 
@@ -3338,7 +3297,7 @@ namespace NMib::NFile
 			mp_LockFile.f_Close();
 	}
 
-	bool CLockFile::f_HasLock() const	// Do I have the lock?
+	bool CLockFile::f_HasLock() const // Do I have the lock?
 	{
 		return mp_LockFile.f_IsValid();
 	}
@@ -3351,9 +3310,7 @@ namespace NMib::NFile
 			{
 				NMib::NFile::CFileChangeNotification::CNotification Notification;
 				while (m_Notification.f_GetNotification(Notification))
-				{
 					m_Notify(Notification);
-				}
 			}
 			if (f_GetState() == NThread::EThreadState_EventWantQuit)
 				break;
@@ -3361,11 +3318,18 @@ namespace NMib::NFile
 		}
 		return 0;
 	}
+
 	NMib::NStr::CStr CFileChangeNotifier::f_GetThreadName()
 	{
 		return "CFileChangeNotifier";
 	}
-	CFileChangeNotifier::CFileChangeNotifier(NMib::NStr::CStr const &_Path, NMib::NFile::EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify)
+
+	CFileChangeNotifier::CFileChangeNotifier
+		(
+			NMib::NStr::CStr const &_Path
+			, NMib::NFile::EFileChange _OpenFlags
+			, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify
+		)
 		: m_Notify(_Notify)
 	{
 		m_Notification.f_Open(_Path, _OpenFlags, &m_EventWantQuit);

@@ -26,28 +26,8 @@ namespace NMib::NFile
 
 	bool CDirectoryManifestFile::operator == (CDirectoryManifestFile const &_Right) const noexcept
 	{
-		return NStorage::fg_TupleReferences
-			(
-				m_Digest
-				, m_Length
-				, m_WriteTime
-				, m_SymlinkData
-				, m_Attributes
-				, m_Owner
-				, m_Group
-				, m_Flags
-			)
-			== NStorage::fg_TupleReferences
-			(
-				_Right.m_Digest
-				, _Right.m_Length
-				, _Right.m_WriteTime
-				, _Right.m_SymlinkData
-				, _Right.m_Attributes
-				, _Right.m_Owner
-				, _Right.m_Group
-				, _Right.m_Flags
-			)
+		return NStorage::fg_TupleReferences(m_Digest, m_Length, m_WriteTime, m_SymlinkData, m_Attributes, m_Owner, m_Group, m_Flags)
+			== NStorage::fg_TupleReferences(_Right.m_Digest, _Right.m_Length, _Right.m_WriteTime, _Right.m_SymlinkData, _Right.m_Attributes, _Right.m_Owner, _Right.m_Group, _Right.m_Flags)
 		;
 	}
 
@@ -241,15 +221,9 @@ namespace NMib::NFile
 						o_ManifestFile.m_Length = Length;
 					}
 
-
 					if (!fg_IsSet(_Config.m_Flags, EDirectoryManifestConfigFlag::mc_DisableDigest) && o_ManifestFile.m_Length <= _Config.m_MaxDigestSize)
 					{
-						o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256
-							(
-								OriginalFileName
-								, pState
-							)
-						;
+						o_ManifestFile.m_Digest = CFile::fs_GetFileChecksum_SHA256(OriginalFileName, pState);
 						o_ManifestFile.m_Length = pState->m_Length;
 					}
 				}

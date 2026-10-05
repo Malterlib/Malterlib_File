@@ -8,18 +8,15 @@
 
 #define DMibAllowCodeStandardViolations 1
 
-
 uint32 MalterlibFileAttribToWin32FileAttrib(uint32 _Attrib);
 uint32 Win32FileAttribToMalterlibFileAttrib(uint32 _Attrib);
 FILETIME MalterlibTimeToFileTime(CTime _Time);
 CTime FileTimeToMalterlibTime(FILETIME _Time);
 
-
-static CStr fg_StrFromWindows(const CWStr &_Str)
+static CStr fg_StrFromWindows(CWStr const &_Str)
 {
 	return _Str;
 }
-
 
 aint CVfsWfx::f_Init(FProgressProc _ProgressProc, FLogProc _LogProc, FRequestProc _RequestProc, aint _PluginNumber)
 {
@@ -44,7 +41,6 @@ void CVfsWfx::f_SaveSettings()
 	File.f_Open(m_IniPath, EFileOpen_Write);
 
 	File << m_FileSystems;
-
 }
 
 void CVfsWfx::f_LoadSettings()
@@ -56,7 +52,6 @@ void CVfsWfx::f_LoadSettings()
 
 		File >> m_FileSystems;
 	}
-
 }
 
 class CFindRoot : public CFindInstance
@@ -65,8 +60,8 @@ class CFindRoot : public CFindInstance
 	TCVector<CStr> m_lStatic;
 
 	CVfsWfx::CFileSysIter m_FileSysIter;
-public:
 
+public:
 	CFindRoot()
 	{
 		m_iCurrent = 0;
@@ -108,7 +103,6 @@ public:
 	}
 };
 
-
 class CFindFileSystem : public CFindInstance
 {
 	umint m_iCurrent;
@@ -118,7 +112,6 @@ class CFindFileSystem : public CFindInstance
 	CStr m_Path;
 
 public:
-
 	CFindFileSystem(CFileSystem *_pFileSystem, CStr _Path)
 	{
 		m_Path = _Path;
@@ -142,8 +135,6 @@ public:
 
 	int f_GetNext(CFindData &_Data)
 	{
-
-
 		if (m_iCurrent < m_Files.f_GetLen())
 		{
 			_Data.m_FileAttributes = m_pFileSystem->m_pVirtualFS->f_GetAttributes(m_Path + m_Files[m_iCurrent]);
@@ -179,9 +170,7 @@ CFileSystem *CVfsWfx::fp_GetFS(CStr _Path, CStr &_FsPath)
 			_FsPath = Path.f_Extract(iFind + 1);
 		}
 		else
-		{
 			ToFind = Path;
-		}
 
 		CFileSystem *pFileSys = g_VfsWfx.m_FileSystems.f_FindEqual(ToFind);
 
@@ -190,16 +179,12 @@ CFileSystem *CVfsWfx::fp_GetFS(CStr _Path, CStr &_FsPath)
 	return nullptr;
 }
 
-
-CFindInstance *CVfsWfx::f_FindFirstFile(const ch16 *_pPath)
+CFindInstance *CVfsWfx::f_FindFirstFile(ch16 const *_pPath)
 {
 	if (_pPath == CStr("/"))
-	{
 		return DNew CFindRoot;
-	}
 	else if (fg_StrLen(_pPath) > 1)
 	{
-
 		CStr FsPath;
 
 		CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pPath), FsPath);
@@ -212,17 +197,17 @@ CFindInstance *CVfsWfx::f_FindFirstFile(const ch16 *_pPath)
 	return nullptr;
 }
 
-bool CVfsWfx::f_FindNextFile(CFindInstance * _pInstance, CFindData &_FindData)
+bool CVfsWfx::f_FindNextFile(CFindInstance *_pInstance, CFindData &_FindData)
 {
 	return _pInstance->f_GetNext(_FindData);
 }
 
-void CVfsWfx::f_FindClose(CFindInstance * _pInstance)
+void CVfsWfx::f_FindClose(CFindInstance *_pInstance)
 {
 	delete _pInstance;
 }
 
-int CVfsWfx::f_CreateDirectory(const ch16 *_pDirectory)
+int CVfsWfx::f_CreateDirectory(ch16 const *_pDirectory)
 {
 	CStr FsPath;
 	CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pDirectory), FsPath);
@@ -296,8 +281,8 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 			CEditFileSystemClass Params;
 			Params.m_Heading = "Create New Malterlib File System";
 			Params.m_ClusterSize = 16384;
-			Params.m_GrowSize = 1024*1024;
-			Params.m_InitialSize = 1024*1024;
+			Params.m_GrowSize = 1024 * 1024;
+			Params.m_InitialSize = 1024 * 1024;
 			Params.m_VolumeName = "Default";
 			Params.m_pParentWindow = _pWinMain;
 			Params.m_bCreateFile = true;
@@ -339,21 +324,19 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 				else
 					break;
 			}
-
 		}
 		else if (_RemoteName == "/Unload all file systems")
 		{
 			DDTrace("Unload all file systems\n", 0);
 			g_VfsWfx.fp_UnloadAll();
 		}
-
 	}
 
 	if (_Verb == "properties")
 	{
 		if (_RemoteName.f_FindCharReverse('/') == 0)
 		{
-            CStr Name = _RemoteName.f_Extract(1);
+			CStr Name = _RemoteName.f_Extract(1);
 
 			CFileSystem *pFileSystem = g_VfsWfx.m_FileSystems.f_FindEqual(Name);
 			if (pFileSystem)
@@ -420,7 +403,17 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 						}
 						else if (Error == CVirtualFS::ECheckFSError_NewFSFixable)
 						{
-							if (MessageBoxA((HWND)_pWinMain, "The file system contains fixable errors.\nA new file system must be created.\nWould you like to fix them?", "Check Virtual FS", MB_YESNO) == IDYES)
+							if
+							(
+								MessageBoxA
+								(
+									(HWND)_pWinMain
+									, "The file system contains fixable errors.\nA new file system must be created.\nWould you like to fix them?"
+									, "Check Virtual FS"
+									, MB_YESNO
+								)
+								== IDYES
+							)
 							{
 								if (pFileSystem->f_CheckFSFixNewFS())
 									fg_ErrorBox(_pWinMain, "Failed to fix the file system.");
@@ -429,13 +422,9 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 							}
 						}
 						else if (Error == CVirtualFS::ECheckFSError_NotFixable)
-						{
 							MessageBoxA((HWND)_pWinMain, "The file system contained errors that is not fixable.", "Check Virtual FS", MB_OK);
-						}
 						else if (Error == CVirtualFS::ECheckFSError_None)
-						{
 							MessageBoxA((HWND)_pWinMain, "The file system contains no errors.", "Check Virtual FS", MB_OK);
-						}
 					}
 					else
 						break;
@@ -457,12 +446,12 @@ int CVfsWfx::f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb)
 	return EExecuteError_OK;
 }
 
-int CVfsWfx::f_RenMoveFile(const ch16 *_pOldName, const ch16 *_pNewName, bool _bMove, bool _bOverWrite)
+int CVfsWfx::f_RenMoveFile(ch16 const *_pOldName, ch16 const *_pNewName, bool _bMove, bool _bOverWrite)
 {
 	return 0;
 }
 
-int CVfsWfx::f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _CopyFlags, RemoteInfoStruct *_pRemoteInfo)
+int CVfsWfx::f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _CopyFlags, RemoteInfoStruct *_pRemoteInfo)
 {
 	CStr FsPath;
 	CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pRemoteName), FsPath);
@@ -489,6 +478,7 @@ int CVfsWfx::f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _C
 				{
 					EBufferSize = 65536
 				};
+
 				uint8 Buffer[EBufferSize];
 				uint64 Size = RemoteFile.f_GetLength();
 				uint64 Progress = 0;
@@ -501,7 +491,7 @@ int CVfsWfx::f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _C
 					LocalFile.f_Write(Buffer, ThisTime);
 					ToCopy -= ThisTime;
 					Progress += ThisTime;
-					m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress*100)/Size);
+					m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
 				}
 
 				_pRemoteInfo->Attr = MalterlibFileAttribToWin32FileAttrib(pFileSys->m_pVirtualFS->f_GetAttributes(FsPath));
@@ -526,7 +516,7 @@ int CVfsWfx::f_GetFile(const ch16 *_pRemoteName, const ch16 *_pLocalName, int _C
 	return FS_FILE_NOTFOUND;
 }
 
-int CVfsWfx::f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _CopyFlags)
+int CVfsWfx::f_PutFile(ch16 const *_pLocalName, ch16 const *_pRemoteName, int _CopyFlags)
 {
 	CStr FsPath;
 	CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pRemoteName), FsPath);
@@ -554,6 +544,7 @@ int CVfsWfx::f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _C
 					{
 						EBufferSize = 65536
 					};
+
 					uint8 Buffer[EBufferSize];
 					uint64 Size = LocalFile.f_GetLength();
 					uint64 Progress = 0;
@@ -566,7 +557,7 @@ int CVfsWfx::f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _C
 						RemoteFile.f_Write(Buffer, ThisTime);
 						ToCopy -= ThisTime;
 						Progress += ThisTime;
-						m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress*100)/Size);
+						m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
 					}
 				}
 				pFileSys->m_pVirtualFS->f_SetWriteTime(FsPath, LocalFile.f_GetWriteTime());
@@ -587,7 +578,7 @@ int CVfsWfx::f_PutFile(const ch16 *_pLocalName, const ch16 *_pRemoteName, int _C
 	return FS_FILE_NOTFOUND;
 }
 
-int CVfsWfx::f_DeleteFile(const ch16 *_pRemoteName)
+int CVfsWfx::f_DeleteFile(ch16 const *_pRemoteName)
 {
 	CStr FsPath;
 	CFileSystem *pFileSys = fp_GetFS(fg_StrFromWindows(_pRemoteName), FsPath);
@@ -610,24 +601,23 @@ int CVfsWfx::f_DeleteFile(const ch16 *_pRemoteName)
 	return false;
 }
 
-int CVfsWfx::f_SetAttribs(const ch16 *_pRemoteName, uint32 _Attrib)
+int CVfsWfx::f_SetAttribs(ch16 const *_pRemoteName, uint32 _Attrib)
 {
 	return 0;
 }
 
-int CVfsWfx::f_SetTimeCreation(const ch16 *_pRemoteName, CTime _Time)
+int CVfsWfx::f_SetTimeCreation(ch16 const *_pRemoteName, CTime _Time)
 {
 	return 0;
 }
 
-int CVfsWfx::f_SetTimeAccess(const ch16 *_pRemoteName, CTime _Time)
+int CVfsWfx::f_SetTimeAccess(ch16 const *_pRemoteName, CTime _Time)
 {
 	return 0;
 }
 
-int CVfsWfx::f_SetTimeWrite(const ch16 *_pRemoteName, CTime _Time)
+int CVfsWfx::f_SetTimeWrite(ch16 const *_pRemoteName, CTime _Time)
 {
 	return 0;
 }
-
 
