@@ -39,18 +39,18 @@ namespace NMib::NFile
 			try
 			{
 				if
+				(
+					State.m_pClient->f_ProcessPacket
 					(
-						State.m_pClient->f_ProcessPacket
-						(
-							_ServerPacket
-							, ToSendToServer
-							, bWantOneMoreProcess
-							, [pDestroyed = _pState->m_pDestroyed]
-							{
-								fs_CheckDestroy(pDestroyed);
-							}
-						)
+						_ServerPacket
+						, ToSendToServer
+						, bWantOneMoreProcess
+						, [pDestroyed = _pState->m_pDestroyed]
+						{
+							fs_CheckDestroy(pDestroyed);
+						}
 					)
+				)
 				{
 					bDone = true;
 				}

@@ -30,6 +30,7 @@ namespace NMib::NFile
 				, CCoalesceSettings _CoalesceSettings
 			)
 		;
+
 	private:
 		class CInternal;
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
@@ -37,5 +38,5 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif

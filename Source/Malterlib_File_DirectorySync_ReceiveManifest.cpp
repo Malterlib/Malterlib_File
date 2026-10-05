@@ -66,9 +66,7 @@ namespace NMib::NFile
 							PreviousManifestFileName = Config.m_PreviousManifest.f_Get<2>();
 							break;
 						}
-					default:
-						DMibNeverGetHere;
-						break;
+					default: DMibNeverGetHere; break;
 					}
 
 					CStr ManifestDestination = Config.m_OutputManifestPath;

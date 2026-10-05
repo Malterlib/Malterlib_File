@@ -13,10 +13,10 @@ namespace NMib::NFile
 {
 	enum EDirectoryManifestSyncFlag /// \brief Flag for how to sync specific files
 	{
-		EDirectoryManifestSyncFlag_None = 0							///< Normal syncing. In this case the rsync is used for syncing changes
-		, EDirectoryManifestSyncFlag_Append = DMibBit(0)			///< Append syncing. Any changes are assumed to be append only
-		, EDirectoryManifestSyncFlag_TransactionLog = DMibBit(1)	///< Should be used together with ESyncFlag_Append. This tells the backup manager to sync
-																	///		writes to disk as quickly as possible.
+		EDirectoryManifestSyncFlag_None             = 0          ///< Normal syncing. In this case the rsync is used for syncing changes
+		, EDirectoryManifestSyncFlag_Append         = DMibBit(0) ///< Append syncing. Any changes are assumed to be append only
+		, EDirectoryManifestSyncFlag_TransactionLog = DMibBit(1) ///< Should be used together with ESyncFlag_Append. This tells the backup manager to sync
+		                                                         ///   writes to disk as quickly as possible.
 	};
 
 	struct CDirectoryManifestFile
@@ -49,7 +49,7 @@ namespace NMib::NFile
 
 	enum class EDirectoryManifestConfigFlag : uint32
 	{
-		mc_None = 0
+		mc_None            = 0
 		, mc_DisableDigest = DMibBit(0)
 	};
 
@@ -59,9 +59,9 @@ namespace NMib::NFile
 
 		enum EManifestConfigStreamVersion
 		{
-			EManifestConfigStreamVersion_Min = 0x101
+			EManifestConfigStreamVersion_Min                            = 0x101
 			, EManifestConfigStreamVersion_SupportFlagsAndMaxDigestSize = 0x102
-			, EManifestConfigStreamVersion_Current = 0x102
+			, EManifestConfigStreamVersion_Current                      = 0x102
 		};
 
 		static NStr::CStr fs_ParseWildcard(NStr::CStr const &_Wildcard, bool &o_bRecursive);
@@ -71,17 +71,17 @@ namespace NMib::NFile
 		template <typename tf_CStream>
 		void f_Stream(tf_CStream &_Stream, uint32 _Version);
 
-		NStr::CStr m_Root;																		///< The root directory of the backup.
-		NContainer::TCMap<NStr::CStr, CDestination> m_IncludeWildcards = {{"^*", {}}};				///< \brief Relative to m_Root. This is a file search. Only file name can have wildcards.
-																								///		Use ^ in the beginning of the file path to create a recursive search. Value is used
-																								///		for specifying the destination of the files in the manifest.
-																								///		e.g. {"Folder1/^*", "Folder2"} will place all files from Folder1 in Folder2.
-		NContainer::TCSet<NStr::CStr> m_ExcludeWildcards;										///< Relative to m_Root. Evaluated after include wild cards as a filtering step on the
-																								///		destination path. In remapped space.
-		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_AddSyncFlagsWildcards;		///< Relative to m_Root. In remapped space.
-		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_RemoveSyncFlagsWildcards;	///< Relative to m_Root. Evaluated after m_AddSyncFlagsWildcards. In remapped space.
-		uint64 m_MaxDigestSize = TCLimitsInt<uint64>::mc_Max;									///< Maximum file size to calculate digests for.
-		EDirectoryManifestConfigFlag m_Flags = EDirectoryManifestConfigFlag::mc_None;			///< Flag options.
+		NStr::CStr m_Root;                                                                    ///< The root directory of the backup.
+		NContainer::TCMap<NStr::CStr, CDestination> m_IncludeWildcards = {{"^*", {}}};        ///< \brief Relative to m_Root. This is a file search. Only file name can have wildcards.
+		                                                                                      ///   Use ^ in the beginning of the file path to create a recursive search. Value is used
+		                                                                                      ///   for specifying the destination of the files in the manifest.
+		                                                                                      ///   e.g. {"Folder1/^*", "Folder2"} will place all files from Folder1 in Folder2.
+		NContainer::TCSet<NStr::CStr> m_ExcludeWildcards;                                     ///< Relative to m_Root. Evaluated after include wild cards as a filtering step on the
+		                                                                                      ///   destination path. In remapped space.
+		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_AddSyncFlagsWildcards;    ///< Relative to m_Root. In remapped space.
+		NContainer::TCMap<NStr::CStr, EDirectoryManifestSyncFlag> m_RemoveSyncFlagsWildcards; ///< Relative to m_Root. Evaluated after m_AddSyncFlagsWildcards. In remapped space.
+		uint64 m_MaxDigestSize = TCLimitsInt<uint64>::mc_Max;                                 ///< Maximum file size to calculate digests for.
+		EDirectoryManifestConfigFlag m_Flags = EDirectoryManifestConfigFlag::mc_None;         ///< Flag options.
 	};
 
 	struct CDirectoryManifest
@@ -94,9 +94,9 @@ namespace NMib::NFile
 
 		enum EManifestStreamVersion : uint32
 		{
-			EManifestStreamVersion_Min = 0x102
+			EManifestStreamVersion_Min              = 0x102
 			, EManifestStreamVersion_OptionalDigest = 0x103
-			, EManifestStreamVersion_Current = 0x103
+			, EManifestStreamVersion_Current        = 0x103
 		};
 
 		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
@@ -133,7 +133,7 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif
 
 #include "Malterlib_File_DirectoryManifest.hpp"

@@ -12,16 +12,16 @@ namespace NMib::NFile
 	// How a pattern relates to the files under a directory.
 	enum class EPathGlobCover
 	{
-		mc_None			// No file below can match.
-		, mc_Some		// Some file below may match.
-		, mc_All		// Every file below matches.
+		mc_None   // No file below can match.
+		, mc_Some // Some file below may match.
+		, mc_All  // Every file below matches.
 	};
 
 	// Which syntax a pattern is written in.
 	enum class EPathGlobDialect
 	{
-		mc_EditorConfig	// '{a,b}' alternates and '**' crosses components wherever it stands.
-		, mc_Git		// Braces are literal, '**' crosses components only as a whole component, and '[^...]' negates too.
+		mc_EditorConfig // '{a,b}' alternates and '**' crosses components wherever it stands.
+		, mc_Git        // Braces are literal, '**' crosses components only as a whole component, and '[^...]' negates too.
 	};
 
 	// A glob over slash-separated paths, as EditorConfig sections and gitignore rules spell
@@ -87,10 +87,10 @@ namespace NMib::NFile
 			umint m_iNext = 0;
 			ch32 m_Character = 0;
 			bool m_bNegated = false;
-			bool m_bVerbatim = false; // A character git's pattern escapes, compared as written, also where case is ignored.
+			bool m_bVerbatim = false;                 // A character git's pattern escapes, compared as written, also where case is ignored.
 			NContainer::TCVector<CRange> m_Ranges;
 			NContainer::TCVector<umint> m_Alternatives;
-			NContainer::TCVector<umint> m_Closure[2];		// The consuming states reached without consuming; [1] at a component start.
+			NContainer::TCVector<umint> m_Closure[2]; // The consuming states reached without consuming; [1] at a component start.
 		};
 
 		ch32 const *fp_SetEnd(ch32 const *_pStart, ch32 const *_pEnd) const;

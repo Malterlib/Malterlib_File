@@ -7,9 +7,9 @@ namespace NMib::NFile
 {
 	enum ERSyncFlag
 	{
-		ERSyncFlag_None = 0
+		ERSyncFlag_None                   = 0
 		, ERSyncFlag_ClientTruncateOutput = DMibBit(0)
-		, ERSyncFlag_UseSHA256 = DMibBit(1)
+		, ERSyncFlag_UseSHA256            = DMibBit(1)
 	};
 
 	class CRSyncServer
@@ -60,5 +60,5 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif

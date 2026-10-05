@@ -25,7 +25,11 @@ namespace NMib::NFile
 
 					CFile::CFindFilesOptions Options{Config.m_BasePath + "/*", true};
 					Options.m_bFollowLinks = false;
-					Options.m_fCheckAbort = [&]{ CInternal::fs_CheckDestroy(pDestroyed); };
+					Options.m_fCheckAbort = [&]
+						{
+							CInternal::fs_CheckDestroy(pDestroyed);
+						}
+					;
 					Options.m_AttribMask = EFileAttrib_Directory | EFileAttrib_File | EFileAttrib_Link;
 
 					for (auto &File : CFile::fs_FindFiles(Options))
@@ -49,8 +53,7 @@ namespace NMib::NFile
 									CFile::fs_DeleteDirectoryRecursive(File.m_Path);
 								break;
 							}
-						case EExcessFilesAction_Ignore:
-							break;
+						case EExcessFilesAction_Ignore: break;
 						}
 					}
 				}
