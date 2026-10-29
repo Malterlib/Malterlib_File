@@ -1846,7 +1846,8 @@ namespace NMib::NFile
 
 		Prefix = fs_ExtractPathRoot(Path);
 
-		if (Path[Path.f_GetLen() - 1] == '/')
+		// A path that is only its root has nothing left behind it: '/'.
+		if (!Path.f_IsEmpty() && Path[Path.f_GetLen() - 1] == '/')
 			Suffix = "/";
 
 		// TODO: When we have static substring objects this can be boiled down to a couple of allocs.

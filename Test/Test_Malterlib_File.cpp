@@ -205,6 +205,7 @@ namespace
 				DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/")) == DMibExpr("/Fred/Wilma/"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/BamBam")) == DMibExpr("/Fred/Barney/BamBam"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/..")) == DMibExpr(""));
+				DMibTest(DMibExpr(CFile::fs_CondensePath("/")) == DMibExpr(""));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/../BamBam")) == DMibExpr("/Fred/BamBam"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/../BamBam/")) == DMibExpr("/Fred/BamBam/"));
 				DMibTest(DMibExpr(CFile::fs_CondensePath("Projects/Malterlib/Library/Core/Proj/MSVC/../../../GUI/Malterlib_GUI.h")) == DMibExpr("Projects/Malterlib/Library/GUI/Malterlib_GUI.h"));
