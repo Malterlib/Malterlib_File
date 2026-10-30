@@ -342,7 +342,7 @@ namespace NMib::NFile
 			NewPath = _BasePath;
 
 		aint iParse = 0;
-		while (Temp[iParse] == '/')
+		while (iParse < Len && Temp[iParse] == '/')
 		{
 			NewPath.f_AddChar('/');
 			++iParse;
