@@ -104,7 +104,7 @@ namespace NMib::NFile
 			                                                                                          ///   downloaded. Also, only files that are specified in the manifest
 			                                                                                          ///   can be downloaded.
 			NStorage::TCVariant<CDirectoryManifest, CDirectoryManifestConfig, NStr::CStr> m_Manifest; ///< Specify manifest, a config to generate a manifest, or a path to a file with
-			                                                                                          ///		an existing manifest that corresponds to the files available in m_BasePath.
+			                                                                                          ///   an existing manifest that corresponds to the files available in m_BasePath.
 			NStorage::TCOptional<bool> m_bUseOriginalLocation;                                        ///< Use the original location of files in manifest. Defaults to true
 			                                                                                          ///   when m_Manifest is a CDirectoryManifestConfig, otherwise false
 			CDirectorySyncFileOptions m_FileOptions;                                                  ///< Functionality for transformation of file names and content
