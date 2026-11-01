@@ -10,7 +10,6 @@ namespace NMib::NFile
 	class CMalterlibPatchEncodeHelper
 	{
 	public:
-
 		static constexpr umint mc_MapLength = 64;
 
 		class CMappedPos
@@ -22,7 +21,6 @@ namespace NMib::NFile
 		class CMappedChunk
 		{
 		public:
-
 			class CCompare
 			{
 			public:
@@ -32,7 +30,7 @@ namespace NMib::NFile
 				{
 				}
 
-				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const CMappedChunk &_Right) const
+				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, CMappedChunk const &_Right) const
 				{
 					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
@@ -52,7 +50,7 @@ namespace NMib::NFile
 					return Len0 <=> Len1;
 				}
 
-				inline_small COrdering_Partial operator () (const CMappedChunk &_Left, const uint8 *_pSecond) const
+				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, uint8 const *_pSecond) const
 				{
 					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
 					umint Pos1 = _pSecond - m_Context.m_pFindData;
@@ -72,7 +70,7 @@ namespace NMib::NFile
 					return Len0 <=> Len1;
 				}
 
-				inline_small COrdering_Partial operator () (const uint8 *_pFirst, const CMappedChunk &_Right) const
+				inline_small COrdering_Partial operator () (uint8 const *_pFirst, CMappedChunk const &_Right) const
 				{
 					umint Pos0 = _pFirst - m_Context.m_pFindData;
 					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
@@ -104,24 +102,24 @@ namespace NMib::NFile
 		NContainer::TCVector<CMappedChunk> m_MappedChunk;
 		NContainer::TCVector<CMappedPos> m_MappedPos;
 		umint m_nMapped;
-		const uint8 *m_pOrigData;
+		uint8 const *m_pOrigData;
 
-		const uint8 *m_pFindData;
+		uint8 const *m_pFindData;
 		umint m_FindLen;
 
 #if DMibEnableSafeCheck > 0
-		const uint8 *m_pOrigDataEnd;
-		const uint8 *m_pFindDataEnd;
+		uint8 const *m_pOrigDataEnd;
+		uint8 const *m_pFindDataEnd;
 #endif
 
-		void f_MapOrig(const NContainer::CByteVector &_Orig)
+		void f_MapOrig(NContainer::CByteVector const &_Orig)
 		{
-			const uint8 *pOrig = _Orig.f_GetArray();
+			uint8 const *pOrig = _Orig.f_GetArray();
 			if (!pOrig)
 				return;
 			m_pOrigData = pOrig;
-			const uint8 *pOrigSave = pOrig;
-			const uint8 *pOrigEnd = pOrig + _Orig.f_GetLen();
+			uint8 const *pOrigSave = pOrig;
+			uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
 #if DMibEnableSafeCheck > 0
 			m_pOrigDataEnd = pOrigEnd;
 #endif
@@ -159,7 +157,7 @@ namespace NMib::NFile
 			}
 		}
 
-		void f_CreatePatchData(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed, NStream::CBinaryStreamMemory<> &_Stream)
+		void f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::CBinaryStreamMemory<> &_Stream)
 		{
 			m_pFindData = _Changed.f_GetArray();
 			m_FindLen = _Changed.f_GetLen();
@@ -167,13 +165,13 @@ namespace NMib::NFile
 			m_pFindDataEnd = m_pFindData + m_FindLen;
 #endif
 
-			const uint8 *pChanged = _Changed.f_GetArray();
-			const uint8 *pChangedEnd = pChanged + _Changed.f_GetLen();
-			const uint8 *pStartUnsaved = pChanged;
+			uint8 const *pChanged = _Changed.f_GetArray();
+			uint8 const *pChangedEnd = pChanged + _Changed.f_GetLen();
+			uint8 const *pStartUnsaved = pChanged;
 
-			const uint8 *pOrig = _Orig.f_GetArray();
-			const uint8 *pOrigEnd = pOrig + _Orig.f_GetLen();
-			const CMappedPos *pMappedArray = m_MappedPos.f_GetArray();
+			uint8 const *pOrig = _Orig.f_GetArray();
+			uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
+			CMappedPos const *pMappedArray = m_MappedPos.f_GetArray();
 
 			while (pChanged < pChangedEnd)
 			{
@@ -186,9 +184,9 @@ namespace NMib::NFile
 					CMappedPosIter Iter = pChunk->m_MappedPositions;
 					while (Iter)
 					{
-						const uint8 *pFind0 = pChanged;
+						uint8 const *pFind0 = pChanged;
 						umint MappedPos = (Iter.f_GetCurrent() - pMappedArray);
-						const uint8 *pFind1 = pOrig + MappedPos;
+						uint8 const *pFind1 = pOrig + MappedPos;
 
 						while (pFind0 < pChangedEnd && pFind1 < pOrigEnd)
 						{
@@ -253,10 +251,9 @@ namespace NMib::NFile
 				pChunk = m_MappedTree.f_GetRoot();
 			}
 		}
-
 	};
 
-	NContainer::CByteVector fg_MalterlibPatchEncode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed)
+	NContainer::CByteVector fg_MalterlibPatchEncode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed)
 	{
 		CMalterlibPatchEncodeHelper Helper;
 		Helper.f_MapOrig(_Orig);
@@ -278,7 +275,7 @@ namespace NMib::NFile
 		return Stream.f_MoveVector();
 	}
 
-	NContainer::CByteVector fg_MalterlibPatchDecode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_PatchData)
+	NContainer::CByteVector fg_MalterlibPatchDecode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_PatchData)
 	{
 		NStream::CBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_PatchData.f_GetArray(), _PatchData.f_GetLen());
@@ -299,7 +296,7 @@ namespace NMib::NFile
 			DMibError("Original file does not match patch");
 
 		NContainer::CByteVector Changed;
-		const uint8 *pOrigData = _Orig.f_GetArray();
+		uint8 const *pOrigData = _Orig.f_GetArray();
 		Changed.f_SetLen(ChangedSize);
 		uint8 *pChangedData = Changed.f_GetArray();
 

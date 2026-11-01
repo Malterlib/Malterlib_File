@@ -33,7 +33,6 @@ Repository
 	}
 }
 
-
 Property
 {
 	MalterlibLibrary_File: bool = MalterlibLibrary_All
@@ -60,4 +59,3 @@ Property
 	MalterlibTestFiles_Malterlib_File: [type(CEntity)] = ["Test/*"->MakeAbsolute()]
 	MalterlibTestExtraGroups_Malterlib_File: [string] = ["{Test}/{Malterlib_File}"]
 }
-

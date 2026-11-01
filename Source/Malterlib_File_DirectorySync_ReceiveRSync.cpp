@@ -39,18 +39,18 @@ namespace NMib::NFile
 			try
 			{
 				if
+				(
+					State.m_pClient->f_ProcessPacket
 					(
-						State.m_pClient->f_ProcessPacket
-						(
-							_ServerPacket
-							, ToSendToServer
-							, bWantOneMoreProcess
-							, [pDestroyed = _pState->m_pDestroyed]
-							{
-								fs_CheckDestroy(pDestroyed);
-							}
-						)
+						_ServerPacket
+						, ToSendToServer
+						, bWantOneMoreProcess
+						, [pDestroyed = _pState->m_pDestroyed]
+						{
+							fs_CheckDestroy(pDestroyed);
+						}
 					)
+				)
 				{
 					bDone = true;
 				}
@@ -113,12 +113,13 @@ namespace NMib::NFile
 		co_return {};
 	}
 
-	TCFuture<void> CDirectorySyncReceive::CInternal::f_RSync
+	auto CDirectorySyncReceive::CInternal::f_RSync
 		(
 			TCFunctionMutable<bool (CRunningSyncState *_pState)> _fInitRSync
 			, TCFunctionMutable<TCFuture<void> (CRunningSyncState *_pState)> _fOnDone
 			, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 		)
+		-> TCFuture<void>
 	{
 		CStr RSyncID = fg_RandomID(m_RSyncStates);
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();

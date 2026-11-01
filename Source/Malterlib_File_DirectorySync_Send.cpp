@@ -155,8 +155,7 @@ namespace NMib::NFile
 		co_return fg_Move(ByteStats);
 	}
 
-	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync)
-		-> TCFuture<FRunRSync>
+	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>
 	{
 		auto pCanDestroy = m_pCanDestroyTracker;
 
@@ -282,7 +281,15 @@ namespace NMib::NFile
 					case 1:
 						{
 							auto &ManifestConfig = Config.m_Manifest.f_Get<1>();
-							auto Manifest = CDirectoryManifest::fs_GetManifest(ManifestConfig, [&]{ CInternal::fs_CheckDestroy(pDestroyed); });
+							auto Manifest = CDirectoryManifest::fs_GetManifest
+								(
+									ManifestConfig
+									, [&]
+									{
+										CInternal::fs_CheckDestroy(pDestroyed);
+									}
+								)
+							;
 							Manifest.f_Stream(fg_FeedStream(_RSyncState.m_FileMemory), ManifestVersion);
 							pBinaryStream = &_RSyncState.m_FileMemory;
 							*pManifest = fg_Move(Manifest);
@@ -303,8 +310,7 @@ namespace NMib::NFile
 							pBinaryStream = &*_RSyncState.m_pFile;
 							break;
 						}
-					default:
-						DMibError("Invalid manifest type");
+					default: DMibError("Invalid manifest type");
 					}
 
 					auto ServerFlags = ERSyncFlag_None;

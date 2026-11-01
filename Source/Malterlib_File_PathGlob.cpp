@@ -152,20 +152,14 @@ namespace NMib::NFile
 				bool bMatches = false;
 				switch (Node.m_Kind)
 				{
-					case EKind::mc_Literal:
-						bMatches = Character == (mp_bIgnoreCase && !Node.m_bVerbatim ? fg_FoldCase(Node.m_Character) : Node.m_Character);
+				case EKind::mc_Literal: bMatches = Character == (mp_bIgnoreCase && !Node.m_bVerbatim ? fg_FoldCase(Node.m_Character) : Node.m_Character); break;
+				case EKind::mc_Any:
+				case EKind::mc_Star:
+					bMatches = *pParse != '/';
 
-						break;
-					case EKind::mc_Any:
-					case EKind::mc_Star:
-						bMatches = *pParse != '/';
-
-						break;
-					case EKind::mc_RecursiveStar:
-						bMatches = true;
-
-						break;
-					case EKind::mc_Set:
+					break;
+				case EKind::mc_RecursiveStar: bMatches = true; break;
+				case EKind::mc_Set:
 					{
 						for (auto const &Range : Node.m_Ranges)
 							bMatches |= Character >= Range.m_First && Character <= Range.m_Last;
@@ -173,7 +167,7 @@ namespace NMib::NFile
 
 						break;
 					}
-					default: break;
+				default: break;
 				}
 
 				if (bMatches)

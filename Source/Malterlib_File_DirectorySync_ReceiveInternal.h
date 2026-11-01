@@ -61,12 +61,13 @@ namespace NMib::NFile
 
 		TCFuture<void> f_SyncFile(CStr const &_FileName);
 
-		TCFuture<void> f_RSync
+		auto f_RSync
 			(
 				TCFunctionMutable<bool (CRunningSyncState *_pState)> _fInitRSync
 				, TCFunctionMutable<TCFuture<void> (CRunningSyncState *_pState)> _fOnDone
 				, TCFunctionMutable<TCFuture<CDirectorySyncClient::FRunRSync> (CActorSubscription &&_Subscription)> _fStartRSync
 			)
+			-> TCFuture<void>
 		;
 
 		void f_RunFileSyncs(TCPromise<void> const &_Promise);
@@ -87,12 +88,6 @@ namespace NMib::NFile
 		umint m_nRunningSyncs = 0;
 
 	private:
-		static void fsp_RunRSyncProtocol
-			(
-				TCSharedPointerSupportWeak<CRunningSyncState> const &_pState
-				, CIOByteVector &&_ServerPacket
-				, TCPromise<CByteStats> const &_Promise
-			)
-		;
+		static void fsp_RunRSyncProtocol(TCSharedPointerSupportWeak<CRunningSyncState> const &_pState, CIOByteVector &&_ServerPacket, TCPromise<CByteStats> const &_Promise);
 	};
 }

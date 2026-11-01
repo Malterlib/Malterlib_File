@@ -7,9 +7,9 @@ namespace NMib::NFile
 {
 	enum ERSyncFlag
 	{
-		ERSyncFlag_None = 0
+		ERSyncFlag_None                   = 0
 		, ERSyncFlag_ClientTruncateOutput = DMibBit(0)
-		, ERSyncFlag_UseSHA256 = DMibBit(1)
+		, ERSyncFlag_UseSHA256            = DMibBit(1)
 	};
 
 	class CRSyncServer
@@ -46,13 +46,14 @@ namespace NMib::NFile
 		;
 		~CRSyncClient();
 
-		bool f_ProcessPacket
+		auto f_ProcessPacket
 			(
 				NContainer::CIOByteVector const &_ServerData
 				, NContainer::CIOByteVector &_ToSendToServer
 				, bool &_bWantOneMoreProcess
 				, NFunction::TCFunction<void ()> const &_fCheckAbort
 			)
+			-> bool
 		;
 		uint64 f_GetRawBytes();
 		void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
@@ -60,5 +61,5 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif

@@ -5,10 +5,10 @@
 
 namespace NMib::NFile
 {
-	NContainer::CByteVector fg_MalterlibPatchEncode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_Changed);
-	NContainer::CByteVector fg_MalterlibPatchDecode(const NContainer::CByteVector &_Orig, const NContainer::CByteVector &_PatchData);
+	NContainer::CByteVector fg_MalterlibPatchEncode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed);
+	NContainer::CByteVector fg_MalterlibPatchDecode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_PatchData);
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif

@@ -61,13 +61,14 @@ namespace NMib::NFile
 	{
 	}
 
-	NConcurrency::TCFuture<NConcurrency::CActorSubscription> CFileChangeNotificationActor::f_RegisterForChanges
+	auto CFileChangeNotificationActor::f_RegisterForChanges
 		(
 			NMib::NStr::CStr _Path
 			, NMib::NFile::EFileChange _OpenFlags
 			, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> _fOnChange
 			, CCoalesceSettings _CoalesceSettings
 		)
+		-> NConcurrency::TCFuture<NConcurrency::CActorSubscription>
 	{
 		if (_CoalesceSettings.m_nMaxOutstanding == 0)
 			co_return DMibErrorInstance("CCoalesceSettings::m_nMaxOutstanding has to be 1 or higher");
@@ -220,14 +221,8 @@ namespace NMib::NFile
 			case EFileChangeNotification_Added: DMibFileChangeNotificationsDebugOut("=== {}{} Added {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
 			case EFileChangeNotification_Removed: DMibFileChangeNotificationsDebugOut("=== {}{} Removed {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
 			case EFileChangeNotification_Modified: DMibFileChangeNotificationsDebugOut("=== {}{} Modified {}", Change.m_Sequence, pForced, Change.m_Notification.m_Path); break;
-			case EFileChangeNotification_Renamed: DMibFileChangeNotificationsDebugOut
-				(
-					"=== {}{} Renamed {} -> {}"
-					, Change.m_Sequence
-					, pForced
-					, Change.m_Notification.m_PathFrom
-					, Change.m_Notification.m_Path
-				);
+			case EFileChangeNotification_Renamed:
+				DMibFileChangeNotificationsDebugOut("=== {}{} Renamed {} -> {}", Change.m_Sequence, pForced, Change.m_Notification.m_PathFrom, Change.m_Notification.m_Path);
 				break;
 			case EFileChangeNotification_Undefined: break;
 			}

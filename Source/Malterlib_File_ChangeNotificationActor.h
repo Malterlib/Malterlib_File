@@ -22,14 +22,16 @@ namespace NMib::NFile
 			fp64 m_Delay = 1.0;
 		};
 
-		NConcurrency::TCFuture<NConcurrency::CActorSubscription> f_RegisterForChanges
+		auto f_RegisterForChanges
 			(
 				NMib::NStr::CStr _Path
 				, NMib::NFile::EFileChange _OpenFlags
 				, NConcurrency::TCActorFunctor<NConcurrency::TCFuture<void> (NContainer::TCVector<CFileChangeNotification::CNotification> _Changes)> _fOnChange
 				, CCoalesceSettings _CoalesceSettings
 			)
+			-> NConcurrency::TCFuture<NConcurrency::CActorSubscription>
 		;
+
 	private:
 		class CInternal;
 		NStorage::TCUniquePointer<CInternal> mp_pInternal;
@@ -37,5 +39,5 @@ namespace NMib::NFile
 }
 
 #ifndef DMibPNoShortCuts
-	using namespace NMib::NFile;
+using namespace NMib::NFile;
 #endif
