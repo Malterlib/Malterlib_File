@@ -11,7 +11,7 @@ namespace NMib::NFile
 	using namespace NStorage;
 	using namespace NStr;
 
-	class CFileChangeNotificationActor::CInternal
+	class CFileChangeNotificationActor::CInternal : public CActorInternal
 	{
 	public:
 		struct CNotification
