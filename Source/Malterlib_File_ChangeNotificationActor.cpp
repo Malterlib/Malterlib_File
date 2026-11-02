@@ -121,6 +121,21 @@ namespace NMib::NFile
 			}
 		;
 
+		// The subscription removes the notification when it is destroyed, so re-validate it on every resume
+		auto OnResume = co_await fg_OnResume
+			(
+				[&, pDestroyed = pNotification->m_pDestroyed]() -> NException::CExceptionPointer
+				{
+					if (*pDestroyed)
+					{
+						pNotification = nullptr;
+						return DMibErrorInstance("Change notification was removed");
+					}
+					return {};
+				}
+			)
+		;
+
 		// Opening a notification may scan the watched tree and block.
 		auto BlockingActorCheckout = fg_BlockingActor();
 
