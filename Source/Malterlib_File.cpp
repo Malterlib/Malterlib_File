@@ -579,6 +579,7 @@ namespace NMib::NFile
 	void CFile::f_SetCacheSize(umint _CacheSize)
 	{
 		DMibRequire(_CacheSize > 0);
+		DMibAnalyzerAssume(_CacheSize > 0);
 		fp_FlushCache();
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
