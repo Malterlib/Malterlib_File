@@ -197,7 +197,7 @@ public:
 	class CFSReporter : public CVirtualFS::CCheckReporter
 	{
 	public:
-		virtual void f_ReportError(NStr::CStr _Error)
+		virtual void f_ReportError(NStr::CStr const &_Error)
 		{
 			DDTrace("{}\n", _Error);
 		}

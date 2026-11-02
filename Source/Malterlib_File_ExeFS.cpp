@@ -104,7 +104,7 @@ namespace NMib::NFile
 		return false;
 	}
 
-	bool fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo)
+	bool fg_ReadExeFSFile(NStr::CStr const &_FileName, NContainer::CByteVector &_ReadTo)
 	{
 		CExeFS ExeFs;
 

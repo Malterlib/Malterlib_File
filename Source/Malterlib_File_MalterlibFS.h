@@ -1543,7 +1543,7 @@ namespace NMib::NFile
 		class CCheckReporter
 		{
 		public:
-			virtual void f_ReportError(NStr::CStr _Error) = 0;
+			virtual void f_ReportError(NStr::CStr const &_Error) = 0;
 			virtual void f_IncreaseProgress(uint64 _nInc)
 			{
 			};

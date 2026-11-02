@@ -1796,7 +1796,7 @@ namespace NMib::NFile
 		;
 	}
 
-	NStr::CStr CFile::fs_CondensePath(NStr::CStr _Path)
+	NStr::CStr CFile::fs_CondensePath(NStr::CStr const &_Path)
 	{
 		if (_Path.f_IsEmpty())
 			return _Path;

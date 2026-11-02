@@ -867,7 +867,7 @@ namespace NMib::NFile
 		static void fs_WriteStringToFile(NStr::CStrNonTracked const &_Path, NStr::CStrNonTracked const &_ToWrite, bool _bAddBOM = true, EFileAttrib _Attributes = EFileAttrib_None);
 		static NStr::CStrNonTracked fs_ReadStringFromFile(NStr::CStrNonTracked const &_Path, bool _bAssumeUTF8 = false);
 
-		static NStr::CStr fs_CondensePath(NStr::CStr _Path);
+		static NStr::CStr fs_CondensePath(NStr::CStr const &_Path);
 		static NStr::CStr fs_MakeNiceFilename(NStr::CStr const &_CurrentName);
 
 		template <typename tf_CStr>
@@ -881,7 +881,7 @@ namespace NMib::NFile
 		static bool fs_HasRelativeComponents(tf_CStr const &_Path);
 
 		template <typename tf_CStr>
-		static bool fs_IsPathAbsolute(tf_CStr _Path);
+		static bool fs_IsPathAbsolute(tf_CStr const &_Path);
 		template <typename tf_CStr>
 		static tf_CStr fs_MakePathRelative(tf_CStr const &_AbsolutePath, tf_CStr const &_AbsoluteBase);
 

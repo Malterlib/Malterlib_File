@@ -155,7 +155,7 @@ namespace NMib::NFile
 				, fStartRSync = fg_Move(_fStartRSync)
 				, BlockingActorCheckout = fg_Move(BlockingActorCheckout)
 			]
-			(TCAsyncResult<bool> _bAlreadySynced) mutable
+			(TCAsyncResult<bool> &&_bAlreadySynced) mutable
 			{
 				if (!_bAlreadySynced)
 				{

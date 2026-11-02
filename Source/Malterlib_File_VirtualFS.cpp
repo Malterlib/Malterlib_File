@@ -479,7 +479,7 @@ namespace NMib::NFile
 		(
 			ICFileSystemInterface &_DestFS
 			, ICFileSystemInterface &_SourceFS
-			, NStr::CStr _Path
+			, NStr::CStr const &_Path
 			, ICFileSystemInterface::ECopyFilesBackupFlag _Flags
 			, NFunction::TCFunction<bool (NStr::CStr const &_Filename)> const &_fShouldBackup
 			, ICFileSystemInterface::CCopyFilesProgress *_pProgress

@@ -180,11 +180,12 @@ namespace NMib::NFile
 	}
 
 	template <typename tf_CStr>
-	bool CFile::fs_IsPathAbsolute(tf_CStr _Path)
+	bool CFile::fs_IsPathAbsolute(tf_CStr const &_Path)
 	{
-		fg_StrReplaceChar(_Path, '\\', '/');
+		tf_CStr Path = _Path;
+		fg_StrReplaceChar(Path, '\\', '/');
 
-		return fs_IsPathAbsolute_Local(_Path);
+		return fs_IsPathAbsolute_Local(Path);
 	}
 
 	template <typename tf_CStr>

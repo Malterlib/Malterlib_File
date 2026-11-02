@@ -8,7 +8,7 @@
 
 namespace NMib::NFile
 {
-	bool fg_ReadExeFSFile(NStr::CStr _FileName, NContainer::CByteVector &_ReadTo);
+	bool fg_ReadExeFSFile(NStr::CStr const &_FileName, NContainer::CByteVector &_ReadTo);
 
 	class CExeFS
 	{
