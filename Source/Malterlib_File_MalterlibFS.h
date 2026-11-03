@@ -1486,7 +1486,7 @@ namespace NMib::NFile
 		void fp_CloseFile(CFileInternal *_pFile);
 
 		CFileInternal *fp_OpenFileFromPath(NStr::CStr const &_Path, bool _bCreate, bool _bRemove = false, bool _bAllowRoot = false);
-		void fpr_DeleteDirectoryRecursive(NStr::CStr const &_File);
+		void fp_DeleteDirectoryRecursive(NStr::CStr const &_File);
 
 	public:
 		CVirtualFS()
@@ -1639,7 +1639,7 @@ namespace NMib::NFile
 
 			ECheckFSError f_CheckOrphanClusters();
 			ECheckFSError f_CheckFSTree(CClusterID _ClusterID, bool _bMap);
-			ECheckFSError fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName);
+			ECheckFSError f_CheckFSTreeRecursive(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName);
 
 		private:
 			friend struct CVirtualFS;

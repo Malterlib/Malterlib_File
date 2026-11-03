@@ -47,7 +47,7 @@ namespace NMib::NFile
 		return 0;
 	}
 
-	void ICFileSystemInterface::fpr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const
+	void ICFileSystemInterface::fp_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const
 	{
 		NContainer::TCVector<NStr::CStr> Files;
 		Files = f_FindFiles(CFile::fs_AppendPath(_File, "*"), EFileAttrib_File | EFileAttrib_Directory, false, false);
@@ -69,7 +69,7 @@ namespace NMib::NFile
 				}
 			}
 			else if (Attribs & EFileAttrib_Directory)
-				fpr_DeleteFilesInDirs(*iFile, _bRemoveWriteProtection, _Errors);
+				fp_DeleteFilesInDirs(*iFile, _bRemoveWriteProtection, _Errors);
 		}
 		try
 		{
@@ -116,7 +116,7 @@ namespace NMib::NFile
 	void ICFileSystemInterface::f_DeleteDirectoryRecursive(NStr::CStr const &_File, bool _bRemoveWriteProtection) const
 	{
 		NStr::CStr Errors;
-		fpr_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
+		fp_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
 
 		if (!Errors.f_IsEmpty())
 			DMibErrorFile(Errors);
@@ -475,7 +475,7 @@ namespace NMib::NFile
 		}
 	}
 
-	auto gfp_CopyFiles_Recursive
+	auto fg_CopyFiles_Recursive
 		(
 			ICFileSystemInterface &_DestFS
 			, ICFileSystemInterface &_SourceFS
@@ -507,7 +507,7 @@ namespace NMib::NFile
 
 			if (SourceAttribs & EFileAttrib_Directory)
 			{
-				if (!gfp_CopyFiles_Recursive(_DestFS, _SourceFS, FileName, _Flags, _fShouldBackup, _pProgress, _pSourceCleared))
+				if (!fg_CopyFiles_Recursive(_DestFS, _SourceFS, FileName, _Flags, _fShouldBackup, _pProgress, _pSourceCleared))
 					return false;
 			}
 			else
@@ -584,7 +584,7 @@ namespace NMib::NFile
 		if (_pProgress)
 			_pProgress->f_StepDown(f_GetUsedSpace(""));
 
-		bool bCompleted = gfp_CopyFiles_Recursive(_ToFS, *this, _Path, _Flags, _fShouldBackup, _pProgress, _pSourceCleared);
+		bool bCompleted = fg_CopyFiles_Recursive(_ToFS, *this, _Path, _Flags, _fShouldBackup, _pProgress, _pSourceCleared);
 
 		if (_pProgress)
 			_pProgress->f_StepUp();

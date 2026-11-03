@@ -146,7 +146,7 @@ namespace NMib::NFile
 		;
 
 	private:
-		void fpr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const;
+		void fp_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const;
 	};
 
 	struct CFileSystemInterface_Disk : public ICFileSystemInterface

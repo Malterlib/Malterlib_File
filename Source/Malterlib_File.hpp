@@ -4,7 +4,7 @@
 namespace NMib::NFile
 {
 	template <typename tf_CStr>
-	bool fs_IsPathAbsolute_Local(tf_CStr const &_Path)
+	bool fg_IsPathAbsolute_Local(tf_CStr const &_Path)
 	{
 		if (_Path.f_IsEmpty())
 			return false;
@@ -22,7 +22,7 @@ namespace NMib::NFile
 
 	// Assumes _Path uses only / deliminators.
 	template <typename tf_CStr>
-	tf_CStr fs_ExtractPathRoot(tf_CStr &_Path)
+	tf_CStr fg_ExtractPathRoot(tf_CStr &_Path)
 	{
 		if (_Path.f_IsEmpty())
 			return tf_CStr();
@@ -106,7 +106,7 @@ namespace NMib::NFile
 
 	// Assumes delimator is only /
 	template <typename tf_CStr>
-	bool fs_ComparePathRoots(tf_CStr const &_RootA, tf_CStr const &_RootB)
+	bool fg_ComparePathRoots(tf_CStr const &_RootA, tf_CStr const &_RootB)
 	{
 #ifdef DPlatformFamily_Windows
 		if (_RootA.f_CmpNoCase(_RootB) == 0)
@@ -185,7 +185,7 @@ namespace NMib::NFile
 		tf_CStr Path = _Path;
 		fg_StrReplaceChar(Path, '\\', '/');
 
-		return fs_IsPathAbsolute_Local(Path);
+		return fg_IsPathAbsolute_Local(Path);
 	}
 
 	template <typename tf_CStr>
@@ -249,10 +249,10 @@ namespace NMib::NFile
 		fg_StrReplaceChar(Path, '\\', '/');
 		fg_StrReplaceChar(Base, '\\', '/');
 
-		auto PathRoot = fs_ExtractPathRoot(Path);
-		auto BaseRoot = fs_ExtractPathRoot(Base);
+		auto PathRoot = fg_ExtractPathRoot(Path);
+		auto BaseRoot = fg_ExtractPathRoot(Base);
 
-		if (!fs_ComparePathRoots(PathRoot, BaseRoot))
+		if (!fg_ComparePathRoots(PathRoot, BaseRoot))
 			return _AbsolutePath;
 
 		tf_CStr PathSection, BaseSection;

@@ -892,7 +892,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void fgr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors)
+	void fg_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors)
 	{
 		NContainer::TCVector<CFile::CFoundFile> Files;
 		auto Attribs = CFile::fs_GetAttributes(_File);
@@ -928,7 +928,7 @@ namespace NMib::NFile
 				}
 			}
 			else if (iFile->m_Attribs & EFileAttrib_Directory)
-				fgr_DeleteFilesInDirs(iFile->m_Path, _bRemoveWriteProtection, _Errors);
+				fg_DeleteFilesInDirs(iFile->m_Path, _bRemoveWriteProtection, _Errors);
 		}
 		try
 		{
@@ -944,7 +944,7 @@ namespace NMib::NFile
 	void CFile::fs_DeleteDirectoryRecursive(NStr::CStr const &_File, bool _bRemoveWriteProtection)
 	{
 		NStr::CStr Errors;
-		fgr_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
+		fg_DeleteFilesInDirs(_File, _bRemoveWriteProtection, Errors);
 
 		if (!Errors.f_IsEmpty())
 			DMibErrorFile(Errors);
@@ -1807,7 +1807,7 @@ namespace NMib::NFile
 		NStr::CStr Prefix;
 		NStr::CStr Suffix;
 
-		Prefix = fs_ExtractPathRoot(Path);
+		Prefix = fg_ExtractPathRoot(Path);
 
 		// A path that is only its root has nothing left behind it: '/'.
 		if (!Path.f_IsEmpty() && Path[Path.f_GetLen() - 1] == '/')

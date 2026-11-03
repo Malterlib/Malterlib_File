@@ -45,8 +45,8 @@ namespace NMib::NFile
 			bool m_bScheduledTimeout = false;
 		};
 
-		void fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change);
-		void fp_SendNotifications(CNotification *_pNotification, bool _bForce);
+		void f_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change);
+		void f_SendNotifications(CNotification *_pNotification, bool _bForce);
 
 		NContainer::TCLinkedList<CNotification> m_Notifications;
 	};
@@ -86,7 +86,7 @@ namespace NMib::NFile
 
 				auto &Internal = *mp_pInternal;
 				pNotification->m_pNotifier.f_Clear();
-				Internal.fp_SendNotifications(pNotification, true);
+				Internal.f_SendNotifications(pNotification, true);
 				Internal.m_Notifications.f_Remove(*pNotification);
 				co_return {};
 			}
@@ -113,7 +113,7 @@ namespace NMib::NFile
 
 						auto &Internal = *mp_pInternal;
 
-						Internal.fp_HandleNotification(pNotification, _Change);
+						Internal.f_HandleNotification(pNotification, _Change);
 					}
 					> NConcurrency::g_DiscardResult
 				;
@@ -150,7 +150,7 @@ namespace NMib::NFile
 		co_return fg_Move(Callback);
 	}
 
-	void CFileChangeNotificationActor::CInternal::fp_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)
+	void CFileChangeNotificationActor::CInternal::f_HandleNotification(CNotification *_pNotification, CFileChangeNotification::CNotification const &_Change)
 	{
 		auto &Notification = *_pNotification;
 		auto &LastChange = *Notification.m_LastChange(_Change.m_Path, EFileChangeNotification_Undefined);
@@ -188,17 +188,17 @@ namespace NMib::NFile
 
 					_pNotification->m_bScheduledTimeout = false;
 
-					fp_SendNotifications(_pNotification, false);
+					f_SendNotifications(_pNotification, false);
 
 					co_return {};
 				}
 			;
 		}
 		else
-			fp_SendNotifications(_pNotification, false);
+			f_SendNotifications(_pNotification, false);
 	}
 
-	void CFileChangeNotificationActor::CInternal::fp_SendNotifications(CNotification *_pNotification, bool _bForce)
+	void CFileChangeNotificationActor::CInternal::f_SendNotifications(CNotification *_pNotification, bool _bForce)
 	{
 		auto &Notification = *_pNotification;
 		if (Notification.m_nOutstanding >= Notification.m_CoalesceSettings.m_nMaxOutstanding && !_bForce)
@@ -217,7 +217,7 @@ namespace NMib::NFile
 					return;
 
 				--_pNotification->m_nOutstanding;
-				fp_SendNotifications(_pNotification, false);
+				f_SendNotifications(_pNotification, false);
 			}
 		;
 

@@ -148,7 +148,7 @@ namespace NMib::NFile
 
 		void f_FindRoots();
 
-		void fr_TraceTree(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter)
+		void f_TraceTreeRecursive(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter)
 		{
 			DMibListLinkDS_Iter(CFile, m_ChildLink) Iter = _pFile->m_Children;
 
@@ -168,7 +168,7 @@ namespace NMib::NFile
 					DMibDTrace("{}" DMibNewLine, ToTrace);
 				else
 					_pReporter->f_ReportError(ToTrace);
-				fr_TraceTree(Iter, _Depth + 1, _pReporter);
+				f_TraceTreeRecursive(Iter, _Depth + 1, _pReporter);
 				++Iter;
 			}
 		}
@@ -187,14 +187,23 @@ namespace NMib::NFile
 				else
 					_pReporter->f_ReportError(ToTrace);
 
-				fr_TraceTree(Iter, 1, _pReporter);
+				f_TraceTreeRecursive(Iter, 1, _pReporter);
 
 				++Iter;
 			}
 		}
 
 		void f_CopyFile(CVirtualFS::CFileRecord &_FileRecord, CVirtualFS::CFile &_File, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream);
-		void fr_CopyTree(NStr::CStr const &_Path, CFile *_pFile, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS *_pFixDestinationFS);
+		void f_CopyTreeRecursive
+			(
+				NStr::CStr const &_Path
+				, CFile *_pFile
+				, uint64 _ClusterSize
+				, uint64 _ClusterIDsPerCluster
+				, NStream::CBinaryStream *_pStorageStream
+				, CVirtualFS *_pFixDestinationFS
+			)
+		;
 		void f_CopyTree(uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS *_pFixDestinationFS);
 
 		CFile *f_GetFile(CVirtualFS::CClusterID _Cluster)
@@ -581,7 +590,7 @@ namespace NMib::NFile
 		}
 	}
 
-	void CVirtualFS_FixFSFileTree::fr_CopyTree
+	void CVirtualFS_FixFSFileTree::f_CopyTreeRecursive
 		(
 			NStr::CStr const &_Path
 			, CFile *_pFile
@@ -639,7 +648,7 @@ namespace NMib::NFile
 			else
 				Path = FileName;
 
-			fr_CopyTree(Path, Iter, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
+			f_CopyTreeRecursive(Path, Iter, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 			++Iter;
 			mp_pReporter->f_IncreaseProgress(1);
 		}
@@ -666,7 +675,7 @@ namespace NMib::NFile
 					{
 						DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID, Iter->m_FileClusterID);
 						// This is the root
-						fr_CopyTree("", pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
+						f_CopyTreeRecursive("", pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 					}
 				}
 				else if (i == 1)
@@ -678,7 +687,7 @@ namespace NMib::NFile
 						_pFixDestinationFS->f_CreateDirectory(PathName);
 						++iCurrentRecover;
 
-						fr_CopyTree(PathName, pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
+						f_CopyTreeRecursive(PathName, pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 					}
 					else
 					{
@@ -686,7 +695,7 @@ namespace NMib::NFile
 						NStr::CStr PathName = (NStr::CStr::CFormat("Lost&Found/Recovered.{sj8,sf0}") << iCurrentRecover).f_GetStr();
 						++iCurrentRecover;
 
-						fr_CopyTree(PathName, pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
+						f_CopyTreeRecursive(PathName, pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 					}
 				}
 
@@ -1438,13 +1447,13 @@ namespace NMib::NFile
 	{
 		CCircularChecker CircularChecker;
 		bool bRemove = false;
-		ECheckFSError Ret = fr_CheckFSTree(_ClusterID, CircularChecker, bRemove, _bMap, 0, "Root");
+		ECheckFSError Ret = f_CheckFSTreeRecursive(_ClusterID, CircularChecker, bRemove, _bMap, 0, "Root");
 		if (bRemove)
 			Ret = fg_Max(Ret, ECheckFSError_NewFSFixable);
 		return Ret;
 	}
 
-	auto CVirtualFS::CCheckFSContext::fr_CheckFSTree
+	auto CVirtualFS::CCheckFSContext::f_CheckFSTreeRecursive
 		(
 			CClusterID _ClusterID
 			, CCircularChecker &_CircularChecker
@@ -1722,7 +1731,7 @@ namespace NMib::NFile
 					else
 					{
 						bool bRemove = false;
-						Ret = fg_Max(Ret, fr_CheckFSTree(ClusterID, _CircularChecker, bRemove, _bMap, Directory.m_DirectoryID, _FileName + "/" + FileName));
+						Ret = fg_Max(Ret, f_CheckFSTreeRecursive(ClusterID, _CircularChecker, bRemove, _bMap, Directory.m_DirectoryID, _FileName + "/" + FileName));
 
 						if (bRemove && mp_bFix)
 						{
@@ -2358,7 +2367,7 @@ namespace NMib::NFile
 			fp_CloseFile(pFile);
 	}
 
-	void CVirtualFS::fpr_DeleteDirectoryRecursive(NStr::CStr const &_File)
+	void CVirtualFS::fp_DeleteDirectoryRecursive(NStr::CStr const &_File)
 	{
 		uint64 Attribs = f_GetAttributes(_File);
 		if (Attribs & NFile::EFileAttrib_Directory)
@@ -2368,7 +2377,7 @@ namespace NMib::NFile
 			for (umint i = 0; i < Files.f_GetLen(); ++i)
 			{
 				NStr::CStr File = _File + "/" + Files[i];
-				fpr_DeleteDirectoryRecursive(File);
+				fp_DeleteDirectoryRecursive(File);
 			}
 		}
 		f_DeleteFile(_File);
@@ -2377,7 +2386,7 @@ namespace NMib::NFile
 	void CVirtualFS::f_DeleteDirectoryRecursive(NStr::CStr const &_File)
 	{
 		fp_CheckPath(_File);
-		fpr_DeleteDirectoryRecursive(_File);
+		fp_DeleteDirectoryRecursive(_File);
 	}
 
 	void CVirtualFS::f_RenameFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo)
