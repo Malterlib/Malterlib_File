@@ -87,12 +87,12 @@ enum EStatusOp
 	, EStatusOp_CreateDirectory = 10
 	, EStatusOp_Exec            = 11
 	, EStatusOp_CalcSize        = 12
-	, EStatusOp_SEARCH          = 13
-	, EStatusOp_SEARCH_TEXT     = 14
-	, EStatusOp_SYNC_SEARCH     = 15
-	, EStatusOp_SYNC_GET        = 16
-	, EStatusOp_SYNC_PUT        = 17
-	, EStatusOp_SYNC_DELETE     = 18
+	, EStatusOp_Search          = 13
+	, EStatusOp_SearchText      = 14
+	, EStatusOp_SyncSearch      = 15
+	, EStatusOp_SyncGet         = 16
+	, EStatusOp_SyncPut         = 17
+	, EStatusOp_SyncDelete      = 18
 };
 
 enum EIconFlag
@@ -111,13 +111,12 @@ enum EIconType
 
 // Total Commander Callbacks
 
-typedef int (__stdcall *FProgressProc)(int PluginNr, ch16 *SourceName, ch16 *TargetName, int PercentDone);
-typedef void (__stdcall *FLogProc)(int PluginNr, int MsgType, ch16 *LogString);
-typedef BOOL (__stdcall *FRequestProc)(int PluginNr, int RequestType, ch16 *CustomTitle, ch16 *CustomText, ch16 *ReturnedText, int maxlen);
+typedef int (__stdcall *FProgressProc)(int _PluginNumber, ch16 *_pSourceName, ch16 *_pTargetName, int _PercentDone);
+typedef void (__stdcall *FLogProc)(int _PluginNumber, int _MessageType, ch16 *_pLogString);
+typedef BOOL (__stdcall *FRequestProc)(int _PluginNumber, int _RequestType, ch16 *_pCustomTitle, ch16 *_pCustomText, ch16 *_pReturnedText, int _MaxLength);
 
-class CFindData
+struct CFindData
 {
-public:
 	uint32 m_FileAttributes;
 	CTime m_CreationTime;
 	CTime m_LastAccessTime;
@@ -126,213 +125,65 @@ public:
 	CStr m_FileName;
 };
 
-class CFindInstance
+struct CFindInstance
 {
-public:
-	virtual ~CFindInstance()
-	{
-	}
+	virtual ~CFindInstance();
 
 	virtual int f_GetNext(CFindData &_Data) = 0;
 };
 
-class CFileSystem
+struct CFileSystem
 {
-public:
 	CStr m_Name;
 	CStr m_FileName;
 	CVirtualFS *m_pVirtualFS;
 	NFile::TCBinaryStreamFile<> *m_pFile;
 
-	class CCompare
+	struct CCompare
 	{
-	public:
-		inline_small CStr const &operator () (CFileSystem const &_Node) const
-		{
-			return _Node.m_Name;
-		}
-
-		inline_small bool operator () (CStr const &_Left, CStr const &_Right) const
-		{
-			return fg_StrCmp(_Left, _Right) < 0;
-		}
+		inline_small CStr const &operator () (CFileSystem const &_Node) const;
+		inline_small bool operator () (CStr const &_Left, CStr const &_Right) const;
 	};
 
 	NMib::NIntrusive::TCAVLLink<> m_Link;
 
-	CFileSystem()
-	{
-		m_pVirtualFS = nullptr;
-		m_pFile = nullptr;
-	}
+	CFileSystem();
+	~CFileSystem();
 
-	~CFileSystem()
-	{
-		CloseFs();
-	}
+	void f_Feed(CBinaryStream &_Stream) const;
+	void f_Consume(CBinaryStream &_Stream);
 
-	void f_Feed(CBinaryStream &_Stream) const
-	{
-		_Stream << m_Name;
-		_Stream << m_FileName;
-	}
+	void f_CloseFs();
 
-	void f_Consume(CBinaryStream &_Stream)
+	struct CFSReporter : public CVirtualFS::CCheckReporter
 	{
-		_Stream >> m_Name;
-		_Stream >> m_FileName;
-	}
-
-	void CloseFs()
-	{
-		if (m_pVirtualFS)
-			delete m_pVirtualFS;
-		m_pVirtualFS = nullptr;
-
-		if (m_pFile)
-			delete m_pFile;
-		m_pFile = nullptr;
-	}
-
-	class CFSReporter : public CVirtualFS::CCheckReporter
-	{
-	public:
-		virtual void f_ReportError(NStr::CStr const &_Error)
-		{
-			DDTrace("{}\n", _Error);
-		}
+		virtual void f_ReportError(NStr::CStr const &_Error);
 	};
 
-	CVirtualFS::ECheckFSError f_CheckFSFixNewFS()
-	{
-		CloseFs();
+	CVirtualFS::ECheckFSError f_CheckFSFixNewFS();
+	CVirtualFS::ECheckFSError f_CheckFS();
+	CVirtualFS::ECheckFSError f_CheckFSFix();
 
-		if (!NFile::CFile::fs_FileExists(m_FileName))
-			return CVirtualFS::ECheckFSError_NotFixable;
-
-		m_pFile = DNew TCBinaryStreamFile<>;
-		m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
-		CVirtualFS::ECheckFSError Ret;
-
-		{
-			NFile::TCBinaryStreamFile<> NewFile;
-			NewFile.f_Open(m_FileName + ".fixfstmp", EFileOpen_Write | EFileOpen_Read);
-			CVirtualFS NewFS;
-			NewFS.f_Create(&NewFile, 16384, 1024 * 1024, 1024 * 1024);
-
-			CFSReporter Reporter;
-
-			Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, false, &NewFS);
-		}
-
-		CloseFs();
-
-		if (Ret == CVirtualFS::ECheckFSError_None)
-		{
-			NFile::CFile::fs_DeleteFile(m_FileName);
-			NFile::CFile::fs_RenameFile(m_FileName + ".fixfstmp", m_FileName);
-		}
-
-		return Ret;
-	}
-
-	CVirtualFS::ECheckFSError f_CheckFS()
-	{
-		CloseFs();
-
-		if (!NFile::CFile::fs_FileExists(m_FileName))
-			return CVirtualFS::ECheckFSError_NotFixable;
-
-		m_pFile = DNew TCBinaryStreamFile<>;
-		m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
-
-		CFSReporter Reporter;
-
-		CVirtualFS::ECheckFSError Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, false, nullptr);
-
-		CloseFs();
-		return Ret;
-	}
-
-	CVirtualFS::ECheckFSError f_CheckFSFix()
-	{
-		CloseFs();
-
-		if (!NFile::CFile::fs_FileExists(m_FileName))
-			return CVirtualFS::ECheckFSError_NotFixable;
-
-		m_pFile = DNew TCBinaryStreamFile<>;
-		m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
-
-		CFSReporter Reporter;
-
-		CVirtualFS::ECheckFSError Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, true, nullptr);
-
-		CloseFs();
-		return Ret;
-	}
-
-	bool OpenFs()
-	{
-		if (m_pVirtualFS)
-			return true;
-		if (!NFile::CFile::fs_FileExists(m_FileName))
-			return false;
-
-		try
-		{
-			m_pFile = DNew TCBinaryStreamFile<>;
-			m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
-			m_pVirtualFS = DNew CVirtualFS();
-			m_pVirtualFS->f_Open(m_pFile);
-		}
-		catch (CException)
-		{
-			CloseFs();
-			return false;
-		}
-		return true;
-	}
+	bool f_OpenFs();
 };
 
-class CVfsWfx
+struct CVfsWfx
 {
-public:
-	NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare> m_FileSystems;
-
-	void fp_UnloadAll()
-	{
-		CFileSysIter Iter = m_FileSystems;
-
-		while (Iter)
-		{
-			Iter->CloseFs();
-			++Iter;
-		}
-	}
-
-public:
 	typedef NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare>::CIterator CFileSysIter;
 
-	FProgressProc m_ProgressProc;
-	FLogProc m_LogProc;
-	FRequestProc m_RequestProc;
+	NIntrusive::TCAVLTree<&CFileSystem::m_Link, CFileSystem::CCompare> m_FileSystems;
+
+	FProgressProc m_fProgressProc;
+	FLogProc m_fLogProc;
+	FRequestProc m_fRequestProc;
 	aint m_PluginNumber;
 
 	CStr m_IniPath;
 
-	CVfsWfx()
-	{
-	}
+	CVfsWfx();
+	~CVfsWfx();
 
-	~CVfsWfx()
-	{
-		m_FileSystems.f_DeleteAll();
-	}
-
-	CFileSystem *fp_GetFS(CStr _Path, CStr &_FsPath);
-
-	aint f_Init(FProgressProc _ProgressProc, FLogProc _LogProc, FRequestProc _RequestProc, aint _PluginNumber);
+	aint f_Init(FProgressProc _fProgressProc, FLogProc _fLogProc, FRequestProc _fRequestProc, aint _PluginNumber);
 	void f_SetIniPath(CStr _Path);
 	void f_SaveSettings();
 	void f_LoadSettings();
@@ -343,14 +194,20 @@ public:
 	int f_CreateDirectory(ch16 const *_pDirectory);
 	int f_Execute(void *_pWinMain, CStr &_RemoteName, CStr const &_Verb);
 	int f_RenMoveFile(ch16 const *_pOldName, ch16 const *_pNewName, bool _bMove, bool _bOverWrite);
-	int f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _CopyFlags, RemoteInfoStruct *_RemoteInfo);
+	int f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _CopyFlags, RemoteInfoStruct *_pRemoteInfo);
 	int f_PutFile(ch16 const *_pLocalName, ch16 const *_pRemoteName, int _CopyFlags);
 	int f_DeleteFile(ch16 const *_pRemoteName);
 	int f_SetAttribs(ch16 const *_pRemoteName, uint32 _Attrib);
 	int f_SetTimeCreation(ch16 const *_pRemoteName, CTime _Time);
 	int f_SetTimeAccess(ch16 const *_pRemoteName, CTime _Time);
 	int f_SetTimeWrite(ch16 const *_pRemoteName, CTime _Time);
+
+private:
+	void fp_UnloadAll();
+	CFileSystem *fp_GetFS(CStr _Path, CStr &_FsPath);
 };
 
 extern CVfsWfx g_VfsWfx;
+
+#include "VfsWfx_Handler.hpp"
 

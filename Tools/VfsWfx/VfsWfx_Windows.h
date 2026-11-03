@@ -7,9 +7,8 @@
 
 void fg_PropertiesWindow();
 
-class CEditFileSystemClass
+struct CEditFileSystemClass
 {
-public:
 	CStr m_Heading;
 
 	CStr m_VolumeName;

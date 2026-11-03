@@ -8,21 +8,164 @@
 
 #define DMibAllowCodeStandardViolations 1
 
-uint32 MalterlibFileAttribToWin32FileAttrib(uint32 _Attrib);
-uint32 Win32FileAttribToMalterlibFileAttrib(uint32 _Attrib);
-FILETIME MalterlibTimeToFileTime(CTime _Time);
-CTime FileTimeToMalterlibTime(FILETIME _Time);
+uint32 fg_MalterlibFileAttribToWin32FileAttrib(uint32 _Attrib);
+uint32 fg_Win32FileAttribToMalterlibFileAttrib(uint32 _Attrib);
+FILETIME fg_MalterlibTimeToFileTime(CTime _Time);
+CTime fg_FileTimeToMalterlibTime(FILETIME _Time);
 
 static CStr fg_StrFromWindows(CWStr const &_Str)
 {
 	return _Str;
 }
 
-aint CVfsWfx::f_Init(FProgressProc _ProgressProc, FLogProc _LogProc, FRequestProc _RequestProc, aint _PluginNumber)
+CFindInstance::~CFindInstance()
 {
-	m_ProgressProc = _ProgressProc;
-	m_LogProc = _LogProc;
-	m_RequestProc = _RequestProc;
+}
+
+CFileSystem::CFileSystem()
+{
+	m_pVirtualFS = nullptr;
+	m_pFile = nullptr;
+}
+
+CFileSystem::~CFileSystem()
+{
+	f_CloseFs();
+}
+
+void CFileSystem::f_Feed(CBinaryStream &_Stream) const
+{
+	_Stream << m_Name;
+	_Stream << m_FileName;
+}
+
+void CFileSystem::f_Consume(CBinaryStream &_Stream)
+{
+	_Stream >> m_Name;
+	_Stream >> m_FileName;
+}
+
+void CFileSystem::f_CloseFs()
+{
+	if (m_pVirtualFS)
+		delete m_pVirtualFS;
+	m_pVirtualFS = nullptr;
+
+	if (m_pFile)
+		delete m_pFile;
+	m_pFile = nullptr;
+}
+
+void CFileSystem::CFSReporter::f_ReportError(NStr::CStr const &_Error)
+{
+	DDTrace("{}\n", _Error);
+}
+
+CVirtualFS::ECheckFSError CFileSystem::f_CheckFSFixNewFS()
+{
+	f_CloseFs();
+
+	if (!NFile::CFile::fs_FileExists(m_FileName))
+		return CVirtualFS::ECheckFSError_NotFixable;
+
+	m_pFile = DNew TCBinaryStreamFile<>;
+	m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
+	CVirtualFS::ECheckFSError Ret;
+
+	{
+		NFile::TCBinaryStreamFile<> NewFile;
+		NewFile.f_Open(m_FileName + ".fixfstmp", EFileOpen_Write | EFileOpen_Read);
+		CVirtualFS NewFS;
+		NewFS.f_Create(&NewFile, 16384, 1024 * 1024, 1024 * 1024);
+
+		CFSReporter Reporter;
+
+		Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, false, &NewFS);
+	}
+
+	f_CloseFs();
+
+	if (Ret == CVirtualFS::ECheckFSError_None)
+	{
+		NFile::CFile::fs_DeleteFile(m_FileName);
+		NFile::CFile::fs_RenameFile(m_FileName + ".fixfstmp", m_FileName);
+	}
+
+	return Ret;
+}
+
+CVirtualFS::ECheckFSError CFileSystem::f_CheckFS()
+{
+	f_CloseFs();
+
+	if (!NFile::CFile::fs_FileExists(m_FileName))
+		return CVirtualFS::ECheckFSError_NotFixable;
+
+	m_pFile = DNew TCBinaryStreamFile<>;
+	m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
+
+	CFSReporter Reporter;
+
+	CVirtualFS::ECheckFSError Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, false, nullptr);
+
+	f_CloseFs();
+	return Ret;
+}
+
+CVirtualFS::ECheckFSError CFileSystem::f_CheckFSFix()
+{
+	f_CloseFs();
+
+	if (!NFile::CFile::fs_FileExists(m_FileName))
+		return CVirtualFS::ECheckFSError_NotFixable;
+
+	m_pFile = DNew TCBinaryStreamFile<>;
+	m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
+
+	CFSReporter Reporter;
+
+	CVirtualFS::ECheckFSError Ret = CVirtualFS::fs_CheckFS(m_pFile, &Reporter, true, nullptr);
+
+	f_CloseFs();
+	return Ret;
+}
+
+bool CFileSystem::f_OpenFs()
+{
+	if (m_pVirtualFS)
+		return true;
+	if (!NFile::CFile::fs_FileExists(m_FileName))
+		return false;
+
+	try
+	{
+		m_pFile = DNew TCBinaryStreamFile<>;
+		m_pFile->f_Open(m_FileName, EFileOpen_DontTruncate | EFileOpen_Write | EFileOpen_Read);
+		m_pVirtualFS = DNew CVirtualFS();
+		m_pVirtualFS->f_Open(m_pFile);
+	}
+	catch (CException)
+	{
+		f_CloseFs();
+		return false;
+	}
+	return true;
+}
+
+CVfsWfx::CVfsWfx()
+{
+}
+
+CVfsWfx::~CVfsWfx()
+{
+	m_FileSystems.f_DeleteAll();
+}
+
+aint CVfsWfx::f_Init(FProgressProc _fProgressProc, FLogProc _fLogProc, FRequestProc _fRequestProc, aint _PluginNumber)
+{
+	m_fProgressProc = _fProgressProc;
+	m_fLogProc = _fLogProc;
+	m_fRequestProc = _fRequestProc;
 	m_PluginNumber = _PluginNumber;
 
 	return 0;
@@ -54,21 +197,15 @@ void CVfsWfx::f_LoadSettings()
 	}
 }
 
-class CFindRoot : public CFindInstance
+struct CFindRoot : public CFindInstance
 {
-	umint m_iCurrent;
-	TCVector<CStr> m_lStatic;
-
-	CVfsWfx::CFileSysIter m_FileSysIter;
-
-public:
 	CFindRoot()
 	{
-		m_iCurrent = 0;
-		m_lStatic.f_SetLen(3);
-		m_lStatic[0] = "Add file system";
-		m_lStatic[1] = "Create file system";
-		m_lStatic[2] = "Unload all file systems";
+		mp_iCurrent = 0;
+		mp_StaticEntries.f_SetLen(3);
+		mp_StaticEntries[0] = "Add file system";
+		mp_StaticEntries[1] = "Create file system";
+		mp_StaticEntries[2] = "Unload all file systems";
 	}
 
 	int f_GetNext(CFindData &_Data)
@@ -77,55 +214,54 @@ public:
 		_Data.m_FileSize = 0;
 		_Data.m_FileAttributes = 0;
 
-		if (m_iCurrent < m_lStatic.f_GetLen())
+		if (mp_iCurrent < mp_StaticEntries.f_GetLen())
 		{
-			_Data.m_FileName = m_lStatic[m_iCurrent];
-			++m_iCurrent;
+			_Data.m_FileName = mp_StaticEntries[mp_iCurrent];
+			++mp_iCurrent;
 			return 1;
 		}
 		else
 		{
-			if (m_iCurrent == m_lStatic.f_GetLen())
-				m_FileSysIter = g_VfsWfx.m_FileSystems;
+			if (mp_iCurrent == mp_StaticEntries.f_GetLen())
+				mp_FileSysIter = g_VfsWfx.m_FileSystems;
 
-			++m_iCurrent;
+			++mp_iCurrent;
 
-			if (m_FileSysIter)
+			if (mp_FileSysIter)
 			{
 				_Data.m_FileAttributes = EFileAttrib_Directory;
-				_Data.m_FileName = m_FileSysIter->m_Name;
-				++m_FileSysIter;
+				_Data.m_FileName = mp_FileSysIter->m_Name;
+				++mp_FileSysIter;
 				return 1;
 			}
 
 			return 0;
 		}
 	}
+
+private:
+	umint mp_iCurrent;
+	TCVector<CStr> mp_StaticEntries;
+
+	CVfsWfx::CFileSysIter mp_FileSysIter;
 };
 
-class CFindFileSystem : public CFindInstance
+struct CFindFileSystem : public CFindInstance
 {
-	umint m_iCurrent;
-
-	CFileSystem *m_pFileSystem;
-	TCVector<CStr> m_Files;
-	CStr m_Path;
-
-public:
 	CFindFileSystem(CFileSystem *_pFileSystem, CStr _Path)
 	{
-		m_Path = _Path;
+		mp_Path = _Path;
 
-		if (m_Path != "")
-			m_Path = m_Path + "/";
+		if (mp_Path != "")
+			mp_Path = mp_Path + "/";
 
-		m_pFileSystem = _pFileSystem;
-		m_iCurrent = 0;
-		if (m_pFileSystem->OpenFs())
+		mp_pFileSystem = _pFileSystem;
+		mp_iCurrent = 0;
+		if (mp_pFileSystem->f_OpenFs())
 		{
 			try
 			{
-				m_pFileSystem->m_pVirtualFS->f_EnumFiles(_Path, m_Files);
+				mp_pFileSystem->m_pVirtualFS->f_EnumFiles(_Path, mp_Files);
 			}
 			catch (CException)
 			{
@@ -135,21 +271,28 @@ public:
 
 	int f_GetNext(CFindData &_Data)
 	{
-		if (m_iCurrent < m_Files.f_GetLen())
+		if (mp_iCurrent < mp_Files.f_GetLen())
 		{
-			_Data.m_FileAttributes = m_pFileSystem->m_pVirtualFS->f_GetAttributes(m_Path + m_Files[m_iCurrent]);
-			_Data.m_LastWriteTime = m_pFileSystem->m_pVirtualFS->f_GetWriteTime(m_Path + m_Files[m_iCurrent]);
-			_Data.m_LastAccessTime = m_pFileSystem->m_pVirtualFS->f_GetAccessTime(m_Path + m_Files[m_iCurrent]);
-			_Data.m_CreationTime = m_pFileSystem->m_pVirtualFS->f_GetCreationTime(m_Path + m_Files[m_iCurrent]);
-			_Data.m_FileSize = m_pFileSystem->m_pVirtualFS->f_GetFileSize(m_Path + m_Files[m_iCurrent]);
-			_Data.m_FileName = m_Files[m_iCurrent];
-			++m_iCurrent;
+			_Data.m_FileAttributes = mp_pFileSystem->m_pVirtualFS->f_GetAttributes(mp_Path + mp_Files[mp_iCurrent]);
+			_Data.m_LastWriteTime = mp_pFileSystem->m_pVirtualFS->f_GetWriteTime(mp_Path + mp_Files[mp_iCurrent]);
+			_Data.m_LastAccessTime = mp_pFileSystem->m_pVirtualFS->f_GetAccessTime(mp_Path + mp_Files[mp_iCurrent]);
+			_Data.m_CreationTime = mp_pFileSystem->m_pVirtualFS->f_GetCreationTime(mp_Path + mp_Files[mp_iCurrent]);
+			_Data.m_FileSize = mp_pFileSystem->m_pVirtualFS->f_GetFileSize(mp_Path + mp_Files[mp_iCurrent]);
+			_Data.m_FileName = mp_Files[mp_iCurrent];
+			++mp_iCurrent;
 
 			return 1;
 		}
 
 		return 0;
 	}
+
+private:
+	umint mp_iCurrent;
+
+	CFileSystem *mp_pFileSystem;
+	TCVector<CStr> mp_Files;
+	CStr mp_Path;
 };
 
 CFileSystem *CVfsWfx::fp_GetFS(CStr _Path, CStr &_FsPath)
@@ -177,6 +320,17 @@ CFileSystem *CVfsWfx::fp_GetFS(CStr _Path, CStr &_FsPath)
 		return pFileSys;
 	}
 	return nullptr;
+}
+
+void CVfsWfx::fp_UnloadAll()
+{
+	CFileSysIter Iter = m_FileSystems;
+
+	while (Iter)
+	{
+		Iter->f_CloseFs();
+		++Iter;
+	}
 }
 
 CFindInstance *CVfsWfx::f_FindFirstFile(ch16 const *_pPath)
@@ -216,7 +370,7 @@ int CVfsWfx::f_CreateDirectory(ch16 const *_pDirectory)
 	{
 		try
 		{
-			pFileSys->OpenFs();
+			pFileSys->f_OpenFs();
 			pFileSys->m_pVirtualFS->f_CreateDirectory(FsPath);
 			return 1;
 		}
@@ -466,7 +620,7 @@ int CVfsWfx::f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _C
 	{
 		try
 		{
-			pFileSys->OpenFs();
+			pFileSys->f_OpenFs();
 			{
 				NFile::CFile LocalFile;
 				LocalFile.f_Open(fg_StrFromWindows(_pLocalName), EFileOpen_Write | EFileOpen_NoLocalCache | EFileOpen_ShareAll);
@@ -474,28 +628,25 @@ int CVfsWfx::f_GetFile(ch16 const *_pRemoteName, ch16 const *_pLocalName, int _C
 				CVirtualFSFile RemoteFile;
 				pFileSys->m_pVirtualFS->f_OpenFile(RemoteFile, FsPath, EFileOpen_Read);
 
-				enum
-				{
-					EBufferSize = 65536
-				};
+				constexpr umint c_BufferSize = 65536;
 
-				uint8 Buffer[EBufferSize];
+				uint8 Buffer[c_BufferSize];
 				uint64 Size = RemoteFile.f_GetLength();
 				uint64 Progress = 0;
 				uint64 ToCopy = Size;
 
 				while (ToCopy)
 				{
-					uint64 ThisTime = fg_Min(ToCopy, (uint64)EBufferSize);
+					uint64 ThisTime = fg_Min(ToCopy, (uint64)c_BufferSize);
 					RemoteFile.f_Read(Buffer, ThisTime);
 					LocalFile.f_Write(Buffer, ThisTime);
 					ToCopy -= ThisTime;
 					Progress += ThisTime;
-					m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
+					m_fProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
 				}
 
-				_pRemoteInfo->Attr = MalterlibFileAttribToWin32FileAttrib(pFileSys->m_pVirtualFS->f_GetAttributes(FsPath));
-				_pRemoteInfo->LastWriteTime = MalterlibTimeToFileTime(pFileSys->m_pVirtualFS->f_GetWriteTime(FsPath));
+				_pRemoteInfo->Attr = fg_MalterlibFileAttribToWin32FileAttrib(pFileSys->m_pVirtualFS->f_GetAttributes(FsPath));
+				_pRemoteInfo->LastWriteTime = fg_MalterlibTimeToFileTime(pFileSys->m_pVirtualFS->f_GetWriteTime(FsPath));
 				_pRemoteInfo->SizeHigh = Size >> 32;
 				_pRemoteInfo->SizeLow = Size & 0xffffffffui64;
 				LocalFile.f_SetWriteTime(pFileSys->m_pVirtualFS->f_GetWriteTime(FsPath));
@@ -525,7 +676,7 @@ int CVfsWfx::f_PutFile(ch16 const *_pLocalName, ch16 const *_pRemoteName, int _C
 	{
 		try
 		{
-			pFileSys->OpenFs();
+			pFileSys->f_OpenFs();
 			{
 				if (!(_CopyFlags & FS_COPYFLAGS_OVERWRITE))
 				{
@@ -540,24 +691,21 @@ int CVfsWfx::f_PutFile(ch16 const *_pLocalName, ch16 const *_pRemoteName, int _C
 					CVirtualFSFile RemoteFile;
 					pFileSys->m_pVirtualFS->f_OpenFile(RemoteFile, FsPath, EFileOpen_Write);
 
-					enum
-					{
-						EBufferSize = 65536
-					};
+					constexpr umint c_BufferSize = 65536;
 
-					uint8 Buffer[EBufferSize];
+					uint8 Buffer[c_BufferSize];
 					uint64 Size = LocalFile.f_GetLength();
 					uint64 Progress = 0;
 					uint64 ToCopy = Size;
 
 					while (ToCopy)
 					{
-						uint64 ThisTime = fg_Min(ToCopy, (uint64)EBufferSize);
+						uint64 ThisTime = fg_Min(ToCopy, (uint64)c_BufferSize);
 						LocalFile.f_Read(Buffer, ThisTime);
 						RemoteFile.f_Write(Buffer, ThisTime);
 						ToCopy -= ThisTime;
 						Progress += ThisTime;
-						m_ProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
+						m_fProgressProc(m_PluginNumber, (ch16 *)_pRemoteName, (ch16 *)_pLocalName, (Progress * 100) / Size);
 					}
 				}
 				pFileSys->m_pVirtualFS->f_SetWriteTime(FsPath, LocalFile.f_GetWriteTime());
@@ -587,7 +735,7 @@ int CVfsWfx::f_DeleteFile(ch16 const *_pRemoteName)
 	{
 		try
 		{
-			pFileSys->OpenFs();
+			pFileSys->f_OpenFs();
 			{
 				pFileSys->m_pVirtualFS->f_DeleteFile(FsPath);
 			}

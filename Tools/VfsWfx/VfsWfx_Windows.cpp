@@ -18,118 +18,120 @@
 #include "windows.h"
 #include "Proj/Msvc/resource.h"
 
-HINSTANCE g_Instance = nullptr;
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+HINSTANCE g_pInstance = nullptr;
+
+// NOLINTNEXTLINE(malterlib-function-naming): the entry point that Windows calls in a DLL
+BOOL APIENTRY DllMain(HANDLE _pModule, DWORD _Reason, LPVOID _pReserved)
 {
-	if (ul_reason_for_call == DLL_PROCESS_ATTACH)
-		g_Instance = (HINSTANCE)hModule;
+	if (_Reason == DLL_PROCESS_ATTACH)
+		g_pInstance = (HINSTANCE)_pModule;
 	return TRUE;
 }
 
-INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK fg_CreateFileSystemProc(HWND _pDialog, UINT _Message, WPARAM _WParam, LPARAM _LParam)
 {
-	CEditFileSystemClass *pThis = (CEditFileSystemClass *)(umint)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
-	switch (uMsg)
+	CEditFileSystemClass *pThis = (CEditFileSystemClass *)(umint)GetWindowLongPtr(_pDialog, GWLP_USERDATA);
+	switch (_Message)
 	{
 	case WM_SYSCOMMAND:
 		{
-			switch (wParam)
+			switch (_WParam)
 			{
 			case SC_CLOSE:
-				EndDialog(hwndDlg, 0);
+				EndDialog(_pDialog, 0);
 				return 1;
 			};
 		}
 		break;
 	case WM_INITDIALOG:
 		{
-			SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (umint)lParam);
-			pThis = (CEditFileSystemClass *)(umint)lParam;
+			SetWindowLongPtr(_pDialog, GWLP_USERDATA, (umint)_LParam);
+			pThis = (CEditFileSystemClass *)(umint)_LParam;
 			POINT Pnt;
 			GetCursorPos(&Pnt);
-			HMONITOR hMon = MonitorFromPoint(Pnt, MONITOR_DEFAULTTONEAREST);
+			HMONITOR pMonitor = MonitorFromPoint(Pnt, MONITOR_DEFAULTTONEAREST);
 			MONITORINFO MonInfo;
 			fg_MemClear(MonInfo);
 			MonInfo.cbSize = sizeof(MonInfo);
-			GetMonitorInfo(hMon, &MonInfo);
+			GetMonitorInfo(pMonitor, &MonInfo);
 
 			RECT Rect;
-			GetWindowRect(hwndDlg, &Rect);
+			GetWindowRect(_pDialog, &Rect);
 
 			int Width = Rect.right - Rect.left;
 			int Height = Rect.bottom - Rect.top;
 			int MonWidth = MonInfo.rcWork.right - MonInfo.rcWork.left;
 			int MonHeight = MonInfo.rcWork.bottom - MonInfo.rcWork.top;
 
-			SetWindowTextA(hwndDlg, pThis->m_Heading);
+			SetWindowTextA(_pDialog, pThis->m_Heading);
 
-			HWND Temp = GetDlgItem(hwndDlg, IDC_EditFileName);
-			SetWindowTextA(Temp, pThis->m_FilePath);
-			Temp = GetDlgItem(hwndDlg, IDC_EditVolumeName);
-			SetWindowTextA(Temp, pThis->m_VolumeName);
-			Temp = GetDlgItem(hwndDlg, IDC_EditClusterSize);
-			SetWindowTextA(Temp, CStr::fs_ToStr(fg_Abs(pThis->m_ClusterSize)));
+			HWND pTemp = GetDlgItem(_pDialog, IDC_EditFileName);
+			SetWindowTextA(pTemp, pThis->m_FilePath);
+			pTemp = GetDlgItem(_pDialog, IDC_EditVolumeName);
+			SetWindowTextA(pTemp, pThis->m_VolumeName);
+			pTemp = GetDlgItem(_pDialog, IDC_EditClusterSize);
+			SetWindowTextA(pTemp, CStr::fs_ToStr(fg_Abs(pThis->m_ClusterSize)));
 			if (pThis->m_ClusterSize < 0)
-				EnableWindow(Temp, false);
-			Temp = GetDlgItem(hwndDlg, IDC_EditInitialSize);
-			SetWindowTextA(Temp, CStr::fs_ToStr(fg_Abs(pThis->m_InitialSize)));
+				EnableWindow(pTemp, false);
+			pTemp = GetDlgItem(_pDialog, IDC_EditInitialSize);
+			SetWindowTextA(pTemp, CStr::fs_ToStr(fg_Abs(pThis->m_InitialSize)));
 			if (pThis->m_InitialSize < 0)
-				EnableWindow(Temp, false);
-			Temp = GetDlgItem(hwndDlg, IDC_EditGrowSize);
-			SetWindowTextA(Temp, CStr::fs_ToStr(fg_Abs(pThis->m_GrowSize)));
+				EnableWindow(pTemp, false);
+			pTemp = GetDlgItem(_pDialog, IDC_EditGrowSize);
+			SetWindowTextA(pTemp, CStr::fs_ToStr(fg_Abs(pThis->m_GrowSize)));
 			if (pThis->m_GrowSize < 0)
-				EnableWindow(Temp, false);
+				EnableWindow(pTemp, false);
 
-			SetWindowPos(hwndDlg, nullptr, MonInfo.rcWork.left + MonWidth / 2 - Width / 2, MonInfo.rcWork.top + MonHeight / 2 - Height / 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(_pDialog, nullptr, MonInfo.rcWork.left + MonWidth / 2 - Width / 2, MonInfo.rcWork.top + MonHeight / 2 - Height / 2, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 			return 1;
 		}
 		break;
 	case WM_COMMAND:
 		{
-			int Control = LOWORD(wParam);
-			int Message = HIWORD(wParam);
+			int Control = LOWORD(_WParam);
+			int Message = HIWORD(_WParam);
 			// HWND Window = (HWND)lParam;
 			if (Message == BN_CLICKED)
 			{
 				if (Control == IDC_CHECKFS)
 				{
-					EndDialog(hwndDlg, 2);
+					EndDialog(_pDialog, 2);
 					return 1;
 				}
 				else if (Control == IDC_ButtonCancel)
 				{
-					EndDialog(hwndDlg, 0);
+					EndDialog(_pDialog, 0);
 					return 1;
 				}
 				else if (Control == IDC_ButtonOk)
 				{
 					CStr TempStr;
-					HWND Temp = GetDlgItem(hwndDlg, IDC_EditFileName);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					HWND pTemp = GetDlgItem(_pDialog, IDC_EditFileName);
+					GetWindowTextA(pTemp, TempStr.f_GetStr(1024), 1024);
 					pThis->m_FilePath = TempStr;
-					Temp = GetDlgItem(hwndDlg, IDC_EditVolumeName);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pTemp = GetDlgItem(_pDialog, IDC_EditVolumeName);
+					GetWindowTextA(pTemp, TempStr.f_GetStr(1024), 1024);
 					pThis->m_VolumeName = TempStr;
-					Temp = GetDlgItem(hwndDlg, IDC_EditClusterSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pTemp = GetDlgItem(_pDialog, IDC_EditClusterSize);
+					GetWindowTextA(pTemp, TempStr.f_GetStr(1024), 1024);
 					pThis->m_ClusterSize = fg_StrToInt(TempStr.f_GetStr(), 16384);
-					Temp = GetDlgItem(hwndDlg, IDC_EditInitialSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pTemp = GetDlgItem(_pDialog, IDC_EditInitialSize);
+					GetWindowTextA(pTemp, TempStr.f_GetStr(1024), 1024);
 					pThis->m_InitialSize = fg_StrToInt(TempStr.f_GetStr(), 1024 * 1024);
-					Temp = GetDlgItem(hwndDlg, IDC_EditGrowSize);
-					GetWindowTextA(Temp, TempStr.f_GetStr(1024), 1024);
+					pTemp = GetDlgItem(_pDialog, IDC_EditGrowSize);
+					GetWindowTextA(pTemp, TempStr.f_GetStr(1024), 1024);
 					pThis->m_GrowSize = fg_StrToInt(TempStr.f_GetStr(), 1024 * 1024);
 					if (!pThis->m_FilePath)
 					{
-						MessageBoxA(hwndDlg, "You have to choose the file where you\nwant the file system to be stored.", "Error", MB_OK | MB_ICONERROR);
+						MessageBoxA(_pDialog, "You have to choose the file where you\nwant the file system to be stored.", "Error", MB_OK | MB_ICONERROR);
 						return 1;
 					}
 					if (!pThis->m_VolumeName)
 					{
-						MessageBoxA(hwndDlg, "You have to name the volumed.", "Error", MB_OK | MB_ICONERROR);
+						MessageBoxA(_pDialog, "You have to name the volumed.", "Error", MB_OK | MB_ICONERROR);
 						return 1;
 					}
-					EndDialog(hwndDlg, 1);
+					EndDialog(_pDialog, 1);
 					return 1;
 				}
 				else if (Control == IDC_ButtonBrowse)
@@ -141,13 +143,13 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 					OpenFileName.lpstrFile = FileName.f_GetStr(1024);
 					OpenFileName.nMaxFile = 1024;
 					OpenFileName.Flags = OFN_DONTADDTORECENT | (pThis->m_bCreateFile ? OFN_OVERWRITEPROMPT : 0);
-					OpenFileName.hwndOwner = hwndDlg;
+					OpenFileName.hwndOwner = _pDialog;
 
 					bool bRet = GetSaveFileNameA(&OpenFileName) != 0;
 					if (bRet)
 					{
-						HWND Temp = GetDlgItem(hwndDlg, IDC_EditFileName);
-						SetWindowTextA(Temp, FileName);
+						HWND pTemp = GetDlgItem(_pDialog, IDC_EditFileName);
+						SetWindowTextA(pTemp, FileName);
 					}
 				}
 			}
@@ -160,7 +162,7 @@ INT_PTR CALLBACK CreateFileSystemProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LP
 
 aint fg_EditFileSystem(CEditFileSystemClass &_Params)
 {
-	int bRet = DialogBoxParamA(g_Instance, MAKEINTRESOURCEA(IDD_EDITFS), (HWND)_Params.m_pParentWindow, CreateFileSystemProc, (LPARAM)&_Params);
+	int bRet = DialogBoxParamA(g_pInstance, MAKEINTRESOURCEA(IDD_EDITFS), (HWND)_Params.m_pParentWindow, fg_CreateFileSystemProc, (LPARAM)&_Params);
 
 	return bRet;
 }
