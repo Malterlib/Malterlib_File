@@ -105,14 +105,14 @@ namespace NMib::NFile
 
 			CFile *f_GetFileByName(NStr::CStr const &_Name)
 			{
-				DMibListLinkDS_Iter(CFile, m_ChildLink) Iter = m_Children;
+				DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = m_Children;
 
-				while (Iter)
+				while (iChild)
 				{
-					if (Iter->m_FileName == _Name)
-						return Iter;
+					if (iChild->m_FileName == _Name)
+						return iChild;
 
-					++Iter;
+					++iChild;
 				}
 				return nullptr;
 			}
@@ -150,46 +150,50 @@ namespace NMib::NFile
 
 		void f_TraceTreeRecursive(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter)
 		{
-			DMibListLinkDS_Iter(CFile, m_ChildLink) Iter = _pFile->m_Children;
+			DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = _pFile->m_Children;
 
-			while (Iter)
+			while (iChild)
 			{
 				NStr::CStr ToTrace
 					= NStr::CStr::CFormat("{sj*6}{}: Dir: {} Cluster: {}    Parent: {}     FileSize: {}")
 					<< ""
-					<< NStr::CStr(Iter->m_FileName)
-					<< Iter->m_DirectoryID
-					<< Iter->m_FileClusterID
-					<< Iter->m_ParentID
-					<< Iter->m_FileSize
+					<< NStr::CStr(iChild->m_FileName)
+					<< iChild->m_DirectoryID
+					<< iChild->m_FileClusterID
+					<< iChild->m_ParentID
+					<< iChild->m_FileSize
 					<< _Depth * 3
 				;
 				if (1)
 					DMibDTrace("{}" DMibNewLine, ToTrace);
 				else
 					_pReporter->f_ReportError(ToTrace);
-				f_TraceTreeRecursive(Iter, _Depth + 1, _pReporter);
-				++Iter;
+				f_TraceTreeRecursive(iChild, _Depth + 1, _pReporter);
+				++iChild;
 			}
 		}
 
 		void f_TraceTree(CVirtualFS::CCheckReporter *_pReporter)
 		{
-			DMibListLinkDS_Iter(CFile, m_RootLink) Iter = m_Roots;
+			DMibListLinkDS_Iter(CFile, m_RootLink) iRoot = m_Roots;
 
-			while (Iter)
+			while (iRoot)
 			{
 				NStr::CStr ToTrace
-					= NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}") << Iter->m_DirectoryID << Iter->m_FileClusterID << Iter->m_ParentID << Iter->m_FileSize
+					= NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}")
+					<< iRoot->m_DirectoryID
+					<< iRoot->m_FileClusterID
+					<< iRoot->m_ParentID
+					<< iRoot->m_FileSize
 				;
 				if (1)
 					DMibDTrace("{}" DMibNewLine, ToTrace);
 				else
 					_pReporter->f_ReportError(ToTrace);
 
-				f_TraceTreeRecursive(Iter, 1, _pReporter);
+				f_TraceTreeRecursive(iRoot, 1, _pReporter);
 
-				++Iter;
+				++iRoot;
 			}
 		}
 
@@ -443,26 +447,26 @@ namespace NMib::NFile
 	void CVirtualFS_FixFSFileTree::f_FindRoots()
 	{
 		// Start by removing invalid entries so they are roots
-		auto Iter = m_FileClusters.f_GetIterator();
+		auto iFile = m_FileClusters.f_GetIterator();
 
-		while (Iter)
+		while (iFile)
 		{
-			CFile *pIter = Iter;
+			CFile *pIter = iFile;
 			if (pIter->m_FileName.f_IsEmpty())
 				pIter->f_SetParent(nullptr);
-			++Iter;
+			++iFile;
 		}
 
 		// Find roots
-		Iter = m_FileClusters;
+		iFile = m_FileClusters;
 
-		while (Iter)
+		while (iFile)
 		{
-			CFile *pRoot = Iter;
+			CFile *pRoot = iFile;
 			while (pRoot->m_pParent)
 				pRoot = pRoot->m_pParent;
 			m_Roots.f_Insert(pRoot);
-			++Iter;
+			++iFile;
 		}
 
 		// Merge equal directory entries
@@ -472,19 +476,19 @@ namespace NMib::NFile
 			while (bDoneSomething)
 			{
 				bDoneSomething = false;
-				auto Iter = m_Directories.f_GetIterator();
+				auto iDirectory = m_Directories.f_GetIterator();
 
-				while (Iter)
+				while (iDirectory)
 				{
-					CFile *pFile = Iter;
-					auto Iter2 = Iter;
+					CFile *pFile = iDirectory;
+					auto iDuplicate = iDirectory;
 
 					CFile *pBestFile = pFile;
 					uint32 BestDepth = pBestFile->f_GetDepth();
 					umint nDirs = 0;
-					while (Iter2)
+					while (iDuplicate)
 					{
-						CFile *pFile2 = Iter2;
+						CFile *pFile2 = iDuplicate;
 						if (pFile2->m_DirectoryID != pFile->m_DirectoryID)
 							break;
 						++nDirs;
@@ -494,26 +498,26 @@ namespace NMib::NFile
 							pBestFile = pFile2;
 							BestDepth = ThisDepth;
 						}
-						++Iter2;
+						++iDuplicate;
 					}
 
 					if (nDirs > 1)
 					{
-						auto Iter2 = Iter;
+						auto iDuplicate = iDirectory;
 
-						while (Iter2)
+						while (iDuplicate)
 						{
-							CFile *pFile2 = Iter2;
+							CFile *pFile2 = iDuplicate;
 							if (pFile2->m_DirectoryID != pFile->m_DirectoryID)
 								break;
 
 							if (pFile2 != pBestFile)
 							{
-								DMibListLinkDS_Iter(CFile, m_ChildLink) ChildIter = pFile2->m_Children;
-								while (ChildIter)
+								DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = pFile2->m_Children;
+								while (iChild)
 								{
-									CFile *pChild = ChildIter;
-									++ChildIter;
+									CFile *pChild = iChild;
+									++iChild;
 
 									CVirtualFS::CDirectory::CFile *pDirEntry = pBestFile->f_GetDirectoryEntry(pChild->m_FileClusterID);
 									if (pDirEntry)
@@ -524,11 +528,11 @@ namespace NMib::NFile
 									}
 								}
 							}
-							++Iter2;
+							++iDuplicate;
 						}
 					}
 
-					++Iter;
+					++iDirectory;
 				}
 			}
 		}
@@ -632,13 +636,13 @@ namespace NMib::NFile
 			}
 		}
 
-		DMibListLinkDS_Iter(CFile, m_ChildLink) Iter = _pFile->m_Children;
+		DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = _pFile->m_Children;
 
 		mp_pReporter->f_StepDown(_pFile->m_Children.f_GetLen());
 
-		while (Iter)
+		while (iChild)
 		{
-			NStr::CStr FileName = Iter->m_FileName;
+			NStr::CStr FileName = iChild->m_FileName;
 			if (FileName == "")
 				FileName = FileRecord.m_MD5Checksum.f_GetString();
 
@@ -648,8 +652,8 @@ namespace NMib::NFile
 			else
 				Path = FileName;
 
-			f_CopyTreeRecursive(Path, Iter, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
-			++Iter;
+			f_CopyTreeRecursive(Path, iChild, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
+			++iChild;
 			mp_pReporter->f_IncreaseProgress(1);
 		}
 		mp_pReporter->f_StepUp();
@@ -663,24 +667,24 @@ namespace NMib::NFile
 
 		for (umint iPass = 0; iPass < 2; ++iPass)
 		{
-			DMibListLinkDS_Iter(CFile, m_RootLink) Iter = m_Roots;
+			DMibListLinkDS_Iter(CFile, m_RootLink) iRoot = m_Roots;
 
-			while (Iter)
+			while (iRoot)
 			{
-				CFile *pFile = Iter;
+				CFile *pFile = iRoot;
 
 				if (pFile->m_FileClusterID == 1 && pFile->m_bIsDir && pFile->m_DirectoryID == 1)
 				{
 					if (iPass == 0)
 					{
-						DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID, Iter->m_FileClusterID);
+						DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, iRoot->m_DirectoryID, iRoot->m_FileClusterID);
 						// This is the root
 						f_CopyTreeRecursive("", pFile, _ClusterSize, _ClusterIDsPerCluster, _pStorageStream, _pFixDestinationFS);
 					}
 				}
 				else if (iPass == 1)
 				{
-					DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, Iter->m_DirectoryID, Iter->m_FileClusterID);
+					DMibDTrace("Root Dir: {} Cluster: {}" DMibNewLine, iRoot->m_DirectoryID, iRoot->m_FileClusterID);
 					if (pFile->m_bIsDir)
 					{
 						NStr::CStr PathName = (NStr::CStr::CFormat("Lost&Found/RecoveredDir.{sj8,sf0}") << iCurrentRecover).f_GetStr();
@@ -702,7 +706,7 @@ namespace NMib::NFile
 				if (iPass == 1)
 					mp_pReporter->f_IncreaseProgress(1);
 
-				++Iter;
+				++iRoot;
 			}
 		}
 		mp_pReporter->f_StepUp();
@@ -749,7 +753,7 @@ namespace NMib::NFile
 					{
 						uint64 nClusters = FileLenth / ClusterSize;
 						CFileRecord FileRecord;
-						uint64 nFiles[2] = {0, 0};
+						uint64 FileCounts[2] = {0, 0};
 						if (iLoop < 13)
 							_pReporter->f_StepDown(nClusters);
 						for (uint64 iCluster = 0; iCluster < nClusters; ++iCluster)
@@ -759,7 +763,7 @@ namespace NMib::NFile
 							for (umint iVersion = 0; iVersion < nVersions; ++iVersion)
 							{
 								if (FileRecord.f_Validate(iCluster, Versions[iVersion]))
-									++nFiles[iVersion];
+									++FileCounts[iVersion];
 							}
 							if (iLoop < 13)
 								_pReporter->f_IncreaseProgress(1);
@@ -773,12 +777,12 @@ namespace NMib::NFile
 						bool bWasBetter = false;
 						for (umint iVersion = 0; iVersion < nVersions; ++iVersion)
 						{
-							if (nFiles[iVersion] >= nMaxFiles)
+							if (FileCounts[iVersion] >= nMaxFiles)
 							{
 								bWasBetter = true;
 								Version = Versions[iVersion];
 								BestClusterSize = ClusterSize;
-								nMaxFiles = nFiles[iVersion];
+								nMaxFiles = FileCounts[iVersion];
 							}
 						}
 

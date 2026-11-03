@@ -1150,7 +1150,7 @@ namespace NMib::NFile
 			, NTime::CTime const &_FileTime
 			, EFileAttrib _AddAttribs
 			, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
-			const &_OnChange
+			const &_fOnChange
 		)
 		-> bool
 	{
@@ -1159,7 +1159,7 @@ namespace NMib::NFile
 		{
 			try
 			{
-				return fsp_CopyFileDiff(_SourceData, NStr::CStr(), _ToFileName, _FileTime, _AddAttribs, _OnChange);
+				return fsp_CopyFileDiff(_SourceData, NStr::CStr(), _ToFileName, _FileTime, _AddAttribs, _fOnChange);
 			}
 			catch (CExceptionFile const &)
 			{
@@ -1180,7 +1180,7 @@ namespace NMib::NFile
 			, NStr::CStr const &_ToFileName
 			, NTime::CTime const &_FileTime
 			, EFileAttrib _AddAttribs
-			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 			, bool _bRemoveWriteProtection
 			, bool _bSourceDataValid
 			, CUniqueFileIdentifier const *_pExpectedSourceIdentity
@@ -1190,8 +1190,8 @@ namespace NMib::NFile
 	{
 		if (_bSourceDataValid && fsp_FileIsSame(_SourceData, _ToFileName))
 		{
-			if (_OnChange)
-				_OnChange(EDiffCopyChange_NoChange, _FromFileName, _ToFileName, NStr::CStr());
+			if (_fOnChange)
+				_fOnChange(EDiffCopyChange_NoChange, _FromFileName, _ToFileName, NStr::CStr());
 			return false;
 		}
 
@@ -1205,12 +1205,12 @@ namespace NMib::NFile
 
 		EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-		if (_OnChange)
+		if (_fOnChange)
 		{
 			if (bExists)
-				Action = _OnChange(EDiffCopyChange_FileChanged, _FromFileName, _ToFileName, NStr::CStr());
+				Action = _fOnChange(EDiffCopyChange_FileChanged, _FromFileName, _ToFileName, NStr::CStr());
 			else
-				Action = _OnChange(EDiffCopyChange_FileCreated, _FromFileName, _ToFileName, NStr::CStr());
+				Action = _fOnChange(EDiffCopyChange_FileCreated, _FromFileName, _ToFileName, NStr::CStr());
 		}
 
 		if (Action == EDiffCopyChangeAction_Perform)
@@ -1391,7 +1391,7 @@ namespace NMib::NFile
 			NStr::CStr const &_FromFileName
 			, NStr::CStr const &_ToFileName
 			, bool _bCopyDate
-			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 			, bool _bRemoveWriteProtection
 		)
 		-> bool
@@ -1414,9 +1414,9 @@ namespace NMib::NFile
 		CUniqueFileIdentifier SourceIdentity = File.f_GetUniqueIdentifier();
 
 		if (_bCopyDate)
-			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, File.f_GetWriteTime(), Attribs, _OnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity);
+			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, File.f_GetWriteTime(), Attribs, _fOnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity);
 		else
-			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime(), Attribs, _OnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity, true);
+			return fsp_CopyFileDiff(SourceData, _FromFileName, _ToFileName, NTime::CTime(), Attribs, _fOnChange, _bRemoveWriteProtection, bSourceDataValid, &SourceIdentity, true);
 	}
 
 	void CFile::fs_Touch(NStr::CStr const &_File)
@@ -2271,31 +2271,31 @@ namespace NMib::NFile
 	auto CFile::fs_GetDirectoryChecksum
 		(
 			NStr::CStr const &_Path
-			, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_ExcludeFile
-			, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_GetHash
+			, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_fExcludeFile
+			, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_fGetHash
 		)
 		-> NCryptography::CHashDigest_MD5
 	{
 		NContainer::TCVector<NStr::CStr> Files = fs_FindFiles(_Path + "/*", EFileAttrib_File | EFileAttrib_Directory, true);
 		NCryptography::CHash_MD5 Checksum;
 
-		for (auto FIter = Files.f_GetIterator(); FIter; ++FIter)
+		for (auto iFile = Files.f_GetIterator(); iFile; ++iFile)
 		{
-			if (_ExcludeFile(*FIter))
+			if (_fExcludeFile(*iFile))
 				continue;
 
-			if (fs_FileExists(*FIter, EFileAttrib_File))
+			if (fs_FileExists(*iFile, EFileAttrib_File))
 			{
 				NCryptography::CHashDigest_MD5 FileHash;
-				if (_GetHash)
-					FileHash = _GetHash(*FIter);
+				if (_fGetHash)
+					FileHash = _fGetHash(*iFile);
 				else
-					FileHash = fs_GetFileChecksum(*FIter);
+					FileHash = fs_GetFileChecksum(*iFile);
 
 				Checksum.f_AddData(FileHash.f_GetData(), FileHash.mc_Size);
 			}
 
-			NStr::CStr FileName = CFile::fs_GetFile(*FIter);
+			NStr::CStr FileName = CFile::fs_GetFile(*iFile);
 			Checksum.f_AddData((uint8 *)FileName.f_GetStr(), FileName.f_GetLen());
 		}
 
@@ -2396,19 +2396,19 @@ namespace NMib::NFile
 	{
 		if (_bPath)
 		{
-			static ch8 const s_pInvalidChars[] = {'<', '>', ':', '"', '\\', '|', '*', '?', 0};
-			return s_pInvalidChars;
+			static ch8 const s_InvalidChars[] = {'<', '>', ':', '"', '\\', '|', '*', '?', 0};
+			return s_InvalidChars;
 		}
 		else
 		{
-			static ch8 const s_pInvalidChars[] = {'<', '>', ':', '"', '/', '\\', '|', '*', '?', 0};
-			return s_pInvalidChars;
+			static ch8 const s_InvalidChars[] = {'<', '>', ':', '"', '/', '\\', '|', '*', '?', 0};
+			return s_InvalidChars;
 		}
 	}
 
 	ch8 const **CFile::fs_GetInvalidFileNameNames()
 	{
-		static ch8 const *s_pInvalidNames[] =
+		static ch8 const *s_InvalidNames[] =
 			{
 				"CON"
 				, "PRN"
@@ -2436,17 +2436,17 @@ namespace NMib::NFile
 			}
 		;
 
-		return s_pInvalidNames;
+		return s_InvalidNames;
 	}
 
 	NStr::CStr CFile::fs_MakeNiceFilename(NStr::CStr const &_CurrentName)
 	{
-		ch8 const *InvalidChars = fs_GetInvalidFileNameChars(false);
+		ch8 const *pInvalidFileNameChars = fs_GetInvalidFileNameChars(false);
 
 		NStr::CUStr Output;
 		Output = _CurrentName;
 		NTraits::TCUnsigned<ch32> *pStr = (NTraits::TCUnsigned<ch32> *)Output.f_GetStrUniqueWritable();
-		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)InvalidChars;
+		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)pInvalidFileNameChars;
 		while (*pStr)
 		{
 			if (*pStr >= 1 && *pStr <= 31)
@@ -2538,12 +2538,12 @@ namespace NMib::NFile
 
 	NStr::CStr CFile::fs_MakeNiceUniqueFilename(NStr::CStr const &_CurrentName)
 	{
-		ch8 const *InvalidChars = fs_GetInvalidFileNameChars(false);
+		ch8 const *pInvalidFileNameChars = fs_GetInvalidFileNameChars(false);
 
 		NStr::CUStr Input = _CurrentName;
 		NStr::CUStr Output;
 		NTraits::TCUnsigned<ch32> const *pStr = (NTraits::TCUnsigned<ch32> const *)Input.f_GetStr();
-		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)InvalidChars;
+		NTraits::TCUnsigned<ch8> const *pInvalidChars = (NTraits::TCUnsigned<ch8> const *)pInvalidFileNameChars;
 		while (*pStr)
 		{
 			if ((*pStr >= 1 && *pStr <= 31) || *pStr == '$')
@@ -2841,7 +2841,7 @@ namespace NMib::NFile
 			, NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
 			, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
-			const &_OnChange
+			const &_fOnChange
 		)
 		-> bool
 	{
@@ -2855,8 +2855,8 @@ namespace NMib::NFile
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(CFile::EDiffCopyChange_DirectoryDeleted, _Source, _Destination, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(CFile::EDiffCopyChange_DirectoryDeleted, _Source, _Destination, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -2868,8 +2868,8 @@ namespace NMib::NFile
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(CFile::EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(CFile::EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -2887,8 +2887,8 @@ namespace NMib::NFile
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(CFile::EDiffCopyChange_LinkDeleted, _Source, _Destination, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(CFile::EDiffCopyChange_LinkDeleted, _Source, _Destination, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -2905,8 +2905,8 @@ namespace NMib::NFile
 			{
 				EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-				if (_OnChange)
-					Action = _OnChange(CFile::EDiffCopyChange_LinkDeleted, _Source, _Destination, NStr::CStr());
+				if (_fOnChange)
+					Action = _fOnChange(CFile::EDiffCopyChange_LinkDeleted, _Source, _Destination, NStr::CStr());
 
 				if (Action == EDiffCopyChangeAction_Perform)
 				{
@@ -2920,8 +2920,8 @@ namespace NMib::NFile
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(CFile::EDiffCopyChange_DirectoryDeleted, _Source, _Destination, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(CFile::EDiffCopyChange_DirectoryDeleted, _Source, _Destination, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -2933,8 +2933,8 @@ namespace NMib::NFile
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(CFile::EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(CFile::EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -2953,7 +2953,7 @@ namespace NMib::NFile
 		(
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
-			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 			, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 		)
 		-> bool
@@ -2968,8 +2968,8 @@ namespace NMib::NFile
 			{
 				EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-				if (_OnChange)
-					Action = _OnChange(EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
+				if (_fOnChange)
+					Action = _fOnChange(EDiffCopyChange_FileDeleted, _Source, _Destination, NStr::CStr());
 
 				if (Action == EDiffCopyChangeAction_Perform)
 				{
@@ -3012,8 +3012,8 @@ namespace NMib::NFile
 				if (!SourceFilesSet.f_FindEqual(File))
 				{
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
-					if (_OnChange)
-						Action = _OnChange(EDiffCopyChange_FileDeleted, NStr::CStr(), iFile->m_Path, NStr::CStr());
+					if (_fOnChange)
+						Action = _fOnChange(EDiffCopyChange_FileDeleted, NStr::CStr(), iFile->m_Path, NStr::CStr());
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -3033,8 +3033,8 @@ namespace NMib::NFile
 					{
 						EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-						if (_OnChange)
-							Action = _OnChange(EDiffCopyChange_DirectoryDeleted, NStr::CStr(), iFile->m_Path, NStr::CStr());
+						if (_fOnChange)
+							Action = _fOnChange(EDiffCopyChange_DirectoryDeleted, NStr::CStr(), iFile->m_Path, NStr::CStr());
 
 						if (Action == EDiffCopyChangeAction_Perform)
 						{
@@ -3051,7 +3051,7 @@ namespace NMib::NFile
 				CFile::fs_CreateDirectory(CFile::fs_GetPath(Dest));
 				if (CFile::fs_FileExists(Dest))
 				{
-					if (CFile::fs_RemoveIncompatible(iFile->m_Attribs, iFile->m_Path, Dest, _OnChange))
+					if (CFile::fs_RemoveIncompatible(iFile->m_Attribs, iFile->m_Path, Dest, _fOnChange))
 						bChanged = true;
 				}
 
@@ -3062,8 +3062,8 @@ namespace NMib::NFile
 						NStr::CStr Link = CFile::fs_ResolveSymbolicLink(iFile->m_Path);
 						EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-						if (_OnChange)
-							Action = _OnChange(EDiffCopyChange_LinkCreated, iFile->m_Path, Dest, Link);
+						if (_fOnChange)
+							Action = _fOnChange(EDiffCopyChange_LinkCreated, iFile->m_Path, Dest, Link);
 
 						if (Action == EDiffCopyChangeAction_Perform)
 						{
@@ -3078,8 +3078,8 @@ namespace NMib::NFile
 					{
 						EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-						if (_OnChange)
-							Action = _OnChange(EDiffCopyChange_DirectoryCreated, iFile->m_Path, Dest, NStr::CStr());
+						if (_fOnChange)
+							Action = _fOnChange(EDiffCopyChange_DirectoryCreated, iFile->m_Path, Dest, NStr::CStr());
 
 						if (Action == EDiffCopyChangeAction_Perform)
 						{
@@ -3096,7 +3096,7 @@ namespace NMib::NFile
 				CFile::fs_CreateDirectory(CFile::fs_GetPath(Dest));
 				if (CFile::fs_FileExists(Dest))
 				{
-					if (CFile::fs_RemoveIncompatible(iFile->m_Attribs, iFile->m_Path, Dest, _OnChange))
+					if (CFile::fs_RemoveIncompatible(iFile->m_Attribs, iFile->m_Path, Dest, _fOnChange))
 						bChanged = true;
 				}
 
@@ -3107,8 +3107,8 @@ namespace NMib::NFile
 						NStr::CStr Link = CFile::fs_ResolveSymbolicLink(iFile->m_Path);
 						EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-						if (_OnChange)
-							Action = _OnChange(EDiffCopyChange_LinkCreated, iFile->m_Path, Dest, Link);
+						if (_fOnChange)
+							Action = _fOnChange(EDiffCopyChange_LinkCreated, iFile->m_Path, Dest, Link);
 
 						if (Action == EDiffCopyChangeAction_Perform)
 						{
@@ -3119,7 +3119,7 @@ namespace NMib::NFile
 				}
 				else
 				{
-					if (CFile::fsp_CopyFileDiff(iFile->m_Path, Dest, true, _OnChange, true))
+					if (CFile::fsp_CopyFileDiff(iFile->m_Path, Dest, true, _fOnChange, true))
 						bChanged = true;
 				}
 			}
@@ -3129,7 +3129,7 @@ namespace NMib::NFile
 			// Remove old files
 			if (CFile::fs_FileExists(_Destination))
 			{
-				if (CFile::fs_RemoveIncompatible(SourceAttribs, _Source, _Destination, _OnChange))
+				if (CFile::fs_RemoveIncompatible(SourceAttribs, _Source, _Destination, _fOnChange))
 					bChanged = true;
 			}
 
@@ -3141,8 +3141,8 @@ namespace NMib::NFile
 					NStr::CStr Link = CFile::fs_ResolveSymbolicLink(_Source);
 					EDiffCopyChangeAction Action = EDiffCopyChangeAction_Perform;
 
-					if (_OnChange)
-						Action = _OnChange(EDiffCopyChange_LinkCreated, _Source, _Destination, Link);
+					if (_fOnChange)
+						Action = _fOnChange(EDiffCopyChange_LinkCreated, _Source, _Destination, Link);
 
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
@@ -3153,7 +3153,7 @@ namespace NMib::NFile
 			}
 			else
 			{
-				if (CFile::fsp_CopyFileDiff(_Source, _Destination, true, _OnChange, true))
+				if (CFile::fsp_CopyFileDiff(_Source, _Destination, true, _fOnChange, true))
 					bChanged = true;
 			}
 		}
@@ -3165,7 +3165,7 @@ namespace NMib::NFile
 		(
 			NStr::CStr const &_Source
 			, NStr::CStr const &_Destination
-			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+			, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 			, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 			, fp32 _Timeout
 		)
@@ -3177,7 +3177,7 @@ namespace NMib::NFile
 		{
 			try
 			{
-				return fsp_DiffCopyFileOrDirectory(_Source, _Destination, _OnChange, _ExcludePatterns);
+				return fsp_DiffCopyFileOrDirectory(_Source, _Destination, _fOnChange, _ExcludePatterns);
 			}
 			catch (CExceptionFile const &)
 			{
@@ -3312,7 +3312,7 @@ namespace NMib::NFile
 			{
 				NMib::NFile::CFileChangeNotification::CNotification Notification;
 				while (mp_Notification.f_GetNotification(Notification))
-					mp_Notify(Notification);
+					mp_fNotify(Notification);
 			}
 			if (f_GetState() == NThread::EThreadState_EventWantQuit)
 				break;
@@ -3330,9 +3330,9 @@ namespace NMib::NFile
 		(
 			NMib::NStr::CStr const &_Path
 			, NMib::NFile::EFileChange _OpenFlags
-			, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify
+			, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_fNotify
 		)
-		: mp_Notify(_Notify)
+		: mp_fNotify(_fNotify)
 	{
 		mp_Notification.f_Open(_Path, _OpenFlags, &m_EventWantQuit);
 		f_Start();

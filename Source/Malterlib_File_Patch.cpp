@@ -177,11 +177,11 @@ namespace NMib::NFile
 					uint32 BestStart = 0;
 					uint32 BestLen = 0;
 
-					CMappedPosIter Iter = pChunk->m_MappedPositions;
-					while (Iter)
+					CMappedPosIter iMappedPosition = pChunk->m_MappedPositions;
+					while (iMappedPosition)
 					{
 						uint8 const *pFind0 = pChanged;
-						umint MappedPos = (Iter.f_GetCurrent() - pMappedArray);
+						umint MappedPos = (iMappedPosition.f_GetCurrent() - pMappedArray);
 						uint8 const *pFind1 = pOrig + MappedPos;
 
 						while (pFind0 < pChangedEnd && pFind1 < pOrigEnd)
@@ -200,7 +200,7 @@ namespace NMib::NFile
 							BestLen = LenFound;
 						}
 
-						++Iter;
+						++iMappedPosition;
 					}
 
 					if (BestLen > 8) // Only use if resulting patch file is smaller

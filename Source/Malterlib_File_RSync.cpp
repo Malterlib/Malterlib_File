@@ -821,14 +821,14 @@ namespace NMib::NFile
 
 		bool f_AddFoundChunk(uint64 _ServerPos, uint64 _OldPos, uint64 _Length)
 		{
-			auto ChunkIter = m_Chunks.f_GetIterator_LargestLessThanEqual(_ServerPos);
-			DMibCheck(ChunkIter)("The chunks must already have been created");
+			auto iChunk = m_Chunks.f_GetIterator_LargestLessThanEqual(_ServerPos);
+			DMibCheck(iChunk)("The chunks must already have been created");
 #if DFileMapDebug > 0
 			// f_Trace("Before AddFoundChunk");
 #endif
-			if (ChunkIter)
+			if (iChunk)
 			{
-				CChunk *pChunk = ChunkIter;
+				CChunk *pChunk = iChunk;
 				uint64 ServerPos = pChunk->f_Start();
 				if (pChunk->f_OldFileStart() >= 0)
 				{
@@ -838,8 +838,8 @@ namespace NMib::NFile
 						CChunk *pBefore = nullptr;
 						if (_ServerPos)
 							pBefore = m_Chunks.f_FindLargestLessThanEqual(_ServerPos - 1);
-						++ChunkIter;
-						CChunk *pAfter = ChunkIter;
+						++iChunk;
+						CChunk *pAfter = iChunk;
 						CChunk *pFirst = pChunk;
 						if (pBefore && pBefore->f_OldFileStart() >= 0 && pBefore->f_OldFileEnd() == _OldPos)
 						{
@@ -880,8 +880,8 @@ namespace NMib::NFile
 								if (pChunk->f_Length() == _Length)
 								{
 									// Next chunk not needed
-									++ChunkIter;
-									CChunk *pMergeChunk = ChunkIter;
+									++iChunk;
+									CChunk *pMergeChunk = iChunk;
 									m_Chunks.f_Remove(pChunk);
 									--m_nNotFound;
 									if (pMergeChunk && pBefore->f_OldFileEnd() == uint64(pMergeChunk->f_OldFileStart()))
@@ -909,10 +909,10 @@ namespace NMib::NFile
 							if (pChunk->f_Length() == _Length)
 							{
 								// Next chunk not needed
-								++ChunkIter;
+								++iChunk;
 								pChunk->m_OldFilePos = _OldPos;
 								--m_nNotFound;
-								CChunk *pMergeChunk = ChunkIter;
+								CChunk *pMergeChunk = iChunk;
 								if (pMergeChunk && pChunk->f_OldFileEnd() == uint64(pMergeChunk->f_OldFileStart()))
 								{
 									DMibCheck(pMergeChunk->f_OldFileStart() >= 0)("Next chunk must be found");
@@ -936,8 +936,8 @@ namespace NMib::NFile
 					else
 					{
 						// Split in the middle
-						++ChunkIter;
-						CChunk *pNext = ChunkIter;
+						++iChunk;
+						CChunk *pNext = iChunk;
 						if (pNext && pNext->f_Start() == _ServerPos + _Length && uint64(pNext->f_OldFileStart()) == _OldPos + _Length)
 						{
 							// Merge with next
@@ -1165,9 +1165,9 @@ namespace NMib::NFile
 									(
 										_LocalPos
 										, _LocalPos + Rollsum.m_Count
-										, [&](zbool &_Found)
+										, [&](zbool &_bFound)
 										{
-											_Found = true;
+											_bFound = true;
 										}
 									)
 								;

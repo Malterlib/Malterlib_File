@@ -319,12 +319,12 @@ namespace NMib::NFile
 
 	struct CFileChangeNotifier : private NThread::CThread
 	{
-		CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);
+		CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_fNotify);
 		~CFileChangeNotifier();
 
 	private:
 		CFileChangeNotification mp_Notification;
-		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> mp_Notify;
+		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> mp_fNotify;
 		aint f_Main();
 		NMib::NStr::CStr f_GetThreadName();
 	};
@@ -454,7 +454,7 @@ namespace NMib::NFile
 			(
 				NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
 			)
 			-> bool
@@ -466,7 +466,7 @@ namespace NMib::NFile
 				, NStr::CStr const &_ToFileName
 				, NTime::CTime const &_FileTime
 				, EFileAttrib _AddAttribs
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 				, bool _bRemoveWriteProtection = false
 				, bool _bSourceDataValid = true
 				, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
@@ -480,7 +480,7 @@ namespace NMib::NFile
 				NStr::CStr const &_FromFileName
 				, NStr::CStr const &_ToFileName
 				, bool _bCopyDate
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 				, bool _bRemoveWriteProtection = false
 			)
 			-> bool
@@ -587,7 +587,7 @@ namespace NMib::NFile
 				, NTime::CTime const &_FileTime
 				, EFileAttrib _AddAttribs = EFileAttrib_None
 				, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
-				const &_OnChange = {}
+				const &_fOnChange = {}
 			)
 			-> bool
 		;
@@ -615,7 +615,7 @@ namespace NMib::NFile
 				, NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
 				, NFunction::TCFunction<EDiffCopyChangeAction (CFile::EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)>
-				const &_OnChange
+				const &_fOnChange
 			)
 			-> bool
 		;
@@ -624,7 +624,7 @@ namespace NMib::NFile
 			(
 				NStr::CStr const &_Source
 				, NStr::CStr const &_Destination
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_OnChange
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
 				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns = {}
 				, fp32 _Timeout = 30.0f
 			)
@@ -800,8 +800,8 @@ namespace NMib::NFile
 		static auto fs_GetDirectoryChecksum
 			(
 				NStr::CStr const &_Path
-				, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_ExcludeFile
-				, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_GetHash = fg_Default()
+				, NFunction::TCFunction<bool (NStr::CStr const &_File)> const &_fExcludeFile
+				, NFunction::TCFunction<NCryptography::CHashDigest_MD5 (NStr::CStr const &_File)> const &_fGetHash = fg_Default()
 			)
 			-> NCryptography::CHashDigest_MD5
 		;

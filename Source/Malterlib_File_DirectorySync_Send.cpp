@@ -43,6 +43,7 @@ namespace NMib::NFile
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 		NException::CExceptionPointer f_CheckFileName(CStr const &_FileName);
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		auto f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>;
 
 		CDirectorySyncSend *m_pThis = nullptr;
@@ -61,8 +62,8 @@ namespace NMib::NFile
 		: m_pThis(_pThis)
 		, m_pConfig(fg_Construct(fg_Move(_Config)))
 	{
-		if (m_pConfig->m_bUseOriginalLocation)
-			m_bUseOriginalLocation = *m_pConfig->m_bUseOriginalLocation;
+		if (m_pConfig->m_UseOriginalLocation)
+			m_bUseOriginalLocation = *m_pConfig->m_UseOriginalLocation;
 		else if (m_pConfig->m_Manifest.f_IsOfType<CDirectoryManifestConfig>())
 			m_bUseOriginalLocation = true;
 	}
@@ -155,6 +156,7 @@ namespace NMib::NFile
 		co_return fg_Move(ByteStats);
 	}
 
+	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>
 	{
 		auto pCanDestroy = m_pCanDestroyTracker;
@@ -166,7 +168,7 @@ namespace NMib::NFile
 		auto &pRSyncState = m_RSyncStates[RSyncID] = fg_Construct();
 		auto &RSyncState = *pRSyncState;
 
-		auto pCleanup = g_OnScopeExitActor / [this, RSyncID]
+		auto Cleanup = g_OnScopeExitActor / [this, RSyncID]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
 			}
@@ -184,12 +186,12 @@ namespace NMib::NFile
 				fOpenRSync(*pRSyncState);
 			}
 			> fg_Move(Promise.m_Promise)
-			/ [this, pDestroyed = m_pDestroyed, pCleanup, pRSyncState, Promise = Promise.m_Promise, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout), pCanDestroy]() mutable
+			/ [this, pDestroyed = m_pDestroyed, Cleanup, pRSyncState, Promise = Promise.m_Promise, RSyncID, BlockingActorCheckout = fg_Move(BlockingActorCheckout), pCanDestroy]() mutable
 			{
 				if (m_pThis->f_IsDestroyed())
 				{
 					Promise.f_SetException(DMibErrorInstance("Aborted"));
-					pCleanup.f_Clear();
+					Cleanup.f_Clear();
 
 					return;
 				}
@@ -242,13 +244,14 @@ namespace NMib::NFile
 						}
 					)
 				;
-				pCleanup->f_Clear();
+				Cleanup->f_Clear();
 			}
 		;
 
 		co_return co_await fg_Move(Promise.m_Future);
 	}
 
+	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
@@ -323,6 +326,7 @@ namespace NMib::NFile
 		;
 	}
 
+	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::f_StartRSync(NStr::CStr _FileName, TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();

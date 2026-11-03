@@ -44,7 +44,9 @@ namespace NMib::NFile
 
 		CDirectorySyncClient();
 
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
 		virtual NConcurrency::TCFuture<void> f_Finished() = 0;
 	};
@@ -105,7 +107,7 @@ namespace NMib::NFile
 			                                                                                          ///   can be downloaded.
 			NStorage::TCVariant<CDirectoryManifest, CDirectoryManifestConfig, NStr::CStr> m_Manifest; ///< Specify manifest, a config to generate a manifest, or a path to a file with
 			                                                                                          ///   an existing manifest that corresponds to the files available in m_BasePath.
-			NStorage::TCOptional<bool> m_bUseOriginalLocation;                                        ///< Use the original location of files in manifest. Defaults to true
+			NStorage::TCOptional<bool> m_UseOriginalLocation;                                         ///< Use the original location of files in manifest. Defaults to true
 			                                                                                          ///   when m_Manifest is a CDirectoryManifestConfig, otherwise false
 			CDirectorySyncFileOptions m_FileOptions;                                                  ///< Functionality for transformation of file names and content
 		};
@@ -127,7 +129,9 @@ namespace NMib::NFile
 	private:
 		struct CInternal;
 
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
+		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
 		NConcurrency::TCFuture<void> f_Finished() override;
 

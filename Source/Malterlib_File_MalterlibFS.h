@@ -651,14 +651,14 @@ namespace NMib::NFile
 
 			void f_Flush()
 			{
-				auto Iter = m_InUse.f_GetIterator();
+				auto iCluster = m_InUse.f_GetIterator();
 
-				while (Iter)
+				while (iCluster)
 				{
-					if (Iter->m_bDirty)
-						f_Flush(Iter);
+					if (iCluster->m_bDirty)
+						f_Flush(iCluster);
 
-					++Iter;
+					++iCluster;
 				}
 			}
 
@@ -782,13 +782,13 @@ namespace NMib::NFile
 
 			void f_Flush()
 			{
-				auto Iter = m_InUse.f_GetIterator();
+				auto iCluster = m_InUse.f_GetIterator();
 
-				while (Iter)
+				while (iCluster)
 				{
-					if (Iter->m_bDirty)
-						f_Flush(Iter);
-					++Iter;
+					if (iCluster->m_bDirty)
+						f_Flush(iCluster);
+					++iCluster;
 				}
 			}
 
@@ -1110,11 +1110,11 @@ namespace NMib::NFile
 			CClusterCacheEntry *f_GetCluster(CFilePos &_Position)
 			{
 				uint64 ClusterSize = m_pVirtualFS->mp_RootData.m_ClusterSize;
-				DMibListLinkDS_Iter(CClusterCache, m_Link) Iter = m_CachedClusters;
+				DMibListLinkDS_Iter(CClusterCache, m_Link) iCachedCluster = m_CachedClusters;
 
-				while (Iter)
+				while (iCachedCluster)
 				{
-					CClusterCache *pEntry = Iter;
+					CClusterCache *pEntry = iCachedCluster;
 					uint64 End = pEntry->m_FilePosStart + ClusterSize;
 					if (_Position >= pEntry->m_FilePosStart && _Position < End)
 					{
@@ -1122,7 +1122,7 @@ namespace NMib::NFile
 						_Position -= pEntry->m_FilePosStart;
 						return pEntry->m_pClusterCacheEntry;
 					}
-					++Iter;
+					++iCachedCluster;
 				}
 
 				CFilePos OrgPos = _Position;
@@ -1623,14 +1623,14 @@ namespace NMib::NFile
 
 				bool f_AlreadyInList(CClusterID _ClusterID)
 				{
-					auto Iter = m_List.f_GetIterator();
+					auto iMember = m_List.f_GetIterator();
 
-					while (Iter)
+					while (iMember)
 					{
-						if (Iter->m_ClusterID == _ClusterID)
+						if (iMember->m_ClusterID == _ClusterID)
 							return true;
 
-						++Iter;
+						++iMember;
 					}
 
 					return false;

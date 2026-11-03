@@ -130,7 +130,7 @@ namespace NMib::NFile
 		if (!pCanDestroy)
 			co_return DMibErrorInstance("Aborted");
 
-		auto pCleanup = g_OnScopeExitActor / [this, RSyncID, pRSyncState, pCanDestroy]
+		auto Cleanup = g_OnScopeExitActor / [this, RSyncID, pRSyncState, pCanDestroy]
 			{
 				m_RSyncStates.f_Remove(RSyncID);
 				pRSyncState->f_Destroy().f_DiscardResult();
@@ -150,21 +150,21 @@ namespace NMib::NFile
 				=
 				, this
 				, Promise = fg_Move(Promise.m_Promise)
-				, pCleanup = pCleanup
+				, Cleanup = Cleanup
 				, fOnDone = fg_Move(_fOnDone)
 				, fStartRSync = fg_Move(_fStartRSync)
 				, BlockingActorCheckout = fg_Move(BlockingActorCheckout)
 			]
-			(TCAsyncResult<bool> &&_bAlreadySynced) mutable
+			(TCAsyncResult<bool> &&_AlreadySynced) mutable
 			{
-				if (!_bAlreadySynced)
+				if (!_AlreadySynced)
 				{
 					if (!Promise.f_IsSet())
-						Promise.f_SetException(_bAlreadySynced.f_GetException());
+						Promise.f_SetException(_AlreadySynced.f_GetException());
 					return;
 				}
 
-				if (*_bAlreadySynced)
+				if (*_AlreadySynced)
 				{
 					fOnDone(&*pRSyncState) > [=, BlockingActorCheckout = fg_Move(BlockingActorCheckout)](TCAsyncResult<void> &&_Result)
 						{
@@ -175,7 +175,7 @@ namespace NMib::NFile
 								return;
 							}
 
-							pRSyncState->f_Destroy() > [=, pCleanup = pCleanup](TCAsyncResult<void> &&_Result)
+							pRSyncState->f_Destroy() > [=, Cleanup = Cleanup](TCAsyncResult<void> &&_Result)
 								{
 									if (!_Result)
 									{
@@ -200,19 +200,19 @@ namespace NMib::NFile
 								Promise.f_SetException(DMibErrorInstance("Manifest rsync aborted prematurely"));
 						}
 					)
-					> [=, this, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
-					(TCAsyncResult<CDirectorySyncClient::FRunRSync> &&_fRunRSync) mutable
+					> [=, this, Cleanup = Cleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
+					(TCAsyncResult<CDirectorySyncClient::FRunRSync> &&_RunRSync) mutable
 					{
-						if (!_fRunRSync)
+						if (!_RunRSync)
 						{
 							if (!Promise.f_IsSet())
-								Promise.f_SetException(_fRunRSync.f_GetException());
+								Promise.f_SetException(_RunRSync.f_GetException());
 							return;
 						}
 
 						auto &RSyncState = *pRSyncState;
-						RSyncState.m_fRunProtocol = fg_Move(*_fRunRSync);
-						f_RunRSyncProtocol(pRSyncState) > [=, pCleanup = pCleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
+						RSyncState.m_fRunProtocol = fg_Move(*_RunRSync);
+						f_RunRSyncProtocol(pRSyncState) > [=, Cleanup = Cleanup, fOnDone = fg_Move(fOnDone), BlockingActorCheckout = fg_Move(BlockingActorCheckout)]
 							(TCAsyncResult<void> &&_Result) mutable
 							{
 								if (!_Result)
@@ -222,7 +222,7 @@ namespace NMib::NFile
 									return;
 								}
 
-								fOnDone(&*pRSyncState) > [=, pCleanup = pCleanup, BlockingActorCheckout = fg_Move(BlockingActorCheckout)](TCAsyncResult<void> &&_Result)
+								fOnDone(&*pRSyncState) > [=, Cleanup = Cleanup, BlockingActorCheckout = fg_Move(BlockingActorCheckout)](TCAsyncResult<void> &&_Result)
 									{
 										if (!_Result)
 										{
@@ -231,7 +231,7 @@ namespace NMib::NFile
 											return;
 										}
 
-										pRSyncState->f_Destroy() > [=, pCleanup = pCleanup](TCAsyncResult<void> &&_Result)
+										pRSyncState->f_Destroy() > [=, Cleanup = Cleanup](TCAsyncResult<void> &&_Result)
 											{
 												if (!_Result)
 												{

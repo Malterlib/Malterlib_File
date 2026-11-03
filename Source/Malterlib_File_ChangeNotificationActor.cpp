@@ -211,7 +211,7 @@ namespace NMib::NFile
 			return;
 
 		++Notification.m_nOutstanding;
-		auto pCleanup = g_OnScopeExitActor / [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
+		auto Cleanup = g_OnScopeExitActor / [this, _pNotification, pDestroyed = Notification.m_pDestroyed]
 			{
 				if (*pDestroyed)
 					return;
@@ -243,7 +243,7 @@ namespace NMib::NFile
 #endif
 		}
 
-		Notification.m_fOnChange(Notifications) > [pCleanup](auto &&_Result)
+		Notification.m_fOnChange(Notifications) > [Cleanup](auto &&_Result)
 			{
 			}
 		;
