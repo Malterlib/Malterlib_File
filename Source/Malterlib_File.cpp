@@ -1669,6 +1669,12 @@ namespace NMib::NFile
 		return NSys::NFile::fg_CheckFileRights(_File, _Rights);
 	}
 
+	CFile::CFindFilesOptions::CFindFilesOptions(NStr::CStr const &_Path, bool _bRecursive)
+		: m_Path(_Path)
+		, m_bRecursive(_bRecursive)
+	{
+	}
+
 	namespace
 	{
 		auto fg_DefaultFindFilter(CFile::CFindFilesOptions const *_pOptions, NFunction::TCFunctionNoAlloc<void (NStr::CStr const &_Path, EFileAttrib _Attribs)> const *_pOnAdd)
@@ -3302,6 +3308,66 @@ namespace NMib::NFile
 	bool CLockFile::f_HasLock() const // Do I have the lock?
 	{
 		return mp_LockFile.f_IsValid();
+	}
+
+	CFileChangeNotification::CFileChangeNotification()
+	{
+		mp_pNotification = nullptr;
+	}
+
+	CFileChangeNotification::~CFileChangeNotification()
+	{
+		if (NException::fg_UncaughtExceptions())
+		{
+			try
+			{
+				f_Close();
+			}
+			catch (NException::CException const &)
+			{
+			}
+			return;
+		}
+		f_Close();
+	}
+
+	void CFileChangeNotification::f_Close()
+	{
+		if (mp_pNotification)
+		{
+			NSys::NFile::fg_ChangeNotification_Close(mp_pNotification);
+			mp_pNotification = nullptr;
+		}
+	}
+
+	void CFileChangeNotification::f_Open(NStr::CStr const &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo)
+	{
+		f_Close();
+		mp_pNotification = NSys::NFile::fg_ChangeNotification_Open(_Path, _OpenFlags, _pReportTo);
+	}
+
+	bool CFileChangeNotification::f_IsOpen()
+	{
+		return mp_pNotification != nullptr;
+	}
+
+	bool CFileChangeNotification::f_Changed()
+	{
+		return NSys::NFile::fg_ChangeNotification_Changed(mp_pNotification);
+	}
+
+	bool CFileChangeNotification::f_GetNotification(CNotification &_ToFill)
+	{
+		if (!f_IsOpen())
+			DMibErrorFile("Notification not open");
+		if (NSys::NFile::fg_ChangeNotification_GetNotification(mp_pNotification, _ToFill.m_Path, _ToFill.m_Notification, _ToFill.m_PathFrom))
+			return true;
+		return false;
+	}
+
+	bool CFileChangeNotification::fs_Supported()
+	{
+		return NSys::NFile::fg_ChangeNotification_Supported();
 	}
 
 	aint CFileChangeNotifier::f_Main()

@@ -20,13 +20,7 @@ namespace NMib::NFile
 		// ...or this one will be in use depending on how the ExeFs files were attached to the exe.
 		NStream::TCBinaryStreamMemoryPtr<> m_InProcStream;
 
-		~CExeFS()
-		{
-			// Close in correct order
-			m_FileSystem.f_Close();
-			m_SubStream.f_Close();
-			m_ExeFile.f_Close();
-		}
+		~CExeFS();
 	};
 
 	bool fg_OpenExeFS(CExeFS &_FS);

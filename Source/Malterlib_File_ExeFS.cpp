@@ -17,6 +17,14 @@ namespace NAOCC
 
 namespace NMib::NFile
 {
+	CExeFS::~CExeFS()
+	{
+		// Close in correct order
+		m_FileSystem.f_Close();
+		m_SubStream.f_Close();
+		m_ExeFile.f_Close();
+	}
+
 	bool fg_OpenExeFS(CExeFS &_FS)
 	{
 		// Try new style first.

@@ -20,18 +20,7 @@ namespace NMib::NFile
 
 		struct CRootData
 		{
-			CRootData()
-			{
-				m_ClusterSize = 2048; // Cluster size minimum cluster size is 128
-				m_RootFileCluster = 0; // Cluster at which the root directory resides
-				m_FirstFreeCluster = 0; // First free cluster
-				m_FileSystemGrowSize = 512 * 1024; // We grow the master file with this much
-				m_nFreeClusters = 0; // Max Cluster Size
-				m_DirectoryCacheSize = 128; // How many directories to cache
-				m_ClusterCacheSize = 128; // How many clusters to cache
-				m_CurrentDirectoryID = 0;
-				m_Version = 0x103;
-			}
+			CRootData();
 
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			uint64 m_ClusterSize;                         // Cluster size minimum cluster size is 128
@@ -44,89 +33,11 @@ namespace NMib::NFile
 			CDirectoryID m_CurrentDirectoryID;
 			uint32 m_Version;
 
-			void f_WriteInternal(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_ClusterSize;
-				_Stream << m_RootFileCluster;
-				_Stream << m_FirstFreeCluster;
-				_Stream << m_FileSystemGrowSize;
-				_Stream << m_nFreeClusters;
-				_Stream << m_DirectoryCacheSize;
-				_Stream << m_ClusterCacheSize;
-				_Stream << m_CurrentDirectoryID;
-			}
-
-			void f_Write(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << ch8('I');
-				_Stream << ch8('D');
-				_Stream << ch8('S');
-				_Stream << ch8('F');
-				_Stream << ch8('S');
-				_Stream << ch8('0' + ((m_Version >> 8) & 0xf));
-				_Stream << ch8('0' + ((m_Version >> 4) & 0xf));
-				_Stream << ch8('0' + ((m_Version >> 0) & 0xf));
-				_Stream << m_MD5Checksum;
-				f_WriteInternal(_Stream);
-			}
-
-			void f_Read(NStream::CBinaryStream &_Stream)
-			{
-				try
-				{
-					ch8 Signature[8];
-					_Stream >> Signature[0];
-					_Stream >> Signature[1];
-					_Stream >> Signature[2];
-					_Stream >> Signature[3];
-					_Stream >> Signature[4];
-					_Stream >> Signature[5];
-					_Stream >> Signature[6];
-					_Stream >> Signature[7];
-					m_Version = Signature[5] - '0';
-					m_Version <<= 4;
-					m_Version |= Signature[6] - '0';
-					m_Version <<= 4;
-					m_Version |= Signature[7] - '0';
-					_Stream >> m_MD5Checksum;
-					_Stream >> m_ClusterSize;
-					_Stream >> m_RootFileCluster;
-					_Stream >> m_FirstFreeCluster;
-					_Stream >> m_FileSystemGrowSize;
-					_Stream >> m_nFreeClusters;
-					_Stream >> m_DirectoryCacheSize;
-					_Stream >> m_ClusterCacheSize;
-					_Stream >> m_CurrentDirectoryID;
-				}
-				catch (NException::CException)
-				{
-					m_MD5Checksum = NCryptography::CHashDigest_MD5();
-				}
-			}
-
-			void f_GenerateChecksum()
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0xa042132f;
-				f_WriteInternal(Stream);
-
-				m_MD5Checksum = Checksum;
-			}
-
-			bool f_Validate()
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0xa042132f;
-				f_WriteInternal(Stream);
-
-				return m_MD5Checksum == Checksum;
-			}
+			void f_WriteInternal(NStream::CBinaryStream &_Stream);
+			void f_Write(NStream::CBinaryStream &_Stream);
+			void f_Read(NStream::CBinaryStream &_Stream);
+			void f_GenerateChecksum();
+			bool f_Validate();
 		};
 
 		NStream::CBinaryStream *mp_pStorageStream;
@@ -137,29 +48,10 @@ namespace NMib::NFile
 
 		void fp_SaveRootData();
 
-		inline_small CDirectoryID fp_GetDirectoryID()
-		{
-			CDirectoryID DirectoryID = ++mp_RootData.m_CurrentDirectoryID;
-			fp_SaveRootData();
-			return DirectoryID;
-		}
-
-		inline_small CFilePos fp_GetFilePos(CClusterID _Cluster)
-		{
-			return mp_RootData.m_ClusterSize * _Cluster;
-		}
-
-		void fp_SetStreamCluster(CClusterID _Cluster)
-		{
-			mp_pStorageStream->f_SetPosition(fp_GetFilePos(_Cluster));
-		}
-
-		inline_small CClusterID fp_GetClusterID(CFilePos _Position, CFilePos &_Remaining)
-		{
-			CClusterID Cluster = _Position / mp_RootData.m_ClusterSize;
-			_Remaining = _Position - Cluster * mp_RootData.m_ClusterSize;
-			return Cluster;
-		}
+		inline_small CDirectoryID fp_GetDirectoryID();
+		inline_small CFilePos fp_GetFilePos(CClusterID _Cluster);
+		void fp_SetStreamCluster(CClusterID _Cluster);
+		inline_small CClusterID fp_GetClusterID(CFilePos _Position, CFilePos &_Remaining);
 
 		struct CFileRecord
 		{
@@ -173,84 +65,12 @@ namespace NMib::NFile
 			CDirectoryID m_ParentDirectory;
 			// 96 bytes
 
-			void f_Reset()
-			{
-				m_WriteTime = m_AccessTime = m_CreationTime = NTime::CTime::fs_NowUTC();
-				m_FileSize = 0;
-				m_FileAttributes = 0;
-				m_FirstFileChainCluster = 0;
-				m_ParentDirectory = 0;
-			}
-
-			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x54EB5A03;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				m_MD5Checksum = Checksum;
-			}
-
-			bool f_Validate(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x54EB5A03;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				return m_MD5Checksum == Checksum;
-			}
-
-			void f_WriteInternal(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_CreationTime;
-				_Stream << m_AccessTime;
-				_Stream << m_WriteTime;
-				_Stream << m_FileSize;
-				_Stream << m_FileAttributes;
-				_Stream << m_FirstFileChainCluster;
-				_Stream << m_ParentDirectory;
-			}
-
-			void f_Write(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_MD5Checksum;
-				f_WriteInternal(_Stream);
-			}
-
-			void f_Read(NStream::CBinaryStream &_Stream)
-			{
-				try
-				{
-					_Stream >> m_MD5Checksum;
-					_Stream >> m_CreationTime;
-					_Stream >> m_AccessTime;
-					_Stream >> m_WriteTime;
-					_Stream >> m_FileSize;
-					_Stream >> m_FileAttributes;
-					_Stream >> m_FirstFileChainCluster;
-					_Stream >> m_ParentDirectory;
-				}
-				catch (NException::CException)
-				{
-					m_MD5Checksum = NCryptography::CHashDigest_MD5();
-				}
-			}
+			void f_Reset();
+			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version);
+			bool f_Validate(uint64 _ClusterID, uint32 _Version);
+			void f_WriteInternal(NStream::CBinaryStream &_Stream);
+			void f_Write(NStream::CBinaryStream &_Stream);
+			void f_Read(NStream::CBinaryStream &_Stream);
 		};
 
 		struct CClusterChain
@@ -261,79 +81,11 @@ namespace NMib::NFile
 			uint64 m_nClusterIDs;
 			NContainer::TCVector<CClusterID> m_ClusterIDs;
 
-			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x8d8610e6;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				m_MD5Checksum = Checksum;
-			}
-
-			bool f_Validate(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x8d8610e6;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				return m_MD5Checksum == Checksum;
-			}
-
-			void f_WriteInternal(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_NextChainCluster;
-				_Stream << m_ClusterFirstIDIndex;
-				_Stream << m_nClusterIDs;
-				if (m_nClusterIDs > m_ClusterIDs.f_GetLen())
-					return;
-				for (umint iClusterID = 0; iClusterID < m_nClusterIDs; ++iClusterID)
-					_Stream << m_ClusterIDs[iClusterID];
-			}
-
-			void f_Write(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_MD5Checksum;
-				f_WriteInternal(_Stream);
-			}
-
-			void f_Read(NStream::CBinaryStream &_Stream)
-			{
-				try
-				{
-					_Stream >> m_MD5Checksum;
-					_Stream >> m_NextChainCluster;
-					_Stream >> m_ClusterFirstIDIndex;
-					_Stream >> m_nClusterIDs;
-					if (m_nClusterIDs > m_ClusterIDs.f_GetLen())
-					{
-						m_MD5Checksum = NCryptography::CHashDigest_MD5();
-						return;
-					}
-
-					for (umint iClusterID = 0; iClusterID < m_nClusterIDs; ++iClusterID)
-						_Stream >> m_ClusterIDs[iClusterID];
-				}
-				catch (NException::CException)
-				{
-					m_MD5Checksum = NCryptography::CHashDigest_MD5();
-				}
-			}
+			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version);
+			bool f_Validate(uint64 _ClusterID, uint32 _Version);
+			void f_WriteInternal(NStream::CBinaryStream &_Stream);
+			void f_Write(NStream::CBinaryStream &_Stream);
+			void f_Read(NStream::CBinaryStream &_Stream);
 		};
 
 	public:
@@ -347,155 +99,22 @@ namespace NMib::NFile
 				CClusterID m_FileRecordCluster;
 				NStr::CMStrPreserve m_FileName;
 
-				void f_FeedPreserve(NStream::CBinaryStream &_Stream) const
-				{
-					_Stream << m_FileRecordCluster;
-					_Stream << m_FileName;
-				}
-
-				void f_FeedNormal(NStream::CBinaryStream &_Stream) const
-				{
-					_Stream << m_FileRecordCluster;
-					NStr::CMStrPreserve ToSave(m_FileName);
-					ToSave.m_MixedType = NStr::EMStrType_CStr;
-					ToSave.m_OriginalType = NStr::EStrType_UTF;
-					_Stream << ToSave;
-				}
-
-				void f_Consume(NStream::CBinaryStream &_Stream)
-				{
-					_Stream >> m_FileRecordCluster;
-					_Stream >> m_FileName;
-				}
+				void f_FeedPreserve(NStream::CBinaryStream &_Stream) const;
+				void f_FeedNormal(NStream::CBinaryStream &_Stream) const;
+				void f_Consume(NStream::CBinaryStream &_Stream);
 			};
 
 			NContainer::TCVector<CFile> m_Files;
 
-			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x012F3862;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				m_MD5Checksum = Checksum;
-			}
-
-			void f_AddChild(NStr::CStr const &_Path, CClusterID _ClusterID)
-			{
-				CFile File;
-				File.m_FileRecordCluster = _ClusterID;
-				File.m_FileName = _Path;
-				m_Files.f_Insert(File);
-			}
-
-			bool f_Validate(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x012F3862;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				if (_Version == 0x101)
-				{
-					uint32 nFiles = m_Files.f_GetLen();
-					for (umint iFile = 0; iFile < nFiles; ++iFile)
-						m_Files[iFile].m_FileName.m_OriginalType = NStr::EStrType_Ansi;
-					f_WriteInternalValidate(Stream);
-					for (umint iFile = 0; iFile < nFiles; ++iFile)
-						m_Files[iFile].m_FileName.m_OriginalType = NStr::EStrType_Unicode;
-				}
-				else
-					f_WriteInternalValidate(Stream);
-
-				return m_MD5Checksum == Checksum;
-			}
-
-			void f_WriteInternalValidate(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_DirectoryID;
-				uint32 nFiles = m_Files.f_GetLen();
-				_Stream << nFiles;
-				for (auto &File : m_Files)
-					File.f_FeedPreserve(_Stream);
-			}
-
-			void f_WriteInternal(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_DirectoryID;
-				uint32 nFiles = m_Files.f_GetLen();
-				_Stream << nFiles;
-				for (auto &File : m_Files)
-					File.f_FeedNormal(_Stream);
-			}
-
-			void f_Write(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_MD5Checksum;
-				f_WriteInternal(_Stream);
-			}
-
-			void f_Read(NStream::CBinaryStream &_Stream)
-			{
-				try
-				{
-					_Stream >> m_MD5Checksum;
-					_Stream >> m_DirectoryID;
-
-					uint32 nFiles;
-					_Stream >> nFiles;
-					umint MaxFiles = ((_Stream.f_GetLength() - _Stream.f_GetPosition()) / (sizeof(CClusterID) + sizeof(uint32)));
-					if (nFiles > MaxFiles)
-					{
-						m_Files.f_Clear();
-						m_MD5Checksum = NCryptography::CHashDigest_MD5();
-						return;
-					}
-					m_Files.f_SetLen(nFiles);
-					for (umint iFile = 0; iFile < nFiles; ++iFile)
-						_Stream >> m_Files[iFile];
-				}
-				catch (NException::CException)
-				{
-					m_Files.f_Clear();
-					m_MD5Checksum = NCryptography::CHashDigest_MD5();
-				}
-			}
-
-			CClusterID f_GetChild(NStr::CStr const &_Child)
-			{
-				for (umint iFile = 0; iFile < m_Files.f_GetLen(); ++iFile)
-				{
-					if (m_Files[iFile].m_FileName == _Child)
-						return m_Files[iFile].m_FileRecordCluster;
-				}
-
-				return 0;
-			}
-
-			void f_RemoveChild(CClusterID _Child)
-			{
-				for (umint iFile = 0; iFile < m_Files.f_GetLen(); ++iFile)
-				{
-					if (m_Files[iFile].m_FileRecordCluster == _Child)
-					{
-						m_Files.f_Remove(iFile);
-						return;
-					}
-				}
-			}
+			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version);
+			void f_AddChild(NStr::CStr const &_Path, CClusterID _ClusterID);
+			bool f_Validate(uint64 _ClusterID, uint32 _Version);
+			void f_WriteInternalValidate(NStream::CBinaryStream &_Stream);
+			void f_WriteInternal(NStream::CBinaryStream &_Stream);
+			void f_Write(NStream::CBinaryStream &_Stream);
+			void f_Read(NStream::CBinaryStream &_Stream);
+			CClusterID f_GetChild(NStr::CStr const &_Child);
+			void f_RemoveChild(CClusterID _Child);
 		};
 
 	private:
@@ -504,63 +123,11 @@ namespace NMib::NFile
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			CClusterID m_NextFreeCluster;                 // Next free cluster
 
-			void f_WriteInternal(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_NextFreeCluster;
-			}
-
-			void f_Write(NStream::CBinaryStream &_Stream)
-			{
-				_Stream << m_MD5Checksum;
-				f_WriteInternal(_Stream);
-			}
-
-			void f_Read(NStream::CBinaryStream &_Stream)
-			{
-				try
-				{
-					_Stream >> m_MD5Checksum;
-					_Stream >> m_NextFreeCluster;
-				}
-				catch (NException::CException)
-				{
-					m_MD5Checksum = NCryptography::CHashDigest_MD5();
-				}
-			}
-
-			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x052e5468;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				m_MD5Checksum = Checksum;
-			}
-
-			bool f_Validate(uint64 _ClusterID, uint32 _Version)
-			{
-				NCryptography::CHash_MD5 Checksum;
-				NCryptography::TCBinaryStreamHashRef<NCryptography::CHash_MD5> Stream;
-				Stream.f_Open(Checksum);
-
-				Stream << (uint32)0x052e5468;
-				if (_Version >= 0x103)
-				{
-					Stream << _ClusterID;
-					Stream << _Version;
-				}
-				f_WriteInternal(Stream);
-
-				return m_MD5Checksum == Checksum;
-			}
+			void f_WriteInternal(NStream::CBinaryStream &_Stream);
+			void f_Write(NStream::CBinaryStream &_Stream);
+			void f_Read(NStream::CBinaryStream &_Stream);
+			void f_GenerateChecksum(uint64 _ClusterID, uint32 _Version);
+			bool f_Validate(uint64 _ClusterID, uint32 _Version);
 		};
 
 		CClusterID fp_GetNewCluster();
@@ -578,89 +145,28 @@ namespace NMib::NFile
 
 			bool m_bDirty;
 
-			CClusterCacheEntry()
-			{
-				m_bDirty = false;
-				m_RefCount = 0;
-			}
+			CClusterCacheEntry();
 
 			struct CCompare
 			{
-				inline_small CClusterID const &operator () (CClusterCacheEntry const &_Node) const
-				{
-					return _Node.m_ClusterID;
-				}
+				inline_small CClusterID const &operator () (CClusterCacheEntry const &_Node) const;
 			};
 
 			NIntrusive::TCAVLLink<> m_CacheLink;
 
-			void f_MakeDirty()
-			{
-				m_bDirty = true;
-			}
-
-			void f_OpenStream(NStream::TCBinaryStreamMemoryPtr<> &_Stream)
-			{
-				umint Len = m_ClusterMemory.f_GetLen();
-				_Stream.f_OpenReadWrite(m_ClusterMemory.f_GetArray(), Len, Len);
-			}
-
-			void f_CloseStream(bool _bWritten)
-			{
-				if (_bWritten)
-					f_MakeDirty();
-			}
+			void f_MakeDirty();
+			void f_OpenStream(NStream::TCBinaryStreamMemoryPtr<> &_Stream);
+			void f_CloseStream(bool _bWritten);
 		};
 
 		struct CClusterCache
 		{
-			CClusterCache()
-			{
-				m_nCached = 0;
-				m_nCachedMax = 0;
-			}
-
-			void f_Create(CVirtualFS *_pVirtualFS)
-			{
-				m_pVirtualFS = _pVirtualFS;
-			}
-
-			~CClusterCache()
-			{
-				f_Destroy();
-			}
-
-			void f_Destroy()
-			{
-				DMibSafeCheck(m_InUse.f_IsEmpty(), "This should not happed. Did you close all files?");
-
-				f_Flush();
-				m_Tree.f_DeleteAllDefiniteType();
-			}
-
-			void f_Flush(CClusterCacheEntry *_pCluster)
-			{
-				if (_pCluster->m_bDirty)
-				{
-					m_pVirtualFS->fp_SetStreamCluster(_pCluster->m_ClusterID);
-					m_pVirtualFS->mp_pStorageStream->f_FeedBytes(_pCluster->m_ClusterMemory.f_GetArray(), _pCluster->m_ClusterMemory.f_GetLen());
-					m_pVirtualFS->mp_pStorageStream->f_Flush(true);
-					_pCluster->m_bDirty = false;
-				}
-			}
-
-			void f_Flush()
-			{
-				auto iCluster = m_InUse.f_GetIterator();
-
-				while (iCluster)
-				{
-					if (iCluster->m_bDirty)
-						f_Flush(iCluster);
-
-					++iCluster;
-				}
-			}
+			CClusterCache();
+			void f_Create(CVirtualFS *_pVirtualFS);
+			~CClusterCache();
+			void f_Destroy();
+			void f_Flush(CClusterCacheEntry *_pCluster);
+			void f_Flush();
 
 			CVirtualFS *m_pVirtualFS;
 
@@ -671,65 +177,11 @@ namespace NMib::NFile
 			umint m_nCached;
 			umint m_nCachedMax;
 
-			void f_SetCacheSize(umint _nCachedMax)
-			{
-				m_nCachedMax = _nCachedMax;
-				f_MakeSpace(0);
-			}
-
-			void f_RemoveCacheEntry(CClusterCacheEntry *_pEntry)
-			{
-				m_Tree.f_Remove(_pEntry);
-				--m_nCached;
-				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
-			}
-
-			void f_MakeSpace(umint _Space)
-			{
-				while ((m_nCached + _Space) > m_nCachedMax)
-				{
-					CClusterCacheEntry *pEntry = m_Cached.f_GetLast();
-
-					if (!pEntry)
-						return; // nothing we can do no more unused cache entries to delete
-
-					f_RemoveCacheEntry(pEntry);
-				}
-			}
-
-			CClusterCacheEntry *f_GetCluster(CClusterID _Cluster)
-			{
-				CClusterCacheEntry *pCache = m_Tree.f_FindEqual(_Cluster);
-
-				if (!pCache)
-				{
-					f_MakeSpace(1);
-					NStorage::TCUniquePointer<CClusterCacheEntry> pCacheNew(fg_Construct());
-					pCacheNew->m_ClusterID = _Cluster;
-					pCacheNew->m_ClusterMemory.f_SetLen(m_pVirtualFS->mp_RootData.m_ClusterSize);
-					m_pVirtualFS->fp_SetStreamCluster(_Cluster);
-					m_pVirtualFS->mp_pStorageStream->f_ConsumeBytes(pCacheNew->m_ClusterMemory.f_GetArray(), pCacheNew->m_ClusterMemory.f_GetLen());
-					pCache = pCacheNew.f_Detach();
-					m_Tree.f_Insert(pCache);
-					++m_nCached;
-				}
-
-				m_InUse.f_InsertFirst(pCache);
-				++pCache->m_RefCount;
-				return pCache;
-			}
-
-			void f_ReturnCluster(CClusterCacheEntry *_pCluster)
-			{
-				if (_pCluster->m_RefCount == 1)
-				{
-					if (_pCluster->m_bDirty)
-						f_Flush(_pCluster);
-
-					--_pCluster->m_RefCount;
-					m_Cached.f_InsertFirst(_pCluster);
-				}
-			}
+			void f_SetCacheSize(umint _nCachedMax);
+			void f_RemoveCacheEntry(CClusterCacheEntry *_pEntry);
+			void f_MakeSpace(umint _Space);
+			CClusterCacheEntry *f_GetCluster(CClusterID _Cluster);
+			void f_ReturnCluster(CClusterCacheEntry *_pCluster);
 		};
 
 		CClusterCache mp_ClusterCache;
@@ -743,18 +195,11 @@ namespace NMib::NFile
 			bool m_bDirty;
 			umint m_RefCount;
 
-			CDirectoryCacheEntry()
-			{
-				m_bDirty = false;
-				m_RefCount = 0;
-			}
+			CDirectoryCacheEntry();
 
 			struct CCompare
 			{
-				inline_small NStr::CStr const &operator () (CDirectoryCacheEntry const &_Node) const
-				{
-					return _Node.m_FullPath;
-				}
+				inline_small NStr::CStr const &operator () (CDirectoryCacheEntry const &_Node) const;
 			};
 
 			NIntrusive::TCAVLLink<> m_CacheLink;
@@ -762,62 +207,12 @@ namespace NMib::NFile
 
 		struct CDirectoryCache
 		{
-			CDirectoryCache()
-			{
-				m_nCached = 0;
-				m_nCachedMax = 0;
-			}
-
-			~CDirectoryCache()
-			{
-				f_Destroy();
-			}
-
-			void f_Destroy()
-			{
-				DMibSafeCheck(m_InUse.f_IsEmpty(), "This should not happed. Did you close all files?");
-				f_Flush();
-				m_Tree.f_DeleteAllDefiniteType();
-			}
-
-			void f_Flush()
-			{
-				auto iCluster = m_InUse.f_GetIterator();
-
-				while (iCluster)
-				{
-					if (iCluster->m_bDirty)
-						f_Flush(iCluster);
-					++iCluster;
-				}
-			}
-
-			void f_Flush(CDirectoryCacheEntry *_pEntry)
-			{
-				if (_pEntry->m_bDirty)
-				{
-					CVirtualFS::CFileInternal *pFile = m_pVirtualFS->fp_OpenFile(_pEntry->m_DirectoryFileClusterID);
-					if (!pFile)
-						DMibErrorFile("Could not open directory file");
-
-					{
-						CBinaryStreamFileInternal Stream;
-						Stream.f_Open(pFile);
-						_pEntry->m_Directory.f_GenerateChecksum(_pEntry->m_DirectoryFileClusterID, m_pVirtualFS->mp_RootData.m_Version);
-						_pEntry->m_Directory.f_Write(Stream);
-						CMibFilePos Length = Stream.f_GetPosition();
-						pFile->f_SetLength(Length);
-					}
-
-					m_pVirtualFS->fp_CloseFile(pFile);
-					_pEntry->m_bDirty = false;
-				}
-			}
-
-			void f_Create(CVirtualFS *_pVirtualFS)
-			{
-				m_pVirtualFS = _pVirtualFS;
-			}
+			CDirectoryCache();
+			~CDirectoryCache();
+			void f_Destroy();
+			void f_Flush();
+			void f_Flush(CDirectoryCacheEntry *_pEntry);
+			void f_Create(CVirtualFS *_pVirtualFS);
 
 			CVirtualFS *m_pVirtualFS;
 
@@ -830,193 +225,15 @@ namespace NMib::NFile
 			CDirectoryCacheEntry *f_GetNewCacheEntry(CDirectoryCacheEntry *_pParent, NStr::CStr const &_Path);
 			CDirectoryCacheEntry *f_GetExistingCacheEntry(CClusterID _DirectoryCluster, NStr::CStr const &_Path);
 
-			CDirectoryCacheEntry *f_GetCacheEntry(CDirectoryCacheEntry *_pParentEntry, NStr::CStr const &_CurrentPath)
-			{
-				NStr::CStr CurrentPath = _CurrentPath;
-
-				CClusterID DirectoryCluster;
-				CDirectoryCacheEntry *pCache = nullptr;
-
-				if (_pParentEntry)
-				{
-					NStr::CStr ToFind;
-					int iPath = CurrentPath.f_FindChar('/');
-
-					if (iPath >= 0)
-					{
-						ToFind = CurrentPath.f_Left(iPath);
-						CurrentPath = CurrentPath.f_Extract(iPath + 1);
-					}
-					else
-					{
-						ToFind = CurrentPath;
-						CurrentPath.f_Clear();
-					}
-					DirectoryCluster = _pParentEntry->m_Directory.f_GetChild(ToFind);
-					if (DirectoryCluster)
-					{
-						if (_pParentEntry->m_FullPath != "")
-							pCache = f_GetExistingCacheEntry(DirectoryCluster, _pParentEntry->m_FullPath + "/" + ToFind);
-						else
-							pCache = f_GetExistingCacheEntry(DirectoryCluster, ToFind);
-					}
-				}
-				else
-				{
-					DirectoryCluster = m_pVirtualFS->mp_RootData.m_RootFileCluster;
-					pCache = f_GetExistingCacheEntry(DirectoryCluster, "");
-				}
-
-				if (!pCache)
-					return _pParentEntry;
-
-				if (CurrentPath.f_IsEmpty())
-					return pCache;
-
-				return f_GetCacheEntry(pCache, CurrentPath);
-			}
-
-			void f_ReturnCacheEntry(CDirectoryCacheEntry *_pEntry)
-			{
-				if ((--_pEntry->m_RefCount) == 0)
-				{
-					if (_pEntry->m_bDirty)
-						f_Flush(_pEntry);
-
-					m_Cached.f_InsertFirst(_pEntry);
-				}
-			}
-
-			CDirectoryCacheEntry *f_GetDirectoryCommon(NStr::CStr const &_Path)
-			{
-				// First try to get the closest directory we have in cache
-				CDirectoryCacheEntry *pCache = nullptr;
-
-				NStr::CStr CurrentPath = _Path;
-
-				NStr::CStr Find = _Path;
-				while (1)
-				{
-					pCache = m_Tree.f_FindEqual(Find);
-
-					if (pCache)
-					{
-						if (Find != "")
-							CurrentPath = _Path.f_Extract(Find.f_GetLen() + 1);
-						else
-							CurrentPath = _Path;
-
-						break;
-					}
-					aint iFind = Find.f_FindCharReverse('/');
-					if (iFind >= 0)
-						Find = Find.f_Left(iFind);
-					else
-					{
-						if (Find == "")
-							break;
-						Find = "";
-					}
-				}
-
-				pCache = f_GetCacheEntry(pCache, CurrentPath);
-				++pCache->m_RefCount;
-				m_InUse.f_InsertFirst(pCache);
-
-				return pCache;
-			}
-
-			CDirectoryCacheEntry *f_GetDirectory(NStr::CStr const &_Path)
-			{
-				CDirectoryCacheEntry *pCache = f_GetDirectoryCommon(_Path);
-
-				if (pCache->m_FullPath != _Path)
-				{
-					f_ReturnCacheEntry(pCache);
-					return nullptr;
-				}
-				return pCache;
-			}
-
-			CDirectoryCacheEntry *f_GetNewDirectory(NStr::CStr const &_Path)
-			{
-				CDirectoryCacheEntry *pCache = f_GetDirectoryCommon(_Path);
-
-				if (pCache->m_FullPath.f_GetLen() < _Path.f_GetLen())
-				{
-					NStr::CStr CurrentPath;
-					if (pCache->m_FullPath != "")
-						CurrentPath = _Path.f_Extract(pCache->m_FullPath.f_GetLen() + 1);
-					else
-						CurrentPath = _Path;
-
-					while (pCache && !CurrentPath.f_IsEmpty())
-					{
-						NStr::CStr ToFind;
-						int iPath = CurrentPath.f_FindChar('/');
-
-						if (iPath >= 0)
-						{
-							ToFind = CurrentPath.f_Left(iPath);
-							CurrentPath = CurrentPath.f_Extract(iPath + 1);
-						}
-						else
-						{
-							ToFind = CurrentPath;
-							CurrentPath.f_Clear();
-						}
-						CClusterID Cluster = pCache->m_Directory.f_GetChild(ToFind);
-
-						if (Cluster)
-						{
-							// This must have been a file
-							f_ReturnCacheEntry(pCache);
-							pCache = nullptr;
-							break;
-						}
-
-						CDirectoryCacheEntry *pNewCache = f_GetNewCacheEntry(pCache, ToFind);
-						f_ReturnCacheEntry(pCache);
-						pCache = pNewCache;
-					}
-				}
-
-				return pCache;
-			}
-
-			void f_ReturnDirectory(CDirectoryCacheEntry *_pEntry)
-			{
-				f_ReturnCacheEntry(_pEntry);
-			}
-
-			void f_RemoveCacheEntry(CDirectoryCacheEntry *_pEntry)
-			{
-				DMibSafeCheck(!_pEntry->m_bDirty, "Should not be dirty");
-				DMibSafeCheck(_pEntry->m_RefCount == 0, "Should not be dirty");
-
-				m_Tree.f_Remove(_pEntry);
-				--m_nCached;
-				fg_DeleteObject(NMemory::CDefaultAllocator(), _pEntry);
-			}
-
-			void f_MakeSpace(umint _Space)
-			{
-				while ((m_nCached + _Space) > m_nCachedMax)
-				{
-					CDirectoryCacheEntry *pEntry = m_Cached.f_GetLast();
-
-					if (!pEntry)
-						return; // nothing we can do no more unused cache entries to delete
-
-					f_RemoveCacheEntry(pEntry);
-				}
-			}
-
-			void f_SetCacheSize(umint _Size)
-			{
-				m_nCachedMax = _Size;
-				f_MakeSpace(0);
-			}
+			CDirectoryCacheEntry *f_GetCacheEntry(CDirectoryCacheEntry *_pParentEntry, NStr::CStr const &_CurrentPath);
+			void f_ReturnCacheEntry(CDirectoryCacheEntry *_pEntry);
+			CDirectoryCacheEntry *f_GetDirectoryCommon(NStr::CStr const &_Path);
+			CDirectoryCacheEntry *f_GetDirectory(NStr::CStr const &_Path);
+			CDirectoryCacheEntry *f_GetNewDirectory(NStr::CStr const &_Path);
+			void f_ReturnDirectory(CDirectoryCacheEntry *_pEntry);
+			void f_RemoveCacheEntry(CDirectoryCacheEntry *_pEntry);
+			void f_MakeSpace(umint _Space);
+			void f_SetCacheSize(umint _Size);
 		};
 
 		CDirectoryCache mp_DirectoryCache;
@@ -1037,67 +254,17 @@ namespace NMib::NFile
 
 			struct CCompare
 			{
-				inline_small CClusterID const &operator () (CFileInternal const &_Node) const
-				{
-					return _Node.m_FileDescriptorID;
-				}
+				inline_small CClusterID const &operator () (CFileInternal const &_Node) const;
 			};
 
 			NIntrusive::TCAVLLink<> m_CacheLink;
 
-			CFileInternal()
-			{
-				m_ClusterChain.m_ClusterFirstIDIndex = 0;
-				m_ClusterChain.m_nClusterIDs = 0;
-				m_bValidClusterChain = false;
-				m_nCachedClusters = 0;
-				m_bClusterChainDirty = false;
-				m_ClusterChainCluster = 0;
-				m_bFileRecordDirty = false;
-				m_RefCount = 0;
-				m_bDestroyException = false;
-			}
-
-			~CFileInternal() noexcept(false)
-			{
-				try
-				{
-					CClusterCache *pCluster = m_CachedClusters.f_GetLast();
-					while (pCluster)
-					{
-						m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-						fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
-						pCluster = m_CachedClusters.f_GetLast();
-					}
-				}
-				catch (...)
-				{
-					if (!m_bDestroyException && !m_pVirtualFS->mp_bOutOfSpace)
-					{
-						m_bDestroyException = true;
-						throw;
-					}
-					else
-					{
-						CClusterCache *pCluster = m_CachedClusters.f_GetLast();
-						while (pCluster)
-						{
-							pCluster->m_pClusterCacheEntry->m_bDirty = false;
-							m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-							fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
-							pCluster = m_CachedClusters.f_GetLast();
-						}
-					}
-				}
-			}
+			CFileInternal();
+			~CFileInternal() noexcept(false);
 
 			struct CClusterCache
 			{
-				CClusterCache(CClusterCacheEntry *_pClusterCacheEntry, CFilePos _FilePosStart)
-				{
-					m_pClusterCacheEntry = _pClusterCacheEntry;
-					m_FilePosStart = _FilePosStart;
-				}
+				CClusterCache(CClusterCacheEntry *_pClusterCacheEntry, CFilePos _FilePosStart);
 
 				DMibListLinkDS_Link(CClusterCache, m_Link);
 				CClusterCacheEntry *m_pClusterCacheEntry;
@@ -1107,273 +274,20 @@ namespace NMib::NFile
 			DMibListLinkDS_List(CClusterCache, m_Link) m_CachedClusters;
 			umint m_nCachedClusters;
 
-			CClusterCacheEntry *f_GetCluster(CFilePos &_Position)
-			{
-				uint64 ClusterSize = m_pVirtualFS->mp_RootData.m_ClusterSize;
-				DMibListLinkDS_Iter(CClusterCache, m_Link) iCachedCluster = m_CachedClusters;
-
-				while (iCachedCluster)
-				{
-					CClusterCache *pEntry = iCachedCluster;
-					uint64 End = pEntry->m_FilePosStart + ClusterSize;
-					if (_Position >= pEntry->m_FilePosStart && _Position < End)
-					{
-						m_CachedClusters.f_InsertFirst(pEntry);
-						_Position -= pEntry->m_FilePosStart;
-						return pEntry->m_pClusterCacheEntry;
-					}
-					++iCachedCluster;
-				}
-
-				CFilePos OrgPos = _Position;
-				CClusterID ClusterID = f_GetDataCluster(_Position);
-				if (!ClusterID)
-					return nullptr;
-				OrgPos -= _Position;
-
-				if (m_nCachedClusters >= 8) // Cache max 8 clustes
-				{
-					--m_nCachedClusters;
-					CClusterCache *pCluster = m_CachedClusters.f_GetLast();
-					m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster->m_pClusterCacheEntry);
-					fg_DeleteObject(NMemory::CDefaultAllocator(), pCluster);
-				}
-
-				CClusterCacheEntry *pEntry = m_pVirtualFS->mp_ClusterCache.f_GetCluster(ClusterID);
-
-				CClusterCache *pNewEntry = fg_ConstructObject<CClusterCache>(NMemory::CDefaultAllocator(), pEntry, OrgPos);
-				m_CachedClusters.f_InsertFirst(pNewEntry);
-				++m_nCachedClusters;
-
-				return pEntry;
-			}
-
-			void f_Read(void *_pDest, CFilePos _Position, umint _nBytes)
-			{
-				CFilePos CurrentPosition = _Position;
-				uint8 *pDest = (uint8 *)_pDest;
-
-				uint64 ClusterSize = m_pVirtualFS->mp_RootData.m_ClusterSize;
-
-				if (_Position + _nBytes > m_FileRecord.m_FileSize)
-					DMibErrorFile("Read would read past end of file");
-
-				while (_nBytes)
-				{
-					CFilePos Pos = CurrentPosition;
-					CClusterCacheEntry *pEntry = f_GetCluster(Pos);
-					umint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
-					NMemory::fg_MemCopy(pDest, pEntry->m_ClusterMemory.f_GetArray() + Pos, MaxBytes);
-					pDest += MaxBytes;
-					_nBytes -= MaxBytes;
-					CurrentPosition += MaxBytes;
-				}
-			}
-
-			void f_Write(void const *_pSource, CFilePos _Position, umint _nBytes)
-			{
-				CFilePos CurrentPosition = _Position;
-				uint8 *pSrc = (uint8 *)_pSource;
-
-				uint64 ClusterSize = m_pVirtualFS->mp_RootData.m_ClusterSize;
-
-				while (_nBytes)
-				{
-					CFilePos Pos = CurrentPosition;
-					CClusterCacheEntry *pEntry = f_GetCluster(Pos);
-					umint MaxBytes = fg_Min(ClusterSize - Pos, _nBytes);
-					NMemory::fg_MemCopy(pEntry->m_ClusterMemory.f_GetArray() + Pos, pSrc, MaxBytes);
-					pEntry->m_bDirty = true;
-					pSrc += MaxBytes;
-					_nBytes -= MaxBytes;
-					CurrentPosition += MaxBytes;
-				}
-
-				if (CurrentPosition > m_FileRecord.m_FileSize)
-				{
-					m_FileRecord.m_FileSize = CurrentPosition;
-					m_bFileRecordDirty = true;
-				}
-			}
-
-			void f_WriteClusterChain()
-			{
-				if (!m_bClusterChainDirty)
-					return;
-				m_bClusterChainDirty = false;
-
-				m_ClusterChain.f_GenerateChecksum(m_ClusterChainCluster, m_pVirtualFS->mp_RootData.m_Version);
-				CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_ClusterChainCluster);
-				NStream::TCBinaryStreamMemoryPtr<> Stream;
-				pCluster->f_OpenStream(Stream);
-				m_ClusterChain.f_Write(Stream);
-				pCluster->f_CloseStream(true);
-				m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster);
-			}
+			CClusterCacheEntry *f_GetCluster(CFilePos &_Position);
+			void f_Read(void *_pDest, CFilePos _Position, umint _nBytes);
+			void f_Write(void const *_pSource, CFilePos _Position, umint _nBytes);
+			void f_WriteClusterChain();
 
 			void f_SetLength(uint64 _Length);
 
-			void f_Delete()
-			{
-				f_Destroy();
-
-				if (m_FileRecord.m_FirstFileChainCluster)
-				{
-					f_ReadClusterChain(m_FileRecord.m_FirstFileChainCluster);
-					m_pVirtualFS->fp_ReturnCluster(m_FileRecord.m_FirstFileChainCluster);
-					while (1)
-					{
-						for (uint64 iClusterID = 0; iClusterID < m_ClusterChain.m_nClusterIDs; ++iClusterID)
-							m_pVirtualFS->fp_ReturnCluster(m_ClusterChain.m_ClusterIDs[iClusterID]);
-						if (m_ClusterChain.m_NextChainCluster)
-						{
-							CClusterID ToReturn = m_ClusterChain.m_NextChainCluster;
-							f_ReadClusterChain(ToReturn);
-							m_pVirtualFS->fp_ReturnCluster(ToReturn);
-						}
-						else
-							break;
-					}
-				}
-				m_pVirtualFS->fp_ReturnCluster(m_FileDescriptorID);
-			}
-
-			void f_ReadClusterChain(CClusterID _ClusterID)
-			{
-				if (m_bClusterChainDirty)
-					f_Flush();
-
-				m_ClusterChainCluster = _ClusterID;
-				CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(_ClusterID);
-				NStream::TCBinaryStreamMemoryPtr<> Stream;
-				pCluster->f_OpenStream(Stream);
-				m_ClusterChain.f_Read(Stream);
-				pCluster->f_CloseStream(false);
-				m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster);
-				m_bValidClusterChain = true;
-
-				if (!m_ClusterChain.f_Validate(_ClusterID, m_pVirtualFS->mp_RootData.m_Version))
-					DMibErrorFile("Cluster chain record checksum failure");
-			}
-
-			CClusterID f_GetDataCluster(CFilePos &_FilePosition)
-			{
-				CClusterID ClusterIndex = m_pVirtualFS->fp_GetClusterID(_FilePosition, _FilePosition);
-
-				uint64 ClusterIDsPerCluster = m_pVirtualFS->mp_ClusterIDsPerCluster;
-				// CClusterID ClusterDataLocation = ClusterIndex / ClusterIDsPerCluster;
-				CClusterID IndexInChunk = ClusterIndex - ((ClusterIndex / ClusterIDsPerCluster) * ClusterIDsPerCluster);
-
-				CClusterID LastIndex = m_ClusterChain.m_ClusterFirstIDIndex + m_ClusterChain.m_nClusterIDs;
-				if (ClusterIndex >= m_ClusterChain.m_ClusterFirstIDIndex && ClusterIndex < LastIndex)
-				{
-					// We already have the cluster in question in memory
-					return m_ClusterChain.m_ClusterIDs[IndexInChunk];
-				}
-				else if ((ClusterIndex < m_ClusterChain.m_ClusterFirstIDIndex || !m_bValidClusterChain) && m_FileRecord.m_FirstFileChainCluster)
-				{
-					// We need to start from beginning and work our way through some clusters
-					f_ReadClusterChain(m_FileRecord.m_FirstFileChainCluster);
-				}
-				else if (!m_FileRecord.m_FirstFileChainCluster)
-				{
-					CClusterID NewCluster = m_pVirtualFS->fp_GetNewCluster();
-					m_FileRecord.m_FirstFileChainCluster = NewCluster;
-					m_ClusterChain.m_NextChainCluster = 0;
-					m_ClusterChain.m_nClusterIDs = 0;
-					m_ClusterChain.m_ClusterFirstIDIndex = 0;
-					m_bValidClusterChain = true;
-					m_bClusterChainDirty = true;
-					m_bFileRecordDirty = true;
-					m_ClusterChainCluster = NewCluster;
-				}
-
-				while (ClusterIndex >= (m_ClusterChain.m_ClusterFirstIDIndex + ClusterIDsPerCluster))
-				{
-					if (!m_ClusterChain.m_NextChainCluster)
-					{
-						CClusterID NewCluster = m_pVirtualFS->fp_GetNewCluster();
-						m_ClusterChain.m_NextChainCluster = NewCluster;
-						for (uint64 iClusterID = m_ClusterChain.m_nClusterIDs; iClusterID < ClusterIDsPerCluster; ++iClusterID)
-							m_ClusterChain.m_ClusterIDs[iClusterID] = m_pVirtualFS->fp_GetNewCluster();
-						m_ClusterChain.m_nClusterIDs = ClusterIDsPerCluster;
-						m_bClusterChainDirty = true;
-						f_WriteClusterChain();
-
-						m_ClusterChainCluster = NewCluster;
-						m_ClusterChain.m_nClusterIDs = 0;
-						m_ClusterChain.m_NextChainCluster = 0;
-						m_ClusterChain.m_ClusterFirstIDIndex += ClusterIDsPerCluster;
-						m_bClusterChainDirty = true;
-					}
-					else
-						f_ReadClusterChain(m_ClusterChain.m_NextChainCluster);
-				}
-
-				if (IndexInChunk >= m_ClusterChain.m_nClusterIDs)
-				{
-					for (uint64 iClusterID = m_ClusterChain.m_nClusterIDs; iClusterID <= IndexInChunk; ++iClusterID)
-						m_ClusterChain.m_ClusterIDs[iClusterID] = m_pVirtualFS->fp_GetNewCluster();
-					m_ClusterChain.m_nClusterIDs = IndexInChunk + 1;
-					m_bClusterChainDirty = true;
-				}
-
-				LastIndex = m_ClusterChain.m_ClusterFirstIDIndex + m_ClusterChain.m_nClusterIDs;
-				if (!(ClusterIndex >= m_ClusterChain.m_ClusterFirstIDIndex && ClusterIndex < LastIndex))
-					DMibErrorFile("Cluster chain error");
-
-				f_Flush();
-
-				return m_ClusterChain.m_ClusterIDs[IndexInChunk];
-			}
-
-			void f_Create(CVirtualFS *_pVirtualFS, CClusterID _FileDescriptorID, bool _bLoad)
-			{
-				m_FileDescriptorID = _FileDescriptorID;
-				m_pVirtualFS = _pVirtualFS;
-
-				m_ClusterChain.m_ClusterIDs.f_SetLen(m_pVirtualFS->mp_ClusterIDsPerCluster);
-
-				if (_bLoad)
-				{
-					CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_FileDescriptorID);
-					NStream::TCBinaryStreamMemoryPtr<> Stream;
-					pCluster->f_OpenStream(Stream);
-					m_FileRecord.f_Read(Stream);
-					pCluster->f_CloseStream(false);
-					m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster);
-
-					if (!m_FileRecord.f_Validate(_FileDescriptorID, m_pVirtualFS->mp_RootData.m_Version))
-						DMibErrorFile("File record checksum failure");
-				}
-			}
-
-			void f_WriteFileRecord()
-			{
-				if (m_bFileRecordDirty)
-				{
-					m_bFileRecordDirty = false;
-					m_FileRecord.f_GenerateChecksum(m_FileDescriptorID, m_pVirtualFS->mp_RootData.m_Version);
-					CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_FileDescriptorID);
-					NStream::TCBinaryStreamMemoryPtr<> Stream;
-					pCluster->f_OpenStream(Stream);
-					m_FileRecord.f_Write(Stream);
-					pCluster->f_CloseStream(true);
-					m_pVirtualFS->mp_ClusterCache.f_ReturnCluster(pCluster);
-				}
-			}
-
-			void f_Destroy()
-			{
-				f_Flush();
-				m_bValidClusterChain = false;
-			}
-
-			void f_Flush()
-			{
-				f_WriteClusterChain();
-				f_WriteFileRecord();
-			}
+			void f_Delete();
+			void f_ReadClusterChain(CClusterID _ClusterID);
+			CClusterID f_GetDataCluster(CFilePos &_FilePosition);
+			void f_Create(CVirtualFS *_pVirtualFS, CClusterID _FileDescriptorID, bool _bLoad);
+			void f_WriteFileRecord();
+			void f_Destroy();
+			void f_Flush();
 		};
 
 		NIntrusive::TCAVLTree<&CFileInternal::m_CacheLink, CFileInternal::CCompare> mp_InternalFiles;
@@ -1382,93 +296,23 @@ namespace NMib::NFile
 		{
 			DMibStreamImplementOperators(CBinaryStreamFileInternal);
 
-			CBinaryStreamFileInternal()
-			{
-				mp_Position = 0;
-				mp_pFile = nullptr;
-			}
-
-			void f_Open(CFileInternal *_pFile)
-			{
-				mp_pFile = _pFile;
-			}
-
-			void f_Reset()
-			{
-				mp_Position = 0;
-				mp_pFile = nullptr;
-			}
-
-			void f_FeedBytes(void const *_pMem, umint _nBytes)
-			{
-				mp_pFile->f_Write(_pMem, mp_Position, _nBytes);
-				mp_Position += _nBytes;
-			}
-
-			void f_ConsumeBytes(void *_pMem, umint _nBytes)
-			{
-				mp_pFile->f_Read(_pMem, mp_Position, _nBytes);
-				mp_Position += _nBytes;
-			}
-
-			bool f_IsValid() const
-			{
-				return mp_pFile != nullptr;
-			}
-
-			bool f_IsAtEndOfStream() const
-			{
-				return mp_Position == mp_pFile->m_FileRecord.m_FileSize;
-			}
-
-			NStream::CFilePos f_GetPosition() const
-			{
-				return mp_Position;
-			}
-
-			void f_SetPosition(NStream::CFilePos _Pos)
-			{
-				mp_Position = _Pos;
-			}
-
-			void f_SetPositionFromEnd(NStream::CFilePos _Pos)
-			{
-				mp_Position = mp_pFile->m_FileRecord.m_FileSize - _Pos;
-			}
-
-			void f_AddPosition(NStream::CFilePos _Pos)
-			{
-				mp_Position += _Pos;
-			}
-
-			bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
-			{
-				return _Pos >= 0 && _Pos < NStream::CFilePos(mp_pFile->m_FileRecord.m_FileSize);
-			}
-
-			void f_Flush(bool _bLocalCacheOnly)
-			{
-				return mp_pFile->f_Flush();
-			}
-
-			void f_SetCacheSize(umint _CacheSize)
-			{
-			}
-
-			NStream::CFilePos f_GetLength() const
-			{
-				return mp_pFile->m_FileRecord.m_FileSize;
-			}
-
-			umint f_ContainerLengthLimit() const
-			{
-				return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
-			}
-
-			void f_SetLength(NStream::CFilePos _Length)
-			{
-				return mp_pFile->f_SetLength(_Length);
-			}
+			CBinaryStreamFileInternal();
+			void f_Open(CFileInternal *_pFile);
+			void f_Reset();
+			void f_FeedBytes(void const *_pMem, umint _nBytes);
+			void f_ConsumeBytes(void *_pMem, umint _nBytes);
+			bool f_IsValid() const;
+			bool f_IsAtEndOfStream() const;
+			NStream::CFilePos f_GetPosition() const;
+			void f_SetPosition(NStream::CFilePos _Pos);
+			void f_SetPositionFromEnd(NStream::CFilePos _Pos);
+			void f_AddPosition(NStream::CFilePos _Pos);
+			bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
+			void f_Flush(bool _bLocalCacheOnly);
+			void f_SetCacheSize(umint _CacheSize);
+			NStream::CFilePos f_GetLength() const;
+			umint f_ContainerLengthLimit() const;
+			void f_SetLength(NStream::CFilePos _Length);
 
 		private:
 			CFileInternal *mp_pFile;
@@ -1489,23 +333,9 @@ namespace NMib::NFile
 		void fp_DeleteDirectoryRecursive(NStr::CStr const &_File);
 
 	public:
-		CVirtualFS()
-		{
-			mp_bOutOfSpace = false;
-			mp_pStorageStream = nullptr;
-			mp_ClusterCache.f_Create(this);
-			mp_DirectoryCache.f_Create(this);
-		}
-
-		~CVirtualFS()
-		{
-			fp_Close();
-		}
-
-		bool f_IsValid()
-		{
-			return mp_pStorageStream != nullptr;
-		}
+		CVirtualFS();
+		~CVirtualFS();
+		bool f_IsValid();
 
 		void f_Flush();
 
@@ -1527,15 +357,9 @@ namespace NMib::NFile
 		struct CCheckReporter
 		{
 			virtual void f_ReportError(NStr::CStr const &_Error) = 0;
-			virtual void f_IncreaseProgress(uint64 _nInc)
-			{
-			};
-			virtual void f_StepDown(uint64 _nMax)
-			{
-			};
-			virtual void f_StepUp()
-			{
-			};
+			virtual void f_IncreaseProgress(uint64 _nInc);
+			virtual void f_StepDown(uint64 _nMax);
+			virtual void f_StepUp();
 		};
 
 		enum ECheckFSError
@@ -1563,24 +387,13 @@ namespace NMib::NFile
 
 			struct CClusterCheck
 			{
-				CClusterCheck()
-				{
-					m_Flags = 0;
-					m_ClusterID = 0;
-				}
+				CClusterCheck();
 
 				uint64 m_Flags;
 				CVirtualFS::CClusterID m_ClusterID;
 			};
 
-			CCheckFSContext(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS)
-			{
-				mp_pStorageStream = _pStorageStream;
-				mp_pReporter = _pReporter;
-				mp_bFix = _bFix;
-				mp_pFixDestinationFS = _pFixDestinationFS;
-				mp_MaxDirectoryID = 0;
-			}
+			CCheckFSContext(NStream::CBinaryStream *_pStorageStream, CCheckReporter *_pReporter, bool _bFix, CVirtualFS *_pFixDestinationFS);
 
 			ECheckFSError f_UpdateFreeClusters();
 			void f_FreeCluster(CClusterID _Cluster);
@@ -1621,20 +434,7 @@ namespace NMib::NFile
 
 				DMibListLinkDS_List(CMember, m_Link) m_List;
 
-				bool f_AlreadyInList(CClusterID _ClusterID)
-				{
-					auto iMember = m_List.f_GetIterator();
-
-					while (iMember)
-					{
-						if (iMember->m_ClusterID == _ClusterID)
-							return true;
-
-						++iMember;
-					}
-
-					return false;
-				}
+				bool f_AlreadyInList(CClusterID _ClusterID);
 			};
 
 			ECheckFSError f_CheckOrphanClusters();
@@ -1665,12 +465,7 @@ namespace NMib::NFile
 		uint64 f_GetFileSystemGrowSize();
 		void f_SetFileSystemGrowSize(uint64 _Size);
 
-		CMibFilePos f_GetTotalSize()
-		{
-			if (mp_pStorageStream)
-				return mp_pStorageStream->f_GetLength();
-			return 0;
-		}
+		CMibFilePos f_GetTotalSize();
 
 		void f_SetAttributes(NStr::CStr const &_Path, uint64 _Attribs);
 		void f_ChangeFileAttributes(NStr::CStr const &_Path, uint64 _AttribsAdd, uint64 _AttribsRemove);
@@ -1738,120 +533,26 @@ namespace NMib::NFile
 	{
 		DMibStreamImplementOperators(TCBinaryStream_VirtualFSFilePtr);
 
-		TCBinaryStream_VirtualFSFilePtr()
-		{
-			mp_pFile = nullptr;
-		}
-
-		TCBinaryStream_VirtualFSFilePtr(CVirtualFSFile *_pFile)
-		{
-			mp_pFile = _pFile;
-		}
-
-		TCBinaryStream_VirtualFSFilePtr(CVirtualFSFile &_File)
-		{
-			mp_pFile = &_File;
-		}
-
-		void f_Open(CVirtualFSFile *_pFile)
-		{
-			mp_pFile = _pFile;
-		}
-
-		void f_Open(CVirtualFSFile &_File)
-		{
-			mp_pFile = &_File;
-		}
-
-		void f_Reset()
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_SetLength(0);
-			mp_pFile->f_Flush(false);
-		}
-
-		void f_Flush(bool _bLocalCacheOnly)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_Flush(_bLocalCacheOnly);
-		}
-
-		void f_SetCacheSize(umint _CacheSize)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_SetCacheSize(_CacheSize);
-		}
-
-		void f_FeedBytes(void const *_pMem, umint _nBytes)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_Write(_pMem, _nBytes);
-		}
-
-		void f_ConsumeBytes(void *_pMem, umint _nBytes)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_Read(_pMem, _nBytes);
-		}
-
-		bool f_IsValid() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_IsValid();
-		}
-
-		bool f_IsAtEndOfStream() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_IsAtEndOfFile();
-		}
-
-		NStream::CFilePos f_GetPosition() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_GetPosition();
-		}
-
-		void f_SetPosition(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_SetPosition(_Pos);
-		}
-
-		void f_SetPositionFromEnd(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_SetPositionFromEnd(_Pos);
-		}
-
-		void f_AddPosition(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_pFile->f_AddPosition(_Pos);
-		}
-
-		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_IsValidReadPosition(_Pos);
-		}
-
-		NStream::CFilePos f_GetLength() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_GetLength();
-		}
-
-		umint f_ContainerLengthLimit() const
-		{
-			return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
-		}
-
-		void f_SetLength(NStream::CFilePos _Length)
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_pFile->f_SetLength(_Length);
-		}
+		TCBinaryStream_VirtualFSFilePtr();
+		TCBinaryStream_VirtualFSFilePtr(CVirtualFSFile *_pFile);
+		TCBinaryStream_VirtualFSFilePtr(CVirtualFSFile &_File);
+		void f_Open(CVirtualFSFile *_pFile);
+		void f_Open(CVirtualFSFile &_File);
+		void f_Reset();
+		void f_Flush(bool _bLocalCacheOnly);
+		void f_SetCacheSize(umint _CacheSize);
+		void f_FeedBytes(void const *_pMem, umint _nBytes);
+		void f_ConsumeBytes(void *_pMem, umint _nBytes);
+		bool f_IsValid() const;
+		bool f_IsAtEndOfStream() const;
+		NStream::CFilePos f_GetPosition() const;
+		void f_SetPosition(NStream::CFilePos _Pos);
+		void f_SetPositionFromEnd(NStream::CFilePos _Pos);
+		void f_AddPosition(NStream::CFilePos _Pos);
+		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
+		NStream::CFilePos f_GetLength() const;
+		umint f_ContainerLengthLimit() const;
+		void f_SetLength(NStream::CFilePos _Length);
 
 	private:
 		CVirtualFSFile *mp_pFile;
@@ -1865,110 +566,24 @@ namespace NMib::NFile
 	{
 		DMibStreamImplementOperators(TCBinaryStream_VirtualFSFile);
 
-		TCBinaryStream_VirtualFSFile()
-		{
-		}
-
-		~TCBinaryStream_VirtualFSFile()
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_Close();
-		}
-
-		CVirtualFSFile &f_GetVFSFile()
-		{
-			return mp_File;
-		}
-
-		void f_Reset()
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_SetLength(0);
-			mp_File.f_Flush(false);
-		}
-
-		void f_Flush(bool _bLocalCacheOnly)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_Flush(_bLocalCacheOnly);
-		}
-
-		void f_SetCacheSize(umint _CacheSize)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_SetCacheSize(_CacheSize);
-		}
-
-		void f_FeedBytes(void const *_pMem, umint _nBytes)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_Write(_pMem, _nBytes);
-		}
-
-		void f_ConsumeBytes(void *_pMem, umint _nBytes)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_Read(_pMem, _nBytes);
-		}
-
-		bool f_IsValid() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_IsValid();
-		}
-
-		bool f_IsAtEndOfStream() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_IsAtEndOfFile();
-		}
-
-		NStream::CFilePos f_GetPosition() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_GetPosition();
-		}
-
-		void f_SetPosition(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_SetPosition(_Pos);
-		}
-
-		void f_SetPositionFromEnd(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_SetPositionFromEnd(_Pos);
-		}
-
-		void f_AddPosition(NStream::CFilePos _Pos)
-		{
-			DMibMemLightweightTrackDisableScope;
-			mp_File.f_AddPosition(_Pos);
-		}
-
-		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_IsValidReadPosition(_Pos);
-		}
-
-		NStream::CFilePos f_GetLength() const
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_GetLength();
-		}
-
-		umint f_ContainerLengthLimit() const
-		{
-			return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
-		}
-
-		void f_SetLength(NStream::CFilePos _Length)
-		{
-			DMibMemLightweightTrackDisableScope;
-			return mp_File.f_SetLength(_Length);
-		}
+		TCBinaryStream_VirtualFSFile();
+		~TCBinaryStream_VirtualFSFile();
+		CVirtualFSFile &f_GetVFSFile();
+		void f_Reset();
+		void f_Flush(bool _bLocalCacheOnly);
+		void f_SetCacheSize(umint _CacheSize);
+		void f_FeedBytes(void const *_pMem, umint _nBytes);
+		void f_ConsumeBytes(void *_pMem, umint _nBytes);
+		bool f_IsValid() const;
+		bool f_IsAtEndOfStream() const;
+		NStream::CFilePos f_GetPosition() const;
+		void f_SetPosition(NStream::CFilePos _Pos);
+		void f_SetPositionFromEnd(NStream::CFilePos _Pos);
+		void f_AddPosition(NStream::CFilePos _Pos);
+		bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
+		NStream::CFilePos f_GetLength() const;
+		umint f_ContainerLengthLimit() const;
+		void f_SetLength(NStream::CFilePos _Length);
 
 	private:
 		CVirtualFSFile mp_File;
@@ -1981,3 +596,5 @@ namespace NMib::NFile
 #ifndef DMibPNoShortCuts
 using namespace NMib::NFile;
 #endif
+
+#include "Malterlib_File_MalterlibFS.hpp"

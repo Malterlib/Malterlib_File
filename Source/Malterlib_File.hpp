@@ -1,6 +1,19 @@
 // Copyright © Unbroken AB
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+namespace NMib::NSys::NFile
+{
+	inline_always bool fg_FileSystemHasDrives()
+	{
+		return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasDrives;
+	}
+
+	inline_always bool fg_FileSystemHasExecuteAttrib()
+	{
+		return fg_GetFileSystemFeatures() & NMib::NFile::EFileSystemFeature_HasExecuteAttrib;
+	}
+}
+
 namespace NMib::NFile
 {
 	template <typename tf_CStr>
@@ -177,6 +190,134 @@ namespace NMib::NFile
 #endif
 
 		return false;
+	}
+
+	template <typename tf_CStream>
+	void CFile::CFoundFile::f_Feed(tf_CStream &_Stream) const
+	{
+		_Stream << m_Path;
+		_Stream << m_Attribs;
+	}
+
+	template <typename tf_CStream>
+	void CFile::CFoundFile::f_Consume(tf_CStream &_Stream)
+	{
+		_Stream >> m_Path;
+		_Stream >> m_Attribs;
+	}
+
+	inline void CFile::fp_CheckOpen() const
+	{
+		if (!mp_pFile)
+			DMibErrorFile("File not open");
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramPath()
+	{
+		return fs_GetProgramPathNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramPath()
+	{
+		return fs_GetProgramPath();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramDirectory()
+	{
+		return fs_GetProgramDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramDirectory()
+	{
+		return fs_GetProgramDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetCurrentDirectory()
+	{
+		return fs_GetCurrentDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetCurrentDirectory()
+	{
+		return fs_GetCurrentDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetUserProgramDirectory()
+	{
+		return fs_GetUserProgramDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetUserProgramDirectory()
+	{
+		return fs_GetUserProgramDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetUserLocalProgramDirectory()
+	{
+		return fs_GetUserLocalProgramDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetUserLocalProgramDirectory()
+	{
+		return fs_GetUserLocalProgramDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetTemporaryDirectory()
+	{
+		return fs_GetTemporaryDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetRawTemporaryDirectory()
+	{
+		return fs_GetRawTemporaryDirectoryNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetTemporaryDirectory()
+	{
+		return fs_GetTemporaryDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetRawTemporaryDirectory()
+	{
+		return fs_GetRawTemporaryDirectory();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetModulePath(void *_pCode)
+	{
+		return fs_GetModulePathNonTracked(_pCode);
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetModulePath(void *_pCode)
+	{
+		return fs_GetModulePath(_pCode);
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramRoot()
+	{
+		return fs_GetProgramRootNonTracked();
+	}
+
+	template <typename tf_CStr>
+	TCEnableIf<!NTraits::cIsSame<typename tf_CStr::CAllocator, NMemory::CAllocator_NonTrackedHeap>, tf_CStr> CFile::fs_GetProgramRoot()
+	{
+		return fs_GetProgramRoot();
 	}
 
 	template <typename tf_CStr>
@@ -755,6 +896,262 @@ namespace NMib::NFile
 				, .m_nBytes = ThisTime
 			}
 		;
+	}
+
+	template <typename t_CStreamType>
+	TCBinaryStreamFile<t_CStreamType>::TCBinaryStreamFile()
+	{
+	}
+
+	template <typename t_CStreamType>
+	template <typename tf_CType, typename tf_CStr>
+	tf_CType TCBinaryStreamFile<t_CStreamType>::fs_ReadFile(tf_CStr const &_FileName, EFileOpen _OpenFlags)
+	{
+		TCBinaryStreamFile Stream;
+		Stream.f_Open(_FileName, _OpenFlags);
+		tf_CType Data;
+		Stream >> Data;
+		return Data;
+	}
+
+	template <typename t_CStreamType>
+	template <typename tf_CType, typename tf_CStr>
+	void TCBinaryStreamFile<t_CStreamType>::fs_WriteFile(tf_CType const &_Data, tf_CStr const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes)
+	{
+		TCBinaryStreamFile Stream;
+		Stream.f_Open(_FileName, _OpenFlags, _Attributes);
+		Stream << _Data;
+	}
+
+	template <typename t_CStreamType>
+	template <typename tf_CStr>
+	void TCBinaryStreamFile<t_CStreamType>::f_Open(tf_CStr const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes)
+	{
+		m_File.f_Open(_FileName, _OpenFlags, _Attributes);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_Close()
+	{
+		m_File.f_Close();
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_Reset()
+	{
+		m_File.f_Flush(false);
+		m_File.f_SetLength(0);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_FeedBytes(void const *_pMem, umint _nBytes)
+	{
+		m_File.f_Write(_pMem, _nBytes);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_ConsumeBytes(void *_pMem, umint _nBytes)
+	{
+		m_File.f_Read(_pMem, _nBytes);
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFile<t_CStreamType>::f_IsValid() const
+	{
+		return m_File.f_IsValid();
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFile<t_CStreamType>::f_IsAtEndOfStream() const
+	{
+		return m_File.f_IsAtEndOfFile();
+	}
+
+	template <typename t_CStreamType>
+	NStream::CFilePos TCBinaryStreamFile<t_CStreamType>::f_GetPosition() const
+	{
+		return m_File.f_GetPosition();
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_SetPosition(NStream::CFilePos _Pos)
+	{
+		m_File.f_SetPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_SetPositionFromEnd(NStream::CFilePos _Pos)
+	{
+		m_File.f_SetPositionFromEnd(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_AddPosition(NStream::CFilePos _Pos)
+	{
+		m_File.f_AddPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFile<t_CStreamType>::f_IsValidReadPosition(NStream::CFilePos _Pos) const
+	{
+		return m_File.f_IsValidReadPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_Flush(bool _bLocalCacheOnly)
+	{
+		return m_File.f_Flush(_bLocalCacheOnly);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_SetCacheSize(umint _CacheSize)
+	{
+		m_File.f_SetCacheSize(_CacheSize);
+	}
+
+	template <typename t_CStreamType>
+	NStream::CFilePos TCBinaryStreamFile<t_CStreamType>::f_GetLength() const
+	{
+		return m_File.f_GetLength();
+	}
+
+	template <typename t_CStreamType>
+	umint TCBinaryStreamFile<t_CStreamType>::f_ContainerLengthLimit() const
+	{
+		return NStream::fg_CapLengthLimit(f_GetLength() - f_GetPosition());
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFile<t_CStreamType>::f_SetLength(NStream::CFilePos _Length)
+	{
+		return m_File.f_SetLength(_Length);
+	}
+
+	template <typename t_CStreamType>
+	TCBinaryStreamFilePtr<t_CStreamType>::TCBinaryStreamFilePtr()
+	{
+		mp_pFile = nullptr;
+	}
+
+	template <typename t_CStreamType>
+	TCBinaryStreamFilePtr<t_CStreamType>::TCBinaryStreamFilePtr(CFile *_pFile)
+	{
+		mp_pFile = _pFile;
+	}
+
+	template <typename t_CStreamType>
+	TCBinaryStreamFilePtr<t_CStreamType>::TCBinaryStreamFilePtr(CFile &_File)
+	{
+		mp_pFile = &_File;
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_Open(CFile *_pFile)
+	{
+		mp_pFile = _pFile;
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_Open(CFile &_File)
+	{
+		mp_pFile = &_File;
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_Close()
+	{
+		mp_pFile = nullptr;
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_Reset()
+	{
+		mp_pFile->f_SetLength(0);
+		mp_pFile->f_Flush(false);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_FeedBytes(void const *_pMem, umint _nBytes)
+	{
+		mp_pFile->f_Write(_pMem, _nBytes);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_ConsumeBytes(void *_pMem, umint _nBytes)
+	{
+		mp_pFile->f_Read(_pMem, _nBytes);
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFilePtr<t_CStreamType>::f_IsValid() const
+	{
+		return mp_pFile->f_IsValid();
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFilePtr<t_CStreamType>::f_IsAtEndOfStream() const
+	{
+		return mp_pFile->f_IsAtEndOfFile();
+	}
+
+	template <typename t_CStreamType>
+	NStream::CFilePos TCBinaryStreamFilePtr<t_CStreamType>::f_GetPosition() const
+	{
+		return mp_pFile->f_GetPosition();
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_SetPosition(NStream::CFilePos _Pos)
+	{
+		mp_pFile->f_SetPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_SetPositionFromEnd(NStream::CFilePos _Pos)
+	{
+		mp_pFile->f_SetPositionFromEnd(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_AddPosition(NStream::CFilePos _Pos)
+	{
+		mp_pFile->f_AddPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	bool TCBinaryStreamFilePtr<t_CStreamType>::f_IsValidReadPosition(NStream::CFilePos _Pos) const
+	{
+		return mp_pFile->f_IsValidReadPosition(_Pos);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_Flush(bool _bLocalCacheOnly)
+	{
+		mp_pFile->f_Flush(_bLocalCacheOnly);
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_SetCacheSize(umint _CacheSize)
+	{
+		mp_pFile->f_SetCacheSize(_CacheSize);
+	}
+
+	template <typename t_CStreamType>
+	NStream::CFilePos TCBinaryStreamFilePtr<t_CStreamType>::f_GetLength() const
+	{
+		return mp_pFile->f_GetLength();
+	}
+
+	template <typename t_CStreamType>
+	umint TCBinaryStreamFilePtr<t_CStreamType>::f_ContainerLengthLimit() const
+	{
+		return NStream::fg_CapLengthLimit(mp_pFile->f_GetLength() - mp_pFile->f_GetPosition());
+	}
+
+	template <typename t_CStreamType>
+	void TCBinaryStreamFilePtr<t_CStreamType>::f_SetLength(NStream::CFilePos _Length)
+	{
+		return mp_pFile->f_SetLength(_Length);
 	}
 }
 
