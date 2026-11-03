@@ -7,23 +7,19 @@ namespace NMib::NFile
 {
 	using namespace NCryptography;
 
-	class CMalterlibPatchEncodeHelper
+	struct CMalterlibPatchEncodeHelper
 	{
-	public:
 		static constexpr umint mc_MapLength = 64;
 
-		class CMappedPos
+		struct CMappedPos
 		{
-		public:
 			DMibListLinkSA_Link(CMappedPos, m_Link);
 		};
 
-		class CMappedChunk
+		struct CMappedChunk
 		{
-		public:
-			class CCompare
+			struct CCompare
 			{
-			public:
 				CMalterlibPatchEncodeHelper &m_Context;
 				CCompare(CMalterlibPatchEncodeHelper *_pContext)
 					: m_Context(*_pContext)

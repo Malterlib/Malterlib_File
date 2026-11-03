@@ -6,11 +6,8 @@
 
 namespace NMib::NFile
 {
-	class CFileSystemInterface_VirtualFS : public ICFileSystemInterface
+	struct CFileSystemInterface_VirtualFS : public ICFileSystemInterface
 	{
-		NMib::NFile::CVirtualFS &mp_VirtualFS;
-
-	public:
 		CFileSystemInterface_VirtualFS(NMib::NFile::CVirtualFS &_VirtualFS);
 
 		bool f_IsValid() const override;
@@ -40,6 +37,9 @@ namespace NMib::NFile
 
 		void f_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, NMib::NFile::EFileAttrib _Type, NMib::NFile::ESymbolicLinkFlag _Flags) const override;
 		NMib::NStr::CStr f_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom) const override;
+
+	private:
+		NMib::NFile::CVirtualFS &mp_VirtualFS;
 	};
 }
 

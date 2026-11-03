@@ -34,15 +34,13 @@ namespace NMib::NEncoding
 
 namespace NMib::NFile
 {
-	class CFileProgress
+	struct CFileProgress
 	{
-	public:
 		virtual void f_Progress(CMibFilePos _Position, CMibFilePos _TotalSize) = 0;
 	};
 
-	class CFileHandle
+	struct CFileHandle
 	{
-	public:
 		uint32 m_HandleID;
 		uint32 m_ProcessID;
 		NStr::CStr m_Process;
@@ -244,11 +242,8 @@ namespace NMib::NFile
 	/*¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯*\
 	|	Class:				A file exception										|
 	\*_____________________________________________________________________________*/
-	class CFileChangeNotification
+	struct CFileChangeNotification
 	{
-		void *mp_pNotification;
-
-	public:
 		CFileChangeNotification()
 		{
 			mp_pNotification = nullptr;
@@ -295,9 +290,8 @@ namespace NMib::NFile
 			return NSys::NFile::fg_ChangeNotification_Changed(mp_pNotification);
 		}
 
-		class CNotification
+		struct CNotification
 		{
-		public:
 			EFileChangeNotification m_Notification = EFileChangeNotification_Undefined;
 			NStr::CStr m_Path;
 			NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
@@ -318,23 +312,25 @@ namespace NMib::NFile
 		{
 			return NSys::NFile::fg_ChangeNotification_Supported();
 		}
+
+	private:
+		void *mp_pNotification;
 	};
 
-	class CFileChangeNotifier : NThread::CThread
+	struct CFileChangeNotifier : private NThread::CThread
 	{
+		CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);
+		~CFileChangeNotifier();
+
+	private:
 		CFileChangeNotification m_Notification;
 		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> m_Notify;
 		aint f_Main();
 		NMib::NStr::CStr f_GetThreadName();
-
-	public:
-		CFileChangeNotifier(NMib::NStr::CStr const &_Path, EFileChange _OpenFlags, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify);
-		~CFileChangeNotifier();
 	};
 
-	class CFile
+	struct CFile
 	{
-	public:
 		template <typename tf_CHash>
 		struct TCFileChecksumState
 		{
@@ -935,7 +931,7 @@ namespace NMib::NFile
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
-	class TCBinaryStreamFile : public t_CStreamType
+	struct TCBinaryStreamFile : public t_CStreamType
 	{
 	protected:
 		DMibStreamImplementProtected(TCBinaryStreamFile);
@@ -1056,14 +1052,8 @@ namespace NMib::NFile
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
-	class TCBinaryStreamFilePtr : public t_CStreamType
+	struct TCBinaryStreamFilePtr : public t_CStreamType
 	{
-		CFile *mp_pFile;
-
-	protected:
-		DMibStreamImplementProtected(TCBinaryStreamFilePtr);
-
-	public:
 		DMibStreamImplementOperators(TCBinaryStreamFilePtr);
 
 		TCBinaryStreamFilePtr()
@@ -1171,21 +1161,16 @@ namespace NMib::NFile
 		{
 			return mp_pFile->f_SetLength(_Length);
 		}
+
+	private:
+		CFile *mp_pFile;
+
+	protected:
+		DMibStreamImplementProtected(TCBinaryStreamFilePtr);
 	};
 
-	class CLockFile
+	struct CLockFile
 	{
-	private:
-		NStr::CStr mp_FilePath;
-		NFile::CFile mp_LockFile;
-		NFile::EFileOpen mp_LockFlags;
-
-		CLockFile(CLockFile const &_ToCopy); // delete
-		CLockFile(CLockFile &&_ToMove); // delete
-		CLockFile &operator = (CLockFile const &_ToCopy); // delete
-		CLockFile &operator = (CLockFile &&_ToMove);      // delete
-
-	public:
 		enum ELockResult
 		{
 			ELockResult_Locked
@@ -1209,6 +1194,16 @@ namespace NMib::NFile
 		void f_Unlock();
 
 		bool f_HasLock() const; // Do I have the lock?
+
+	private:
+		NStr::CStr mp_FilePath;
+		NFile::CFile mp_LockFile;
+		NFile::EFileOpen mp_LockFlags;
+
+		CLockFile(CLockFile const &_ToCopy); // delete
+		CLockFile(CLockFile &&_ToMove); // delete
+		CLockFile &operator = (CLockFile const &_ToCopy); // delete
+		CLockFile &operator = (CLockFile &&_ToMove);      // delete
 	};
 }
 

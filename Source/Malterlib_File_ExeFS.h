@@ -10,9 +10,8 @@ namespace NMib::NFile
 {
 	bool fg_ReadExeFSFile(NStr::CStr const &_FileName, NContainer::CByteVector &_ReadTo);
 
-	class CExeFS
+	struct CExeFS
 	{
-	public:
 		NMib::NFile::CVirtualFS m_FileSystem;
 
 		// Either these two...

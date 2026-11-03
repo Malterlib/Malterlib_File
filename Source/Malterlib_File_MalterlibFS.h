@@ -6,22 +6,20 @@
 
 namespace NMib::NFile
 {
-	class CVirtualFS_FixFSFileTree;
-	class CVirtualFS
+	struct CVirtualFS_FixFSFileTree;
+	struct CVirtualFS
 	{
-	public:
-		class CFile;
+		struct CFile;
 		using CClusterID = uint64;
 		using CDirectoryID = uint64;
 		using CFilePos = uint64;
 
 	private:
-		friend class CVirtualFS_FixFSFileTree;
-		friend class CFile;
+		friend struct CVirtualFS_FixFSFileTree;
+		friend struct CFile;
 
-		class CRootData
+		struct CRootData
 		{
-		public:
 			CRootData()
 			{
 				m_ClusterSize = 2048; // Cluster size minimum cluster size is 128
@@ -163,9 +161,8 @@ namespace NMib::NFile
 			return Cluster;
 		}
 
-		class CFileRecord
+		struct CFileRecord
 		{
-		public:
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			NTime::CTime m_CreationTime;
 			NTime::CTime m_AccessTime;
@@ -256,9 +253,8 @@ namespace NMib::NFile
 			}
 		};
 
-		class CClusterChain
+		struct CClusterChain
 		{
-		public:
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			CClusterID m_NextChainCluster;
 			CClusterID m_ClusterFirstIDIndex;
@@ -341,15 +337,13 @@ namespace NMib::NFile
 		};
 
 	public:
-		class CDirectory
+		struct CDirectory
 		{
-		public:
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			CDirectoryID m_DirectoryID;
 
-			class CFile
+			struct CFile
 			{
-			public:
 				CClusterID m_FileRecordCluster;
 				NStr::CMStrPreserve m_FileName;
 
@@ -505,9 +499,8 @@ namespace NMib::NFile
 		};
 
 	private:
-		class CFreeCluster
+		struct CFreeCluster
 		{
-		public:
 			NCryptography::CHashDigest_MD5 m_MD5Checksum; // Validate the data
 			CClusterID m_NextFreeCluster;                 // Next free cluster
 
@@ -573,9 +566,8 @@ namespace NMib::NFile
 		CClusterID fp_GetNewCluster();
 		void fp_ReturnCluster(CVirtualFS::CClusterID _Cluster);
 
-		class CClusterCacheEntry
+		struct CClusterCacheEntry
 		{
-		public:
 			CClusterID m_ClusterID;
 			NContainer::CByteVector m_ClusterMemory;
 
@@ -592,9 +584,8 @@ namespace NMib::NFile
 				m_RefCount = 0;
 			}
 
-			class CCompare
+			struct CCompare
 			{
-			public:
 				inline_small CClusterID const &operator () (CClusterCacheEntry const &_Node) const
 				{
 					return _Node.m_ClusterID;
@@ -621,9 +612,8 @@ namespace NMib::NFile
 			}
 		};
 
-		class CClusterCache
+		struct CClusterCache
 		{
-		public:
 			CClusterCache()
 			{
 				m_nCached = 0;
@@ -744,9 +734,8 @@ namespace NMib::NFile
 
 		CClusterCache mp_ClusterCache;
 
-		class CDirectoryCacheEntry
+		struct CDirectoryCacheEntry
 		{
-		public:
 			NStr::CStr m_FullPath;
 			CDirectory m_Directory;
 			CClusterID m_DirectoryFileClusterID;
@@ -760,9 +749,8 @@ namespace NMib::NFile
 				m_RefCount = 0;
 			}
 
-			class CCompare
+			struct CCompare
 			{
-			public:
 				inline_small NStr::CStr const &operator () (CDirectoryCacheEntry const &_Node) const
 				{
 					return _Node.m_FullPath;
@@ -772,9 +760,8 @@ namespace NMib::NFile
 			NIntrusive::TCAVLLink<> m_CacheLink;
 		};
 
-		class CDirectoryCache
+		struct CDirectoryCache
 		{
-		public:
 			CDirectoryCache()
 			{
 				m_nCached = 0;
@@ -1034,9 +1021,8 @@ namespace NMib::NFile
 
 		CDirectoryCache mp_DirectoryCache;
 
-		class CFileInternal
+		struct CFileInternal
 		{
-		public:
 			CVirtualFS *m_pVirtualFS;
 
 			umint m_RefCount;
@@ -1049,9 +1035,8 @@ namespace NMib::NFile
 			bool m_bFileRecordDirty;
 			bool m_bDestroyException;
 
-			class CCompare
+			struct CCompare
 			{
-			public:
 				inline_small CClusterID const &operator () (CFileInternal const &_Node) const
 				{
 					return _Node.m_FileDescriptorID;
@@ -1106,9 +1091,8 @@ namespace NMib::NFile
 				}
 			}
 
-			class CClusterCache
+			struct CClusterCache
 			{
-			public:
 				CClusterCache(CClusterCacheEntry *_pClusterCacheEntry, CFilePos _FilePosStart)
 				{
 					m_pClusterCacheEntry = _pClusterCacheEntry;
@@ -1394,15 +1378,8 @@ namespace NMib::NFile
 
 		NIntrusive::TCAVLTree<&CFileInternal::m_CacheLink, CFileInternal::CCompare> mp_InternalFiles;
 
-		class CBinaryStreamFileInternal : public NStream::CBinaryStreamDefault
+		struct CBinaryStreamFileInternal : public NStream::CBinaryStreamDefault
 		{
-			CFileInternal *mp_pFile;
-			CFilePos mp_Position;
-
-		protected:
-			DMibStreamImplementProtected(CBinaryStreamFileInternal);
-
-		public:
 			DMibStreamImplementOperators(CBinaryStreamFileInternal);
 
 			CBinaryStreamFileInternal()
@@ -1492,6 +1469,13 @@ namespace NMib::NFile
 			{
 				return mp_pFile->f_SetLength(_Length);
 			}
+
+		private:
+			CFileInternal *mp_pFile;
+			CFilePos mp_Position;
+
+		protected:
+			DMibStreamImplementProtected(CBinaryStreamFileInternal);
 		};
 
 		void fp_Close();
@@ -1540,9 +1524,8 @@ namespace NMib::NFile
 		bool f_FileExists(NStr::CStr const &_File, EFileAttrib _Attributes);
 		bool f_ReadFileToMemory(NStr::CStr const &_File, NContainer::CByteVector &_Data);
 
-		class CCheckReporter
+		struct CCheckReporter
 		{
-		public:
 			virtual void f_ReportError(NStr::CStr const &_Error) = 0;
 			virtual void f_IncreaseProgress(uint64 _nInc)
 			{
@@ -1566,11 +1549,8 @@ namespace NMib::NFile
 			, ECheckFSError_NotFixable
 		};
 
-		class CCheckFSContext
+		struct CCheckFSContext
 		{
-			friend class CVirtualFS;
-
-		public:
 			enum
 			{
 				EClusterCheckFlag_Free               = DMibBit(0)
@@ -1581,9 +1561,8 @@ namespace NMib::NFile
 				, EClusterCheckFlag_RootData         = DMibBit(4)
 			};
 
-			class CClusterCheck
+			struct CClusterCheck
 			{
-			public:
 				CClusterCheck()
 				{
 					m_Flags = 0;
@@ -1632,12 +1611,10 @@ namespace NMib::NFile
 				-> bool
 			;
 
-			class CCircularChecker
+			struct CCircularChecker
 			{
-			public:
-				class CMember
+				struct CMember
 				{
-				public:
 					DMibListLinkDS_Link(CMember, m_Link);
 					CClusterID m_ClusterID;
 				};
@@ -1665,6 +1642,8 @@ namespace NMib::NFile
 			ECheckFSError fr_CheckFSTree(CClusterID _ClusterID, CCircularChecker &_CircularChecker, bool &_bRemove, bool _bMap, CDirectoryID _ParentDir, NStr::CStr const &_FileName);
 
 		private:
+			friend struct CVirtualFS;
+
 			CVirtualFS::CRootData mp_RootData;
 			NContainer::TCVector<CClusterCheck> mp_ClusterMap;
 			NStream::CBinaryStream *mp_pStorageStream;
@@ -1709,15 +1688,8 @@ namespace NMib::NFile
 		NContainer::TCVector<NStr::CStr> f_FindFiles(NStr::CStr const &_Path, uint32 _AttribMask = EFileAttrib_Directory | EFileAttrib_File, bool _bRecursive = false);
 		NCryptography::CHashDigest_MD5 f_GetFileChecksum(NStr::CStr const &_Path);
 
-		class CFile
+		struct CFile
 		{
-			friend class CVirtualFS;
-			CVirtualFS::CFileInternal *mp_pInternalFile;
-			uint64 mp_Position;
-			void fp_CheckValid() const;
-			DMibListLinkDS_Link(CFile, m_Link);
-
-		public:
 			CFile();
 			CFile(CVirtualFS &_FileSystem, NStr::CStr const &_FileName, uint32 _OpenFlags);
 			~CFile();
@@ -1737,6 +1709,13 @@ namespace NMib::NFile
 			void f_AddPosition(NStream::CFilePos _Pos);
 			bool f_IsValidReadPosition(NStream::CFilePos _Pos) const;
 			NStream::CFilePos f_GetPosition() const;
+
+		private:
+			friend struct CVirtualFS;
+			CVirtualFS::CFileInternal *mp_pInternalFile;
+			uint64 mp_Position;
+			void fp_CheckValid() const;
+			DMibListLinkDS_Link(CFile, m_Link);
 		};
 
 	private:
@@ -1755,14 +1734,8 @@ namespace NMib::NFile
 	using CVirtualFSFile = CVirtualFS::CFile;
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
-	class TCBinaryStream_VirtualFSFilePtr : public t_CStreamType
+	struct TCBinaryStream_VirtualFSFilePtr : public t_CStreamType
 	{
-		CVirtualFSFile *mp_pFile;
-
-	protected:
-		DMibStreamImplementProtected(TCBinaryStream_VirtualFSFilePtr);
-
-	public:
 		DMibStreamImplementOperators(TCBinaryStream_VirtualFSFilePtr);
 
 		TCBinaryStream_VirtualFSFilePtr()
@@ -1879,17 +1852,17 @@ namespace NMib::NFile
 			DMibMemLightweightTrackDisableScope;
 			return mp_pFile->f_SetLength(_Length);
 		}
+
+	private:
+		CVirtualFSFile *mp_pFile;
+
+	protected:
+		DMibStreamImplementProtected(TCBinaryStream_VirtualFSFilePtr);
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
-	class TCBinaryStream_VirtualFSFile : public t_CStreamType
+	struct TCBinaryStream_VirtualFSFile : public t_CStreamType
 	{
-		CVirtualFSFile mp_File;
-
-	protected:
-		DMibStreamImplementProtected(TCBinaryStream_VirtualFSFile);
-
-	public:
 		DMibStreamImplementOperators(TCBinaryStream_VirtualFSFile);
 
 		TCBinaryStream_VirtualFSFile()
@@ -1996,6 +1969,12 @@ namespace NMib::NFile
 			DMibMemLightweightTrackDisableScope;
 			return mp_File.f_SetLength(_Length);
 		}
+
+	private:
+		CVirtualFSFile mp_File;
+
+	protected:
+		DMibStreamImplementProtected(TCBinaryStream_VirtualFSFile);
 	};
 }
 

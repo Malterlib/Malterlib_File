@@ -12,26 +12,22 @@ namespace NMib::NFile
 		, ERSyncFlag_UseSHA256            = DMibBit(1)
 	};
 
-	class CRSyncServer
+	struct CRSyncServer
 	{
-		class CImplementation;
-		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
-
-	public:
 		CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags = ERSyncFlag_None);
 		~CRSyncServer();
 
 		void f_SetSyncStream(NStream::CBinaryStream *_pFileToSend);
 
 		bool f_ProcessPacket(NContainer::CIOByteVector const &_ClientData, NContainer::CIOByteVector &_ToSendToClient, NFunction::TCFunction<void ()> const &_fCheckAbort);
+
+	private:
+		struct CImplementation;
+		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
 	};
 
-	class CRSyncClient
+	struct CRSyncClient
 	{
-		class CImplementation;
-		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
-
-	public:
 		CRSyncClient
 			(
 				NStream::CBinaryStream &_OldFile
@@ -57,6 +53,10 @@ namespace NMib::NFile
 		;
 		uint64 f_GetRawBytes();
 		void f_GetProgress(uint32 &_Stage, uint32 &_Stages, uint64 &_BytesTransfered, uint64 &_TotalBytes);
+
+	private:
+		struct CImplementation;
+		NStorage::TCUniquePointer<CImplementation> mp_pImpl;
 	};
 }
 

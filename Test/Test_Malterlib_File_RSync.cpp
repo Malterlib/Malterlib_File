@@ -16,15 +16,8 @@ using namespace NMib::NCryptography;
 namespace
 {
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::CByteVector>
-	class CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
+	struct CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
 	{
-		using CParent = CBinaryStreamMemory<t_CStreamType, t_CVector>;
-
-	private:
-		CBinaryStreamMemorySequential(CBinaryStreamMemorySequential const &) = delete;
-		CBinaryStreamMemorySequential &operator = (CBinaryStreamMemorySequential const &) = delete;
-
-	public:
 		using CStorage = t_CVector;
 
 		DMibStreamImplementProtected(CBinaryStreamMemorySequential);
@@ -53,11 +46,17 @@ namespace
 
 			CParent::f_SetPosition(_Pos);
 		}
+
+	private:
+		using CParent = CBinaryStreamMemory<t_CStreamType, t_CVector>;
+
+	private:
+		CBinaryStreamMemorySequential(CBinaryStreamMemorySequential const &) = delete;
+		CBinaryStreamMemorySequential &operator = (CBinaryStreamMemorySequential const &) = delete;
 	};
 
-	class CRSync_Tests : public NMib::NTest::CTest
+	struct CRSync_Tests : public NMib::NTest::CTest
 	{
-	public:
 		static void fs_DoRSync(CIOByteVector const &_Orig, CIOByteVector const &_New, uint32 _MinChunk, uint32 _MaxChunk, bool _bInPlace, bool _bEncrypt)
 		{
 			bool bServerDone = false;

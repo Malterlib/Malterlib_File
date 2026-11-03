@@ -28,7 +28,6 @@ namespace NMib::NFile
 
 	struct CPacket
 	{
-	public:
 		virtual ~CPacket()
 		{
 		}
@@ -72,7 +71,6 @@ namespace NMib::NFile
 
 	struct CPacket_ClientInit : public CPacket
 	{
-	public:
 		CPacket_ClientInit()
 			: CPacket(EPacketType_ClientInit)
 		{
@@ -128,7 +126,6 @@ namespace NMib::NFile
 
 	struct CPacket_ServerChecksums : public CPacket
 	{
-	public:
 		CPacket_ServerChecksums()
 			: CPacket(EPacketType_ServerChecksums)
 		{
@@ -168,7 +165,6 @@ namespace NMib::NFile
 
 	struct CPacket_ClientChecksums : public CPacket
 	{
-	public:
 		CPacket_ClientChecksums()
 			: CPacket(EPacketType_ClientChecksums)
 		{
@@ -194,7 +190,6 @@ namespace NMib::NFile
 
 	struct CPacket_ClientOutstandingRanges : public CPacket
 	{
-	public:
 		CPacket_ClientOutstandingRanges()
 			: CPacket(EPacketType_ClientOutstandingRanges)
 			, m_bDone(false)
@@ -221,7 +216,6 @@ namespace NMib::NFile
 
 	struct CPacket_ServerOutstandingRanges : public CPacket
 	{
-	public:
 		CPacket_ServerOutstandingRanges()
 			: CPacket(EPacketType_ServerOutstandingRanges)
 		{
@@ -244,7 +238,6 @@ namespace NMib::NFile
 
 	struct CPacket_ServerInit : public CPacket
 	{
-	public:
 		CPacket_ServerInit()
 			: CPacket(EPacketType_ServerInit)
 		{
@@ -483,32 +476,8 @@ namespace NMib::NFile
 	// Server
 	/////////////////////////////////////
 
-	class CRSyncServer::CImplementation
+	struct CRSyncServer::CImplementation
 	{
-		enum EServerMode
-		{
-			EServerMode_Init
-			, EServerMode_SyncChecksum
-		};
-
-		NStream::CBinaryStream *mp_pFileToSend = nullptr;
-		uint32 mp_MaxPacketSize = 0;
-
-		ERSyncFlag mp_Flags = ERSyncFlag_None;
-
-		EServerMode mp_ServerMode = EServerMode_Init;
-		bool mp_bDone = false;
-
-#ifdef DPacketOrderDebug
-		uint32 mp_LastSentPacketID = 0;
-		uint32 mp_LastReceivedPacketID = 0;
-		void fp_CheckPacket(CPacket const &_Packet)
-		{
-			DMibCheck(_Packet.m_PacketID > mp_LastReceivedPacketID);
-			mp_LastReceivedPacketID = _Packet.m_PacketID;
-		}
-#endif
-	public:
 		CImplementation(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags)
 			: mp_pFileToSend(&_FileToSend)
 			, mp_MaxPacketSize(_MaxPacketSize)
@@ -651,6 +620,31 @@ namespace NMib::NFile
 			_ToSendToClient.f_Clear();
 			return true;
 		}
+
+	private:
+		enum EServerMode
+		{
+			EServerMode_Init
+			, EServerMode_SyncChecksum
+		};
+
+		NStream::CBinaryStream *mp_pFileToSend = nullptr;
+		uint32 mp_MaxPacketSize = 0;
+
+		ERSyncFlag mp_Flags = ERSyncFlag_None;
+
+		EServerMode mp_ServerMode = EServerMode_Init;
+		bool mp_bDone = false;
+
+#ifdef DPacketOrderDebug
+		uint32 mp_LastSentPacketID = 0;
+		uint32 mp_LastReceivedPacketID = 0;
+		void fp_CheckPacket(CPacket const &_Packet)
+		{
+			DMibCheck(_Packet.m_PacketID > mp_LastReceivedPacketID);
+			mp_LastReceivedPacketID = _Packet.m_PacketID;
+		}
+#endif
 	};
 
 	CRSyncServer::CRSyncServer(NStream::CBinaryStream &_FileToSend, uint32 _MaxPacketSize, ERSyncFlag _Flags)
@@ -995,110 +989,8 @@ namespace NMib::NFile
 		}
 	};
 
-	class CRSyncClient::CImplementation
+	struct CRSyncClient::CImplementation
 	{
-		NStream::CBinaryStream &mp_OldFile;
-		NStream::CBinaryStream &mp_NewFile;
-		NStream::CBinaryStream *mp_pTempStream = nullptr;
-		uint32 mp_MinChunkSize = 0;
-		uint32 mp_MaxChunkSize = 0;
-		uint32 mp_CurrentChunkSize = 0;
-		uint32 mp_MaxPacketSize = 0;
-		uint32 mp_MaxInFlightPackets = 0;
-
-		uint64 mp_FileSize = 0;
-		uint64 mp_RawBytes = 0;
-		uint64 mp_RawBytesTotal = 0;
-
-		ERSyncFlag mp_Flags = ERSyncFlag_None;
-
-		bool mp_bSentDoneMessage = false;
-		bool mp_bReceivedDoneMessage = false;
-
-#ifdef DPacketOrderDebug
-		uint32 mp_LastSentPacketID = 0;
-		uint32 mp_LastReceivedPacketID = 0;
-
-		void fp_CheckPacket(CPacket const &_Packet)
-		{
-			DMibCheck(_Packet.m_PacketID > mp_LastReceivedPacketID);
-			mp_LastReceivedPacketID = _Packet.m_PacketID;
-		}
-#endif
-
-		enum EClientMode
-		{
-			EClientMode_Init
-			, EClientMode_SyncChecksum
-			, EClientMode_SyncOutstanding
-		};
-
-		CFileMap mp_ServerFile;
-
-		EClientMode mp_ClientMode = EClientMode_Init;
-		TCLinkedList<TCVector<COutstandingRange>> mp_LastAskedFor;
-		TCVector<COutstandingRange> mp_Outstanding;
-		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
-
-		static constexpr umint mc_HashSize = 65536;
-		static constexpr uint32 mc_HashMask = uint32(mc_HashSize) - 1;
-		static constexpr uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
-
-		struct CInnerHash
-		{
-			CHashDigest_SHA256_16 m_Hash;
-			//TCVector<uint64, NMemory::TCAllocator_Static<sizeof(uint64)*2, sizeof(uint64)>, TCVectorOptions<1>> m_Positions;
-			TCVector<uint64, CAllocator_Heap, TCVectorOptions<1, true, false>> m_Positions;
-			//TCVector<uint64> m_Positions;
-
-			CInnerHash(CHashDigest_SHA256_16 const &_Hash)
-				: m_Hash(_Hash)
-			{
-			}
-
-			class CCompare
-			{
-			public:
-				inline_small CHashDigest_SHA256_16 const &operator () (CInnerHash const &_Node) const
-				{
-					return _Node.m_Hash;
-				}
-			};
-
-			NIntrusive::TCAVLLink<> m_Link;
-		};
-
-		struct COuterHash
-		{
-			uint32 m_RunningHash;
-			uint32 m_nFalseAlarms;
-
-			COuterHash(uint32 _RunningHash)
-				: m_RunningHash(_RunningHash)
-				, m_nFalseAlarms(0)
-			{
-			}
-
-			class CCompare
-			{
-			public:
-				inline_small uint32 const &operator () (COuterHash const &_Node) const
-				{
-					return _Node.m_RunningHash;
-				}
-			};
-
-			NIntrusive::TCAVLLink<> m_Link;
-
-			NIntrusive::TCAVLTree<&CInnerHash::m_Link, CInnerHash::CCompare> m_InnerHash;
-		};
-
-		TCPool<CInnerHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_InnerPool;
-		TCPool<COuterHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_OuterPool;
-
-		NIntrusive::TCAVLTree<&COuterHash::m_Link, COuterHash::CCompare> m_Hash[mc_HashSize];
-
-	public:
 		CImplementation
 			(
 				NStream::CBinaryStream &_OldFile
@@ -1670,6 +1562,106 @@ namespace NMib::NFile
 			_ToSendToServer.f_Clear();
 			return true;
 		}
+
+	private:
+		NStream::CBinaryStream &mp_OldFile;
+		NStream::CBinaryStream &mp_NewFile;
+		NStream::CBinaryStream *mp_pTempStream = nullptr;
+		uint32 mp_MinChunkSize = 0;
+		uint32 mp_MaxChunkSize = 0;
+		uint32 mp_CurrentChunkSize = 0;
+		uint32 mp_MaxPacketSize = 0;
+		uint32 mp_MaxInFlightPackets = 0;
+
+		uint64 mp_FileSize = 0;
+		uint64 mp_RawBytes = 0;
+		uint64 mp_RawBytesTotal = 0;
+
+		ERSyncFlag mp_Flags = ERSyncFlag_None;
+
+		bool mp_bSentDoneMessage = false;
+		bool mp_bReceivedDoneMessage = false;
+
+#ifdef DPacketOrderDebug
+		uint32 mp_LastSentPacketID = 0;
+		uint32 mp_LastReceivedPacketID = 0;
+
+		void fp_CheckPacket(CPacket const &_Packet)
+		{
+			DMibCheck(_Packet.m_PacketID > mp_LastReceivedPacketID);
+			mp_LastReceivedPacketID = _Packet.m_PacketID;
+		}
+#endif
+
+		enum EClientMode
+		{
+			EClientMode_Init
+			, EClientMode_SyncChecksum
+			, EClientMode_SyncOutstanding
+		};
+
+		CFileMap mp_ServerFile;
+
+		EClientMode mp_ClientMode = EClientMode_Init;
+		TCLinkedList<TCVector<COutstandingRange>> mp_LastAskedFor;
+		TCVector<COutstandingRange> mp_Outstanding;
+		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
+
+		static constexpr umint mc_HashSize = 65536;
+		static constexpr uint32 mc_HashMask = uint32(mc_HashSize) - 1;
+		static constexpr uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
+
+		struct CInnerHash
+		{
+			CHashDigest_SHA256_16 m_Hash;
+			//TCVector<uint64, NMemory::TCAllocator_Static<sizeof(uint64)*2, sizeof(uint64)>, TCVectorOptions<1>> m_Positions;
+			TCVector<uint64, CAllocator_Heap, TCVectorOptions<1, true, false>> m_Positions;
+			//TCVector<uint64> m_Positions;
+
+			CInnerHash(CHashDigest_SHA256_16 const &_Hash)
+				: m_Hash(_Hash)
+			{
+			}
+
+			struct CCompare
+			{
+				inline_small CHashDigest_SHA256_16 const &operator () (CInnerHash const &_Node) const
+				{
+					return _Node.m_Hash;
+				}
+			};
+
+			NIntrusive::TCAVLLink<> m_Link;
+		};
+
+		struct COuterHash
+		{
+			uint32 m_RunningHash;
+			uint32 m_nFalseAlarms;
+
+			COuterHash(uint32 _RunningHash)
+				: m_RunningHash(_RunningHash)
+				, m_nFalseAlarms(0)
+			{
+			}
+
+			struct CCompare
+			{
+				inline_small uint32 const &operator () (COuterHash const &_Node) const
+				{
+					return _Node.m_RunningHash;
+				}
+			};
+
+			NIntrusive::TCAVLLink<> m_Link;
+
+			NIntrusive::TCAVLTree<&CInnerHash::m_Link, CInnerHash::CCompare> m_InnerHash;
+		};
+
+		TCPool<CInnerHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_InnerPool;
+		TCPool<COuterHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_OuterPool;
+
+		NIntrusive::TCAVLTree<&COuterHash::m_Link, COuterHash::CCompare> m_Hash[mc_HashSize];
 	};
 
 	CRSyncClient::CRSyncClient

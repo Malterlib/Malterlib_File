@@ -4,7 +4,7 @@
 #include <Mib/File/MalterlibFS>
 
 #if 0
-class CTestVirtualFS : public CMalterlibTest
+struct CTestVirtualFS : public CMalterlibTest
 {
 public:
 	NMib::NStr::CStr Certify(CTestInterface &_Interface)

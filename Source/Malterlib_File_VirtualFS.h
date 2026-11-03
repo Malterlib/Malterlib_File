@@ -5,11 +5,8 @@
 
 namespace NMib::NFile
 {
-	class ICFileSystemInterface
+	struct ICFileSystemInterface
 	{
-		void fpr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const;
-
-	public:
 		virtual ~ICFileSystemInterface();
 		// Minimal interface
 		virtual NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> f_OpenStream(NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags) const = 0;
@@ -117,9 +114,8 @@ namespace NMib::NFile
 			const
 		;
 
-		class CCopyFilesProgress
+		struct CCopyFilesProgress
 		{
-		public:
 			//! Reports data copied.
 			/*! Return false to abort. */
 			virtual bool f_IncreaseProgress(uint64 _nInc) = 0;
@@ -148,11 +144,13 @@ namespace NMib::NFile
 			)
 			-> bool
 		;
+
+	private:
+		void fpr_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors) const;
 	};
 
-	class CFileSystemInterface_Disk : public ICFileSystemInterface
+	struct CFileSystemInterface_Disk : public ICFileSystemInterface
 	{
-	public:
 		NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> f_OpenStream(NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags) const override;
 		EFileAttrib f_GetAttributes(NStr::CStr const &_File) const override;
 		void f_SetAttributes(NStr::CStr const &_File, EFileAttrib _Attribs) const override;

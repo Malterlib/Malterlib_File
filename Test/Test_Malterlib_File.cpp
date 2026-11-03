@@ -21,12 +21,10 @@ using namespace NMib;
 
 namespace
 {
-	class CFile_Tests : public NMib::NTest::CTest
+	struct CFile_Tests : public NMib::NTest::CTest
 	{
-	public:
-		class CProgress : public CFileProgress
+		struct CProgress : public CFileProgress
 		{
-		public:
 			bool m_bCalled;
 
 			CProgress()

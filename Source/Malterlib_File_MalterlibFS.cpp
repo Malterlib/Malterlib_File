@@ -5,28 +5,22 @@
 
 namespace NMib::NFile
 {
-	class CVirtualFS_FixFSFileTree
+	struct CVirtualFS_FixFSFileTree
 	{
-		CVirtualFS::CCheckReporter *mp_pReporter;
-		uint32 mp_Version;
-
-	public:
 		CVirtualFS_FixFSFileTree(CVirtualFS::CCheckReporter *_pReporter, uint32 _Version)
 		{
 			mp_pReporter = _pReporter;
 			mp_Version = _Version;
 		}
 
-		class CDirectoryKey
+		struct CDirectoryKey
 		{
-		public:
 			CVirtualFS::CDirectoryID m_DirectoryID;
 			CVirtualFS::CClusterID m_ClusterID;
 		};
 
-		class CFile
+		struct CFile
 		{
-		public:
 			CVirtualFS_FixFSFileTree *m_pTree;
 			CFile(CVirtualFS_FixFSFileTree *_pTree)
 			{
@@ -85,9 +79,8 @@ namespace NMib::NFile
 					_pParent->m_Children.f_Insert(this);
 			}
 
-			class CCompareFileClusterID
+			struct CCompareFileClusterID
 			{
-			public:
 				inline_small CVirtualFS::CClusterID const &operator () (CFile const &_Node) const
 				{
 					return _Node.m_FileClusterID;
@@ -124,9 +117,8 @@ namespace NMib::NFile
 				return nullptr;
 			}
 
-			class CCompareDirectoryID
+			struct CCompareDirectoryID
 			{
-			public:
 				inline_small COrdering_Partial operator () (CFile const &_Left, CFile const &_Right) const
 				{
 					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
@@ -319,6 +311,10 @@ namespace NMib::NFile
 
 		NIntrusive::TCAVLTree<&CFile::m_FileClusterIDLink, CFile::CCompareFileClusterID> m_FileClusters;
 		NIntrusive::TCAVLTree<&CFile::m_DirectoryIDLink, CFile::CCompareDirectoryID> m_Directories;
+
+	private:
+		CVirtualFS::CCheckReporter *mp_pReporter;
+		uint32 mp_Version;
 	};
 
 	void CVirtualFS::f_Open(NStream::CBinaryStream *_pStorageStream)
