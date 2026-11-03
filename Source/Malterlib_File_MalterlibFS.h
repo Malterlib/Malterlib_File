@@ -357,7 +357,7 @@ namespace NMib::NFile
 				{
 					_Stream << m_FileRecordCluster;
 					NStr::CMStrPreserve ToSave(m_FileName);
-					ToSave.m_MixedType = NStr::EMStr_Type_CStr;
+					ToSave.m_MixedType = NStr::EMStrType_CStr;
 					ToSave.m_OriginalType = NStr::EStrType_UTF;
 					_Stream << ToSave;
 				}
@@ -599,7 +599,7 @@ namespace NMib::NFile
 				m_bDirty = true;
 			}
 
-			void f_OpenStream(NStream::CBinaryStreamMemoryPtr<> &_Stream)
+			void f_OpenStream(NStream::TCBinaryStreamMemoryPtr<> &_Stream)
 			{
 				umint Len = m_ClusterMemory.f_GetLen();
 				_Stream.f_OpenReadWrite(m_ClusterMemory.f_GetArray(), Len, Len);
@@ -1204,7 +1204,7 @@ namespace NMib::NFile
 
 				m_ClusterChain.f_GenerateChecksum(m_ClusterChainCluster, m_pVirtualFS->mp_RootData.m_Version);
 				CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_ClusterChainCluster);
-				NStream::CBinaryStreamMemoryPtr<> Stream;
+				NStream::TCBinaryStreamMemoryPtr<> Stream;
 				pCluster->f_OpenStream(Stream);
 				m_ClusterChain.f_Write(Stream);
 				pCluster->f_CloseStream(true);
@@ -1245,7 +1245,7 @@ namespace NMib::NFile
 
 				m_ClusterChainCluster = _ClusterID;
 				CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(_ClusterID);
-				NStream::CBinaryStreamMemoryPtr<> Stream;
+				NStream::TCBinaryStreamMemoryPtr<> Stream;
 				pCluster->f_OpenStream(Stream);
 				m_ClusterChain.f_Read(Stream);
 				pCluster->f_CloseStream(false);
@@ -1337,7 +1337,7 @@ namespace NMib::NFile
 				if (_bLoad)
 				{
 					CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_FileDescriptorID);
-					NStream::CBinaryStreamMemoryPtr<> Stream;
+					NStream::TCBinaryStreamMemoryPtr<> Stream;
 					pCluster->f_OpenStream(Stream);
 					m_FileRecord.f_Read(Stream);
 					pCluster->f_CloseStream(false);
@@ -1355,7 +1355,7 @@ namespace NMib::NFile
 					m_bFileRecordDirty = false;
 					m_FileRecord.f_GenerateChecksum(m_FileDescriptorID, m_pVirtualFS->mp_RootData.m_Version);
 					CClusterCacheEntry *pCluster = m_pVirtualFS->mp_ClusterCache.f_GetCluster(m_FileDescriptorID);
-					NStream::CBinaryStreamMemoryPtr<> Stream;
+					NStream::TCBinaryStreamMemoryPtr<> Stream;
 					pCluster->f_OpenStream(Stream);
 					m_FileRecord.f_Write(Stream);
 					pCluster->f_CloseStream(true);
@@ -1551,7 +1551,7 @@ namespace NMib::NFile
 
 		struct CCheckFSContext
 		{
-			enum
+			enum EClusterCheckFlag
 			{
 				EClusterCheckFlag_Free               = DMibBit(0)
 				, EClusterCheckFlag_FileRecord       = DMibBit(1)

@@ -61,7 +61,7 @@ namespace NMib::NFile
 #ifdef DPacketOrderDebug
 			m_PacketID = _PacketID;
 #endif
-			NStream::CBinaryStreamMemory<NStream::CBinaryStreamDefault, CIOByteVector> Stream;
+			NStream::TCBinaryStreamMemory<NStream::CBinaryStreamDefault, CIOByteVector> Stream;
 			Stream << *this;
 			return Stream.f_MoveVector();
 		}
@@ -273,7 +273,7 @@ namespace NMib::NFile
 
 	NStorage::TCUniquePointer<CPacket> CPacket::fs_DecodePacket(CIOByteVector const &_Data)
 	{
-		NStream::CBinaryStreamMemoryPtr<> Stream;
+		NStream::TCBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_Data.f_GetArray(), _Data.f_GetLen());
 		EPacketType Protocol;
 		Stream >> Protocol;
@@ -360,7 +360,7 @@ namespace NMib::NFile
 		Hash << Sum0;
 		Hash << Sum1;
 		auto Digest = Hash.f_GetDigest();
-		NStream::CBinaryStreamMemoryPtr<> Stream;
+		NStream::TCBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(Digest.f_GetData(), 16);
 		uint32 Hash32;
 		Stream >> Hash32;
@@ -463,7 +463,7 @@ namespace NMib::NFile
 			Hash << m_Sum0;
 			Hash << m_Sum1;
 			auto Digest = Hash.f_GetDigest();
-			NStream::CBinaryStreamMemoryPtr<> Stream;
+			NStream::TCBinaryStreamMemoryPtr<> Stream;
 			Stream.f_OpenRead(Digest.f_GetData(), 16);
 			uint32 Hash32;
 			Stream >> Hash32;

@@ -232,7 +232,7 @@ namespace NMib::NFile
 	NStr::CStr CFile::fs_ReadStringFromVector(NContainer::CByteVector const &_File, bool _bAssumeUTF8)
 	{
 		NStr::CStr FileData;
-		NStream::CBinaryStreamMemoryPtr<> Stream;
+		NStream::TCBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_File.f_GetArray(), _File.f_GetLen());
 		FileData = NStr::CStr::fs_ReadTextStream(Stream, _bAssumeUTF8);
 		return FileData;
@@ -504,7 +504,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBuffer.f_SetLen(EDefaultCacheSize);
+			mp_CacheBuffer.f_SetLen(mc_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;
@@ -528,7 +528,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBuffer.f_SetLen(EDefaultCacheSize);
+			mp_CacheBuffer.f_SetLen(mc_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;
@@ -553,7 +553,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBufferNonTracked.f_SetLen(EDefaultCacheSize);
+			mp_CacheBufferNonTracked.f_SetLen(mc_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;

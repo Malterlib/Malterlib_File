@@ -821,7 +821,7 @@ namespace NMib::NFile
 								if (!CCheckFSContext::fs_ReadFileData(Version, ClusterSize, ClusterIDsPerCluster, _pStorageStream, FileRecord, Data))
 									continue;
 
-								NStream::CBinaryStreamMemoryPtr<> Stream;
+								NStream::TCBinaryStreamMemoryPtr<> Stream;
 								Stream.f_OpenRead(Data.f_GetArray(), Data.f_GetLen());
 
 								Dir.f_Read(Stream);
@@ -1682,7 +1682,7 @@ namespace NMib::NFile
 			NContainer::CByteVector DirectoryData;
 			f_ReadFileData(FileRecord, DirectoryData);
 
-			NStream::CBinaryStreamMemoryPtr<> Stream;
+			NStream::TCBinaryStreamMemoryPtr<> Stream;
 			Stream.f_OpenRead(DirectoryData.f_GetArray(), DirectoryData.f_GetLen());
 
 			CVirtualFS::CDirectory Directory;
@@ -1741,7 +1741,7 @@ namespace NMib::NFile
 			// Test directory size
 			if (!bChanged)
 			{
-				NStream::CBinaryStreamMemory<> Stream;
+				NStream::TCBinaryStreamMemory<> Stream;
 				Directory.f_GenerateChecksum(_ClusterID, mp_RootData.m_Version);
 				Directory.f_Write(Stream);
 				if ((uint64)Stream.f_GetLength() != FileRecord.m_FileSize)
@@ -1764,7 +1764,7 @@ namespace NMib::NFile
 
 			if (bChanged)
 			{
-				NStream::CBinaryStreamMemory<> Stream;
+				NStream::TCBinaryStreamMemory<> Stream;
 				Directory.f_GenerateChecksum(_ClusterID, mp_RootData.m_Version);
 				Directory.f_Write(Stream);
 
@@ -1938,7 +1938,7 @@ namespace NMib::NFile
 						NewFreeCluster.m_NextFreeCluster = 0; // No more free
 					NewFreeCluster.f_GenerateChecksum(mp_RootData.m_FirstFreeCluster + i, mp_RootData.m_Version);
 					CClusterCacheEntry *pCluster = mp_ClusterCache.f_GetCluster(mp_RootData.m_FirstFreeCluster + i);
-					NStream::CBinaryStreamMemoryPtr<> Stream;
+					NStream::TCBinaryStreamMemoryPtr<> Stream;
 					pCluster->f_OpenStream(Stream);
 					NewFreeCluster.f_Write(Stream);
 					pCluster->f_CloseStream(true);
@@ -1958,7 +1958,7 @@ namespace NMib::NFile
 		{
 			CClusterID FreeClusterID = mp_RootData.m_FirstFreeCluster;
 			CClusterCacheEntry *pCluster = mp_ClusterCache.f_GetCluster(mp_RootData.m_FirstFreeCluster);
-			NStream::CBinaryStreamMemoryPtr<> Stream;
+			NStream::TCBinaryStreamMemoryPtr<> Stream;
 			CFreeCluster FreeCluster;
 			pCluster->f_OpenStream(Stream);
 			FreeCluster.f_Read(Stream);
@@ -1991,7 +1991,7 @@ namespace NMib::NFile
 		NewFree.f_GenerateChecksum(_Cluster, mp_RootData.m_Version);
 
 		CClusterCacheEntry *pCluster = mp_ClusterCache.f_GetCluster(_Cluster);
-		NStream::CBinaryStreamMemoryPtr<> Stream;
+		NStream::TCBinaryStreamMemoryPtr<> Stream;
 		pCluster->f_OpenStream(Stream);
 		NewFree.f_Write(Stream);
 		pCluster->f_CloseStream(true);

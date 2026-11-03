@@ -153,7 +153,7 @@ namespace NMib::NFile
 			}
 		}
 
-		void f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::CBinaryStreamMemory<> &_Stream)
+		void f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::TCBinaryStreamMemory<> &_Stream)
 		{
 			m_pFindData = _Changed.f_GetArray();
 			m_FindLen = _Changed.f_GetLen();
@@ -254,7 +254,7 @@ namespace NMib::NFile
 		CMalterlibPatchEncodeHelper Helper;
 		Helper.f_MapOrig(_Orig);
 
-		NStream::CBinaryStreamMemory<> Stream;
+		NStream::TCBinaryStreamMemory<> Stream;
 
 		CHash_MD5 HashOrig;
 		HashOrig.f_AddData(_Orig.f_GetArray(), _Orig.f_GetLen());
@@ -273,7 +273,7 @@ namespace NMib::NFile
 
 	NContainer::CByteVector fg_MalterlibPatchDecode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_PatchData)
 	{
-		NStream::CBinaryStreamMemoryPtr<> Stream;
+		NStream::TCBinaryStreamMemoryPtr<> Stream;
 		Stream.f_OpenRead(_PatchData.f_GetArray(), _PatchData.f_GetLen());
 
 		CHashDigest_MD5 OrigHash;

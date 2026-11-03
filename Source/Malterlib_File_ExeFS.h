@@ -16,9 +16,9 @@ namespace NMib::NFile
 
 		// Either these two...
 		NMib::NFile::TCBinaryStreamFile<> m_ExeFile;
-		NStream::CBinaryStreamSubStream<> m_SubStream;
+		NStream::TCBinaryStreamSubStream<> m_SubStream;
 		// ...or this one will be in use depending on how the ExeFs files were attached to the exe.
-		NStream::CBinaryStreamMemoryPtr<> m_InProcStream;
+		NStream::TCBinaryStreamMemoryPtr<> m_InProcStream;
 
 		~CExeFS()
 		{

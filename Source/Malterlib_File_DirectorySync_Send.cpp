@@ -34,7 +34,7 @@ namespace NMib::NFile
 
 			CIntrusiveRefCountWithWeak m_RefCount;
 			TCUniquePointer<NStream::CBinaryStream> m_pFile = fg_Construct<TCBinaryStreamFile<>>();
-			CBinaryStreamMemory<> m_FileMemory;
+			TCBinaryStreamMemory<> m_FileMemory;
 			TCUniquePointer<CRSyncServer> m_pRSyncServer;
 			CByteStats m_ByteStats;
 			CActorSubscription m_Subscription;

@@ -32,7 +32,7 @@ namespace NMib::NFile
 
 	struct CDirectorySyncClient : public NConcurrency::CActor
 	{
-		enum : uint32
+		enum EProtocolVersion : uint32
 		{
 			EProtocolVersion_Min              = 0x101
 			, EProtocolVersion_UseSHA256      = 0x102

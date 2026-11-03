@@ -16,26 +16,26 @@ using namespace NMib::NCryptography;
 namespace
 {
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault, typename t_CVector = NContainer::CByteVector>
-	struct CBinaryStreamMemorySequential : public CBinaryStreamMemory<t_CStreamType, t_CVector>
+	struct TCBinaryStreamMemorySequential : public TCBinaryStreamMemory<t_CStreamType, t_CVector>
 	{
 		using CStorage = t_CVector;
 
-		DMibStreamImplementProtected(CBinaryStreamMemorySequential);
+		DMibStreamImplementProtected(TCBinaryStreamMemorySequential);
 
 	public:
-		DMibStreamImplementOperators(CBinaryStreamMemorySequential);
+		DMibStreamImplementOperators(TCBinaryStreamMemorySequential);
 
-		CBinaryStreamMemorySequential(CStorage const &_Buffer)
+		TCBinaryStreamMemorySequential(CStorage const &_Buffer)
 			: CParent(_Buffer)
 		{
 		}
 
-		CBinaryStreamMemorySequential(CStorage &&_Buffer)
+		TCBinaryStreamMemorySequential(CStorage &&_Buffer)
 			: CParent(fg_Move(_Buffer))
 		{
 		}
 
-		CBinaryStreamMemorySequential()
+		TCBinaryStreamMemorySequential()
 		{
 		}
 
@@ -48,11 +48,11 @@ namespace
 		}
 
 	private:
-		using CParent = CBinaryStreamMemory<t_CStreamType, t_CVector>;
+		using CParent = TCBinaryStreamMemory<t_CStreamType, t_CVector>;
 
 	private:
-		CBinaryStreamMemorySequential(CBinaryStreamMemorySequential const &) = delete;
-		CBinaryStreamMemorySequential &operator = (CBinaryStreamMemorySequential const &) = delete;
+		TCBinaryStreamMemorySequential(TCBinaryStreamMemorySequential const &) = delete;
+		TCBinaryStreamMemorySequential &operator = (TCBinaryStreamMemorySequential const &) = delete;
 	};
 
 	struct CRSync_Tests : public NMib::NTest::CTest
@@ -67,14 +67,14 @@ namespace
 			Timer.f_Start();
 			CIOByteVector Synced;
 			{
-				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ServerStream(_New);
-				CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ClientStream(_Orig);
+				TCBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ServerStream(_New);
+				TCBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> ClientStream(_Orig);
 				CBinaryStream *pClientOld = &ClientStream;
 				if (_bInPlace)
 					Synced = _Orig;
 
-				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> ClientNewStream;
-				CBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> TemporaryStream;
+				TCBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> ClientNewStream;
+				TCBinaryStreamMemorySequential<NStream::CBinaryStreamDefault, CIOByteVector> TemporaryStream;
 
 				using CEncrypted = NCryptography::TCBinaryStream_Encrypted<CBinaryStream *>;
 				NStorage::TCUniquePointer<CEncrypted> pClientNewStreamEncrypted;
@@ -160,7 +160,7 @@ namespace
 				{
 					CIOByteVector EncryptedData;
 					EncryptedData = ClientNewStream.f_MoveVector();
-					CBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> DataStream(EncryptedData);
+					TCBinaryStreamMemoryConstRef<NStream::CBinaryStreamDefault, CIOByteVector> DataStream(EncryptedData);
 					NCryptography::TCBinaryStream_Encrypted<CBinaryStream *> DecryptingStream(CEncryptKeyIV{*pKey, *pIV}, EDigestType_SHA256, *pHMACKey);
 					DecryptingStream.f_Open(&DataStream, EFileOpen_Read);
 					auto Length = DecryptingStream.f_GetLength();

@@ -431,10 +431,7 @@ namespace NMib::NFile
 		uint8 *fp_GetCacheBuffer();
 		umint fp_GetCacheBufferLen();
 
-		enum
-		{
-			EDefaultCacheSize = 16 * 1024
-		};
+		static constexpr aint mc_DefaultCacheSize = 16 * 1024;
 
 		inline_small void fp_CheckOpen() const
 		{
