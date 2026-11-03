@@ -5,13 +5,13 @@
 
 namespace NAOCC
 {
-	umint g_ExeFS_nBytes = 0;
-	uint8 const *g_ExeFS_pBytes = nullptr;
+	umint g_nExeFSBytes = 0;
+	uint8 const *g_pExeFSBytes = nullptr;
 
 	void fg_SetExeFSData(int _nBytes, void const *_pData)
 	{
-		g_ExeFS_nBytes = _nBytes;
-		g_ExeFS_pBytes = (uint8 const *)_pData;
+		g_nExeFSBytes = _nBytes;
+		g_pExeFSBytes = (uint8 const *)_pData;
 	}
 }
 
@@ -20,11 +20,11 @@ namespace NMib::NFile
 	bool fg_OpenExeFS(CExeFS &_FS)
 	{
 		// Try new style first.
-		if (NAOCC::g_ExeFS_nBytes && NAOCC::g_ExeFS_pBytes)
+		if (NAOCC::g_nExeFSBytes && NAOCC::g_pExeFSBytes)
 		{
 			try
 			{
-				_FS.m_InProcStream.f_OpenRead(NAOCC::g_ExeFS_pBytes, NAOCC::g_ExeFS_nBytes);
+				_FS.m_InProcStream.f_OpenRead(NAOCC::g_pExeFSBytes, NAOCC::g_nExeFSBytes);
 				_FS.m_FileSystem.f_Open(&_FS.m_InProcStream);
 				return true;
 			}
@@ -65,8 +65,8 @@ namespace NMib::NFile
 
 			ch8 const *pSigOrig = "SFEXESDI";
 			ch8 Temp[9];
-			for (umint i = 0; i < 8; ++i)
-				Temp[i] = pSigOrig[7 - i];
+			for (umint iChar = 0; iChar < 8; ++iChar)
+				Temp[iChar] = pSigOrig[7 - iChar];
 			Temp[8] = 0;
 			ch8 const *pSig = Temp;
 

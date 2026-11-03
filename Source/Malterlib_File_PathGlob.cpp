@@ -16,7 +16,7 @@ namespace
 	bool fg_IsNumericGlobRange(ch8 const *_pStart, ch8 const *_pEnd)
 	{
 		auto pParse = _pStart;
-		for (umint i = 0; i < 2; ++i)
+		for (umint iBound = 0; iBound < 2; ++iBound)
 		{
 			if (pParse != _pEnd && (*pParse == '-' || *pParse == '+'))
 				++pParse;
@@ -28,7 +28,7 @@ namespace
 			if (pParse == pDigits)
 				return false;
 
-			if (i == 0)
+			if (iBound == 0)
 			{
 				if (_pEnd - pParse < 2 || *pParse != '.' || *(pParse + 1) != '.')
 					return false;
@@ -67,12 +67,12 @@ namespace NMib::NFile
 		CUStr Text;
 		auto pText = Text.f_GetStr(_Text.f_GetLen() + 1);
 		auto pSource = _Text.f_GetStr();
-		for (umint i = 0; i < _Text.f_GetLen(); ++i)
+		for (umint iChar = 0; iChar < _Text.f_GetLen(); ++iChar)
 		{
-			if (pSource[i] == 0)
+			if (pSource[iChar] == 0)
 				DMibError("NUL is not allowed in path patterns or paths");
 
-			pText[i] = ch32(uch8(pSource[i]));
+			pText[iChar] = ch32(uch8(pSource[iChar]));
 		}
 
 		pText[_Text.f_GetLen()] = 0;
@@ -95,10 +95,10 @@ namespace NMib::NFile
 		for (auto const &Node : mp_Nodes)
 			mp_bRecursiveName |= mp_Dialect == EPathGlobDialect::mc_EditorConfig && !mp_bHasSeparator && Node.m_Kind == EKind::mc_RecursiveStar;
 
-		for (umint i = 0; i < mp_Nodes.f_GetLen(); ++i)
+		for (umint iNode = 0; iNode < mp_Nodes.f_GetLen(); ++iNode)
 		{
 			for (umint iVariant = 0; iVariant < 2; ++iVariant)
-				fp_CollectClosure(i, iVariant != 0, mp_Nodes[i].m_Closure[iVariant]);
+				fp_CollectClosure(iNode, iVariant != 0, mp_Nodes[iNode].m_Closure[iVariant]);
 		}
 	}
 
@@ -211,9 +211,9 @@ namespace NMib::NFile
 			return true;
 
 		auto pPath = _Path.f_GetStr();
-		for (umint i = 0; i < _Path.f_GetLen(); ++i)
+		for (umint iChar = 0; iChar < _Path.f_GetLen(); ++iChar)
 		{
-			if (pPath[i] == '/' && fAccepts(CUStr(pPath + i + 1, _Path.f_GetLen() - i - 1)))
+			if (pPath[iChar] == '/' && fAccepts(CUStr(pPath + iChar + 1, _Path.f_GetLen() - iChar - 1)))
 				return true;
 		}
 
@@ -541,8 +541,8 @@ namespace NMib::NFile
 			mp_Nodes.f_Insert(fg_Move(Node));
 		}
 
-		for (umint i = 0; i < Sequence.f_GetLen(); ++i)
-			mp_Nodes[Sequence[i]].m_iNext = i + 1 == Sequence.f_GetLen() ? _iNext : Sequence[i + 1];
+		for (umint iSequence = 0; iSequence < Sequence.f_GetLen(); ++iSequence)
+			mp_Nodes[Sequence[iSequence]].m_iNext = iSequence + 1 == Sequence.f_GetLen() ? _iNext : Sequence[iSequence + 1];
 
 		return Sequence.f_IsEmpty() ? _iNext : Sequence[0];
 	}

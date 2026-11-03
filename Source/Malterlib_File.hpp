@@ -119,7 +119,7 @@ namespace NMib::NFile
 #ifdef DPlatformFamily_Windows
 		// Windows path insanity
 
-		auto fl_GetType = [](tf_CStr const &_Root, tf_CStr &_ID) -> EPathRootType
+		auto fGetType = [](tf_CStr const &_Root, tf_CStr &_ID) -> EPathRootType
 			{
 				_ID.f_Clear();
 
@@ -164,8 +164,8 @@ namespace NMib::NFile
 
 		tf_CStr IDA, IDB;
 
-		EPathRootType TypeA = fl_GetType(_RootA, IDA);
-		EPathRootType TypeB = fl_GetType(_RootB, IDB);
+		EPathRootType TypeA = fGetType(_RootA, IDA);
+		EPathRootType TypeB = fGetType(_RootB, IDB);
 
 		if (TypeA != TypeB)
 			return false;

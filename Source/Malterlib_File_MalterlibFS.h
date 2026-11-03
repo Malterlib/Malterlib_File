@@ -302,8 +302,8 @@ namespace NMib::NFile
 				_Stream << m_nClusterIDs;
 				if (m_nClusterIDs > m_ClusterIDs.f_GetLen())
 					return;
-				for (umint i = 0; i < m_nClusterIDs; ++i)
-					_Stream << m_ClusterIDs[i];
+				for (umint iClusterID = 0; iClusterID < m_nClusterIDs; ++iClusterID)
+					_Stream << m_ClusterIDs[iClusterID];
 			}
 
 			void f_Write(NStream::CBinaryStream &_Stream)
@@ -326,8 +326,8 @@ namespace NMib::NFile
 						return;
 					}
 
-					for (umint i = 0; i < m_nClusterIDs; ++i)
-						_Stream >> m_ClusterIDs[i];
+					for (umint iClusterID = 0; iClusterID < m_nClusterIDs; ++iClusterID)
+						_Stream >> m_ClusterIDs[iClusterID];
 				}
 				catch (NException::CException)
 				{
@@ -411,11 +411,11 @@ namespace NMib::NFile
 				if (_Version == 0x101)
 				{
 					uint32 nFiles = m_Files.f_GetLen();
-					for (umint i = 0; i < nFiles; ++i)
-						m_Files[i].m_FileName.m_OriginalType = NStr::EStrType_Ansi;
+					for (umint iFile = 0; iFile < nFiles; ++iFile)
+						m_Files[iFile].m_FileName.m_OriginalType = NStr::EStrType_Ansi;
 					f_WriteInternalValidate(Stream);
-					for (umint i = 0; i < nFiles; ++i)
-						m_Files[i].m_FileName.m_OriginalType = NStr::EStrType_Unicode;
+					for (umint iFile = 0; iFile < nFiles; ++iFile)
+						m_Files[iFile].m_FileName.m_OriginalType = NStr::EStrType_Unicode;
 				}
 				else
 					f_WriteInternalValidate(Stream);
@@ -464,8 +464,8 @@ namespace NMib::NFile
 						return;
 					}
 					m_Files.f_SetLen(nFiles);
-					for (umint i = 0; i < nFiles; ++i)
-						_Stream >> m_Files[i];
+					for (umint iFile = 0; iFile < nFiles; ++iFile)
+						_Stream >> m_Files[iFile];
 				}
 				catch (NException::CException)
 				{
@@ -476,10 +476,10 @@ namespace NMib::NFile
 
 			CClusterID f_GetChild(NStr::CStr const &_Child)
 			{
-				for (umint i = 0; i < m_Files.f_GetLen(); ++i)
+				for (umint iFile = 0; iFile < m_Files.f_GetLen(); ++iFile)
 				{
-					if (m_Files[i].m_FileName == _Child)
-						return m_Files[i].m_FileRecordCluster;
+					if (m_Files[iFile].m_FileName == _Child)
+						return m_Files[iFile].m_FileRecordCluster;
 				}
 
 				return 0;
@@ -487,11 +487,11 @@ namespace NMib::NFile
 
 			void f_RemoveChild(CClusterID _Child)
 			{
-				for (umint i = 0; i < m_Files.f_GetLen(); ++i)
+				for (umint iFile = 0; iFile < m_Files.f_GetLen(); ++iFile)
 				{
-					if (m_Files[i].m_FileRecordCluster == _Child)
+					if (m_Files[iFile].m_FileRecordCluster == _Child)
 					{
-						m_Files.f_Remove(i);
+						m_Files.f_Remove(iFile);
 						return;
 					}
 				}
@@ -1223,8 +1223,8 @@ namespace NMib::NFile
 					m_pVirtualFS->fp_ReturnCluster(m_FileRecord.m_FirstFileChainCluster);
 					while (1)
 					{
-						for (uint64 i = 0; i < m_ClusterChain.m_nClusterIDs; ++i)
-							m_pVirtualFS->fp_ReturnCluster(m_ClusterChain.m_ClusterIDs[i]);
+						for (uint64 iClusterID = 0; iClusterID < m_ClusterChain.m_nClusterIDs; ++iClusterID)
+							m_pVirtualFS->fp_ReturnCluster(m_ClusterChain.m_ClusterIDs[iClusterID]);
 						if (m_ClusterChain.m_NextChainCluster)
 						{
 							CClusterID ToReturn = m_ClusterChain.m_NextChainCluster;
@@ -1294,8 +1294,8 @@ namespace NMib::NFile
 					{
 						CClusterID NewCluster = m_pVirtualFS->fp_GetNewCluster();
 						m_ClusterChain.m_NextChainCluster = NewCluster;
-						for (uint64 i = m_ClusterChain.m_nClusterIDs; i < ClusterIDsPerCluster; ++i)
-							m_ClusterChain.m_ClusterIDs[i] = m_pVirtualFS->fp_GetNewCluster();
+						for (uint64 iClusterID = m_ClusterChain.m_nClusterIDs; iClusterID < ClusterIDsPerCluster; ++iClusterID)
+							m_ClusterChain.m_ClusterIDs[iClusterID] = m_pVirtualFS->fp_GetNewCluster();
 						m_ClusterChain.m_nClusterIDs = ClusterIDsPerCluster;
 						m_bClusterChainDirty = true;
 						f_WriteClusterChain();
@@ -1312,8 +1312,8 @@ namespace NMib::NFile
 
 				if (IndexInChunk >= m_ClusterChain.m_nClusterIDs)
 				{
-					for (uint64 i = m_ClusterChain.m_nClusterIDs; i <= IndexInChunk; ++i)
-						m_ClusterChain.m_ClusterIDs[i] = m_pVirtualFS->fp_GetNewCluster();
+					for (uint64 iClusterID = m_ClusterChain.m_nClusterIDs; iClusterID <= IndexInChunk; ++iClusterID)
+						m_ClusterChain.m_ClusterIDs[iClusterID] = m_pVirtualFS->fp_GetNewCluster();
 					m_ClusterChain.m_nClusterIDs = IndexInChunk + 1;
 					m_bClusterChainDirty = true;
 				}
@@ -1715,12 +1715,12 @@ namespace NMib::NFile
 			CVirtualFS::CFileInternal *mp_pInternalFile;
 			uint64 mp_Position;
 			void fp_CheckValid() const;
-			DMibListLinkDS_Link(CFile, m_Link);
+			DMibListLinkDS_Link(CFile, mp_Link);
 		};
 
 	private:
-		DMibListLinkDS_List(CFile, m_Link) m_OpenFiles;
-		using COpenFilesIter = DMibListLinkDS_Iter(CFile, m_Link);
+		DMibListLinkDS_List(CFile, mp_Link) mp_OpenFiles;
+		using COpenFilesIter = DMibListLinkDS_Iter(CFile, mp_Link);
 
 	public:
 		void f_CloseOpenFiles();

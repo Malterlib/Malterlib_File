@@ -204,23 +204,23 @@ namespace NMib::NFile
 		if (!ToPath.f_IsEmpty())
 			ToPath += "/";
 
-		for (umint i = 0; i < nPaths; ++i)
+		for (umint iPath = 0; iPath < nPaths; ++iPath)
 		{
-			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Paths[iPath].f_Extract(RootPathLen);
 			f_CreateDirectory(ToPath + Path);
 		}
 
 		umint nFiles = Files.f_GetLen();
-		for (umint i = 0; i < nFiles; ++i)
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
 		{
-			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Files[iFile].f_Extract(RootPathLen);
 			NStr::CStr ToFile = ToPath + Path;
 			f_CreateDirectory(CFile::fs_GetPath(ToFile));
 
 			if (_bRaw)
-				f_CopyFileRaw(Files[i], ToFile);
+				f_CopyFileRaw(Files[iFile], ToFile);
 			else
-				f_CopyFile(Files[i], ToFile);
+				f_CopyFile(Files[iFile], ToFile);
 		}
 	}
 
@@ -394,22 +394,22 @@ namespace NMib::NFile
 			RootPath += "/";
 		umint RootPathLen = RootPath.f_GetLen();
 
-		for (umint i = 0; i < nPaths; ++i)
+		for (umint iPath = 0; iPath < nPaths; ++iPath)
 		{
-			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Paths[iPath].f_Extract(RootPathLen);
 			_ToFS.f_CreateDirectory(NFile::CFile::fs_AppendPath(_ToPath, Path));
 		}
 
 		umint nFiles = Files.f_GetLen();
-		for (umint i = 0; i < nFiles; ++i)
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
 		{
-			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Files[iFile].f_Extract(RootPathLen);
 			NStr::CStr ToFile = NFile::CFile::fs_AppendPath(_ToPath, Path);
 			NStr::CStr Dir = CFile::fs_GetPath(ToFile);
 			if (!Dir.f_IsEmpty())
 				_ToFS.f_CreateDirectory(Dir);
 
-			f_CopyFileRaw(Files[i], _ToFS, ToFile);
+			f_CopyFileRaw(Files[iFile], _ToFS, ToFile);
 		}
 	}
 
@@ -438,16 +438,16 @@ namespace NMib::NFile
 			RootPath += "/";
 		umint RootPathLen = RootPath.f_GetLen();
 
-		for (umint i = 0; i < nPaths; ++i)
+		for (umint iPath = 0; iPath < nPaths; ++iPath)
 		{
-			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Paths[iPath].f_Extract(RootPathLen);
 			_ToFS.f_CreateDirectory(NFile::CFile::fs_AppendPath(_ToPath, Path));
 		}
 
 		umint nFiles = Files.f_GetLen();
-		for (umint i = 0; i < nFiles; ++i)
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
 		{
-			NStr::CStr FromFile = Files[i];
+			NStr::CStr FromFile = Files[iFile];
 			NStr::CStr Path = FromFile.f_Extract(RootPathLen);
 			NStr::CStr ToFile = NFile::CFile::fs_AppendPath(_ToPath, Path);
 			NStr::CStr Dir = CFile::fs_GetPath(ToFile);
@@ -495,10 +495,10 @@ namespace NMib::NFile
 
 		umint nFiles = Files.f_GetLen();
 
-		for (umint i = 0; i < nFiles; ++i)
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
 		{
 			CStr FileName;
-			FileName = CFile::fs_AppendPath(_Path, Files[i]);
+			FileName = CFile::fs_AppendPath(_Path, Files[iFile]);
 
 			if (_fShouldBackup && !_fShouldBackup(FileName))
 				continue;

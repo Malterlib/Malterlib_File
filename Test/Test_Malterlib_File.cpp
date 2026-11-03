@@ -447,7 +447,7 @@ namespace
 						{
 							CFile File;
 							if (TestPath.f_GetLen() == 260)
-								int x = 0;
+								int BreakpointAnchor = 0;
 							File.f_Open(TestPath, EFileOpen_Write);
 							File.f_SetAttributes(EFileAttrib_Executable);
 						}
@@ -468,14 +468,14 @@ namespace
 				CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestMain";
 				fg_TestAddCleanupPath(RootPath);
 
-				for (umint i = 0; i < 8; ++i)
+				for (umint iVariant = 0; iVariant < 8; ++iVariant)
 				{
 					CStr TestName = "File functions";
-					bool bLongNames = i & 1;
+					bool bLongNames = iVariant & 1;
 					if (bLongNames)
 						TestName = "File functions long names";
-					bool bRecursive = i & 2;
-					bool bSymlinkDir = i & 4;
+					bool bRecursive = iVariant & 2;
+					bool bSymlinkDir = iVariant & 4;
 
 					if (bRecursive)
 						TestName += " recursive notifications";
@@ -505,7 +505,7 @@ namespace
 							CStr SubDir = "/TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest";
 							TestFileName = CurrentDir;
 							FirstTestFileDir = CurrentDir + SubDir;
-							for (umint i = 0; i < 32; ++i)
+							for (umint iDepth = 0; iDepth < 32; ++iDepth)
 							{
 								if (umint(TestFileName.f_GetLen() + SubDir.f_GetLen()) > (CFile::fs_MaximumPathLength() - 32u))
 									break;
@@ -1314,8 +1314,8 @@ namespace
 									DMibExpectFalse(fHasChange() && "Before");
 
 									// Write to the source file to create notification backlog
-									for (int i = 0; i < 10; ++i)
-										CFile::fs_WriteStringToFile(SourceFile, CStr::CFormat("Content {}") << i);
+									for (int iWrite = 0; iWrite < 10; ++iWrite)
+										CFile::fs_WriteStringToFile(SourceFile, CStr::CFormat("Content {}") << iWrite);
 
 									// Quickly move source directory into nested destination
 									// This triggers the "Watch tree mismatch" scenario in inotify
@@ -2543,7 +2543,7 @@ namespace
 					File.f_Write("DATA", 4);
 				}
 
-				auto fl_FileContainData = [&](CStr const &_File) -> bool
+				auto fFileContainData = [&](CStr const &_File) -> bool
 					{
 						if (!CFile::fs_FileExists(_File, EFileAttrib_File))
 							return false;
@@ -2571,7 +2571,7 @@ namespace
 							DMibTest((DMibExpr(FoundFiles[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link | EFileAttrib_Directory));
 
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(DirSymLinkDestination + "/TestFile")));
+							DMibTest(DMibExpr(fFileContainData(DirSymLinkDestination + "/TestFile")));
 					}
 
 					{
@@ -2587,7 +2587,7 @@ namespace
 							DMibTest((DMibExpr(FoundFilesFile[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link));
 
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(FileSymLinkDestination)));
+							DMibTest(DMibExpr(fFileContainData(FileSymLinkDestination)));
 					}
 				}
 				{
@@ -2604,7 +2604,7 @@ namespace
 						if (!FoundFiles.f_IsEmpty())
 							DMibTest((DMibExpr(FoundFiles[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link | EFileAttrib_Directory));
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(DirSymLinkDestination + "/TestFile")));
+							DMibTest(DMibExpr(fFileContainData(DirSymLinkDestination + "/TestFile")));
 					}
 
 					{
@@ -2619,7 +2619,7 @@ namespace
 						if (!FoundFilesFile.f_IsEmpty())
 							DMibTest((DMibExpr(FoundFilesFile[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link));
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(FileSymLinkDestination)));
+							DMibTest(DMibExpr(fFileContainData(FileSymLinkDestination)));
 					}
 				}
 #ifdef DPlatformFamily_Windows
@@ -2639,7 +2639,7 @@ namespace
 						if (!FoundFiles.f_IsEmpty())
 							DMibTest((DMibExpr(FoundFiles[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link | EFileAttrib_Directory));
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(DirSymLinkDestination + "/TestFile")));
+							DMibTest(DMibExpr(fFileContainData(DirSymLinkDestination + "/TestFile")));
 					}
 
 					{
@@ -2655,7 +2655,7 @@ namespace
 						if (!FoundFilesFile.f_IsEmpty())
 							DMibTest((DMibExpr(FoundFilesFile[0].m_Attribs) & DMibExpr(EFileAttrib_Link | EFileAttrib_Directory)) == DMibExpr(EFileAttrib_Link));
 						if (!Flags)
-							DMibTest(DMibExpr(fl_FileContainData(FileSymLinkDestination)));
+							DMibTest(DMibExpr(fFileContainData(FileSymLinkDestination)));
 					}
 				}
 #endif
@@ -2896,10 +2896,10 @@ namespace
 				{
 					DMibTestPath("FractionIntPrecision");
 					// Test using raw fraction integers for precise control
-					constexpr uint64 MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
+					constexpr uint64 c_MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
 
 					// Test values near maximum fraction - these should round up to 46 seconds
-					// when converted to nanoseconds (since MaxFrac is very close to 1.0)
+					// when converted to nanoseconds (since c_MaxFrac is very close to 1.0)
 					auto fTestMaxFracRoundsUp = [&](CStr const &_Path, uint64 _FracInt)
 						{
 							DMibTestPath("{}"_f << _Path);
@@ -2921,11 +2921,11 @@ namespace
 						}
 					;
 
-					fTestMaxFracRoundsUp("FractionInt_Max", MaxFrac);
-					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1", MaxFrac - 1);
-					fTestMaxFracRoundsUp("FractionInt_Max_Minus_10", MaxFrac - 10);
-					fTestMaxFracRoundsUp("FractionInt_Max_Minus_100", MaxFrac - 100);
-					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1000", MaxFrac - 1000);
+					fTestMaxFracRoundsUp("FractionInt_Max", c_MaxFrac);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1", c_MaxFrac - 1);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_10", c_MaxFrac - 10);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_100", c_MaxFrac - 100);
+					fTestMaxFracRoundsUp("FractionInt_Max_Minus_1000", c_MaxFrac - 1000);
 
 					// Test values near zero
 					fTestTimeRoundTrip("FractionInt_0", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, 0));
@@ -2946,14 +2946,14 @@ namespace
 
 					// 1 nanosecond = mc_FractionDividend / 1e9 internal units
 					// These constants match fsg_TimespecToCTime in Malterlib_Core_PlatformImp_POSIX_File.hpp
-					constexpr uint64 Billion = 1'000'000'000;
-					constexpr uint64 Divisor = NTime::NPrivate::CConst::mc_FractionDividend / Billion;
-					constexpr uint64 Remainder = NTime::NPrivate::CConst::mc_FractionDividend % Billion;
+					constexpr uint64 c_Billion = 1'000'000'000;
+					constexpr uint64 c_Divisor = NTime::NPrivate::CConst::mc_FractionDividend / c_Billion;
+					constexpr uint64 c_Remainder = NTime::NPrivate::CConst::mc_FractionDividend % c_Billion;
 
 					// Convert nanoseconds to internal fraction using the same formula as fsg_TimespecToCTime
 					auto fNsToFrac = [](uint64 _Nanoseconds) -> uint64
 						{
-							return _Nanoseconds * Divisor + _Nanoseconds * Remainder / Billion;
+							return _Nanoseconds * c_Divisor + _Nanoseconds * c_Remainder / c_Billion;
 						}
 					;
 
@@ -2994,9 +2994,9 @@ namespace
 					fTestExactNs("Ns_500000000", 500'000'000);
 
 					// Test rounding behavior at nanosecond boundaries (POSIX only)
-					// The rounding formula is: (FractionInt + Divisor/2) / Divisor
-					// Values >= Divisor/2 round up, values < Divisor/2 round down
-					// Note: Divisor is odd, so Divisor/2 truncates to slightly below 0.5ns
+					// The rounding formula is: (FractionInt + c_Divisor/2) / c_Divisor
+					// Values >= c_Divisor/2 round up, values < c_Divisor/2 round down
+					// Note: c_Divisor is odd, so c_Divisor/2 truncates to slightly below 0.5ns
 					auto fTestRoundsTo = [&](CStr const &_Path, uint64 _FracInt, uint64 _ExpectedNs)
 						{
 							DMibTestPath("{}"_f << _Path);
@@ -3017,34 +3017,34 @@ namespace
 						}
 					;
 
-					// Test rounding down: Divisor/2 rounds to 0 (since Divisor is odd, 2*(Divisor/2) < Divisor)
-					fTestRoundsTo("At_Half_RoundsTo_0", Divisor / 2, 0);
+					// Test rounding down: c_Divisor/2 rounds to 0 (since c_Divisor is odd, 2*(c_Divisor/2) < c_Divisor)
+					fTestRoundsTo("At_Half_RoundsTo_0", c_Divisor / 2, 0);
 
 					// These tests require nanosecond precision (POSIX only)
 					if (bHasNanosecondPrecision)
 					{
-						// Test rounding up: Divisor/2 + 1 rounds to 1
-						fTestRoundsTo("Above_Half_RoundsTo_1", Divisor / 2 + 1, 1);
-						// Test rounding from 1.5ns: fNsToFrac(1) + Divisor/2 rounds to 1 (not 2)
-						fTestRoundsTo("At_1_5_RoundsTo_1", fNsToFrac(1) + Divisor / 2, 1);
+						// Test rounding up: c_Divisor/2 + 1 rounds to 1
+						fTestRoundsTo("Above_Half_RoundsTo_1", c_Divisor / 2 + 1, 1);
+						// Test rounding from 1.5ns: fNsToFrac(1) + c_Divisor/2 rounds to 1 (not 2)
+						fTestRoundsTo("At_1_5_RoundsTo_1", fNsToFrac(1) + c_Divisor / 2, 1);
 						// Test rounding from just above 1.5ns
-						fTestRoundsTo("Above_1_5_RoundsTo_2", fNsToFrac(1) + Divisor / 2 + 1, 2);
+						fTestRoundsTo("Above_1_5_RoundsTo_2", fNsToFrac(1) + c_Divisor / 2 + 1, 2);
 					}
 					else
 					{
 						// Test rounding behavior at 100-nanosecond boundaries (Windows)
 						// Windows FILETIME has 100ns precision, so we test at those boundaries
-						constexpr uint64 TenMillion = 10'000'000;
-						constexpr uint64 Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / TenMillion;
-						constexpr uint64 Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % TenMillion;
+						constexpr uint64 c_TenMillion = 10'000'000;
+						constexpr uint64 c_Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / c_TenMillion;
+						constexpr uint64 c_Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % c_TenMillion;
 
 						// Convert 100-nanosecond units to internal fraction
 						auto f100nsToFrac = [](uint64 _Units100ns) -> uint64
 							{
-								constexpr uint64 TenMillion = 10'000'000;
-								constexpr uint64 Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / TenMillion;
-								constexpr uint64 Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % TenMillion;
-								return _Units100ns * Divisor100ns + _Units100ns * Remainder100ns / TenMillion;
+								constexpr uint64 c_TenMillion = 10'000'000;
+								constexpr uint64 c_Divisor100ns = NTime::NPrivate::CConst::mc_FractionDividend / c_TenMillion;
+								constexpr uint64 c_Remainder100ns = NTime::NPrivate::CConst::mc_FractionDividend % c_TenMillion;
+								return _Units100ns * c_Divisor100ns + _Units100ns * c_Remainder100ns / c_TenMillion;
 							}
 						;
 
@@ -3068,12 +3068,12 @@ namespace
 							}
 						;
 
-						// Test rounding up: Divisor100ns/2 + 1 rounds to 1 (100ns)
-						fTestRoundsTo100ns("Above_Half_RoundsTo_100ns", Divisor100ns / 2 + 1, 1);
-						// Test rounding from 1.5 * 100ns: f100nsToFrac(1) + Divisor100ns/2 rounds to 1 (not 2)
-						fTestRoundsTo100ns("At_1_5_RoundsTo_100ns", f100nsToFrac(1) + Divisor100ns / 2, 1);
+						// Test rounding up: c_Divisor100ns/2 + 1 rounds to 1 (100ns)
+						fTestRoundsTo100ns("Above_Half_RoundsTo_100ns", c_Divisor100ns / 2 + 1, 1);
+						// Test rounding from 1.5 * 100ns: f100nsToFrac(1) + c_Divisor100ns/2 rounds to 1 (not 2)
+						fTestRoundsTo100ns("At_1_5_RoundsTo_100ns", f100nsToFrac(1) + c_Divisor100ns / 2, 1);
 						// Test rounding from just above 1.5 * 100ns
-						fTestRoundsTo100ns("Above_1_5_RoundsTo_200ns", f100nsToFrac(1) + Divisor100ns / 2 + 1, 2);
+						fTestRoundsTo100ns("Above_1_5_RoundsTo_200ns", f100nsToFrac(1) + c_Divisor100ns / 2 + 1, 2);
 					}
 				}
 
@@ -3083,20 +3083,20 @@ namespace
 					// Test values near the overflow boundary where nanoseconds might round to 1 billion
 					// The fix handles this by incrementing seconds and setting nanoseconds to 0
 
-					constexpr uint64 Billion = 1'000'000'000;
-					constexpr uint64 Divisor = NTime::NPrivate::CConst::mc_FractionDividend / Billion;
-					constexpr uint64 MaxNsValue = Divisor * (Billion - 1);
+					constexpr uint64 c_Billion = 1'000'000'000;
+					constexpr uint64 c_Divisor = NTime::NPrivate::CConst::mc_FractionDividend / c_Billion;
+					constexpr uint64 c_MaxNsValue = c_Divisor * (c_Billion - 1);
 
 					// Values very close to 1 second
-					fTestTimeRoundTrip("NearOverflow_1", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue));
-					fTestTimeRoundTrip("NearOverflow_2", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue + Divisor / 4));
-					fTestTimeRoundTrip("NearOverflow_3", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxNsValue + Divisor / 2));
+					fTestTimeRoundTrip("NearOverflow_1", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, c_MaxNsValue));
+					fTestTimeRoundTrip("NearOverflow_2", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, c_MaxNsValue + c_Divisor / 4));
+					fTestTimeRoundTrip("NearOverflow_3", NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, c_MaxNsValue + c_Divisor / 2));
 
 					// Test that overflow case correctly increments seconds
 					// When the fraction is very close to 1, nanoseconds should round up and
 					// the second counter should be incremented
-					constexpr uint64 MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
-					NTime::CTime TimeNearOverflow = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, MaxFrac);
+					constexpr uint64 c_MaxFrac = NTime::NPrivate::CConst::mc_FractionDividend - 1;
+					NTime::CTime TimeNearOverflow = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 45, c_MaxFrac);
 					NTime::CTime TimeNextSecond = NTime::CTimeConvert::fs_CreateTimeIntFrac(2024, 6, 15, 12, 30, 46, 0);
 
 					CStr TestFileNearOverflow = CFile::fs_AppendPath(RootPath, "NearOverflow.file");

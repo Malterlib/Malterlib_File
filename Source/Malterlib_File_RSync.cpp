@@ -344,15 +344,15 @@ namespace NMib::NFile
 		CRunningType Sum0 = 0;
 		CRunningType Sum1 = 0;
 
-		aint i = 0;
-		for (; i < (_nBytes - 4); i += 4)
+		aint iByte = 0;
+		for (; iByte < (_nBytes - 4); iByte += 4)
 		{
-			Sum1 += 4u * (Sum0 + pIn[i]) + 3 * pIn[i + 1] + 2 * pIn[i + 2] + pIn[i + 3] + 10u * gc_Offset;
-			Sum0 += (pIn[i + 0] + pIn[i + 1] + pIn[i + 2] + pIn[i + 3] + 4u * gc_Offset);
+			Sum1 += 4u * (Sum0 + pIn[iByte]) + 3 * pIn[iByte + 1] + 2 * pIn[iByte + 2] + pIn[iByte + 3] + 10u * gc_Offset;
+			Sum0 += (pIn[iByte + 0] + pIn[iByte + 1] + pIn[iByte + 2] + pIn[iByte + 3] + 4u * gc_Offset);
 		}
-		for (; i < _nBytes; i++)
+		for (; iByte < _nBytes; iByte++)
 		{
-			Sum0 += (pIn[i] + gc_Offset);
+			Sum0 += (pIn[iByte] + gc_Offset);
 			Sum1 += Sum0;
 		}
 		return ((uint32(Sum0) & uint32(0xFFFF)) | (uint32(Sum1) << 16));
@@ -435,16 +435,16 @@ namespace NMib::NFile
 		{
 			uint8 const *pIn = (uint8 const *)_pData;
 
-			aint i = 0;
+			aint iByte = 0;
 			aint nBytes = (_nBytes - 4);
-			for (; i < nBytes; i += 4)
+			for (; iByte < nBytes; iByte += 4)
 			{
-				m_Sum1 += 4u * (m_Sum0 + pIn[i]) + 3 * pIn[i + 1] + 2 * pIn[i + 2] + pIn[i + 3] + 10u * gc_Offset;
-				m_Sum0 += (pIn[i + 0] + pIn[i + 1] + pIn[i + 2] + pIn[i + 3] + 4u * gc_Offset);
+				m_Sum1 += 4u * (m_Sum0 + pIn[iByte]) + 3 * pIn[iByte + 1] + 2 * pIn[iByte + 2] + pIn[iByte + 3] + 10u * gc_Offset;
+				m_Sum0 += (pIn[iByte + 0] + pIn[iByte + 1] + pIn[iByte + 2] + pIn[iByte + 3] + 4u * gc_Offset);
 			}
-			for (; i < _nBytes; i++)
+			for (; iByte < _nBytes; iByte++)
 			{
-				m_Sum0 += (pIn[i] + gc_Offset);
+				m_Sum0 += (pIn[iByte] + gc_Offset);
 				m_Sum1 += m_Sum0;
 			}
 			m_Count += _nBytes;
@@ -503,7 +503,7 @@ namespace NMib::NFile
 				CIOByteVector TempBuffer;
 				TempBuffer.f_SetLen(_ChunkSize);
 				umint nBytes = Range.m_Length;
-				for (umint i = 0; i < nCheckSums; ++i)
+				for (umint iChecksum = 0; iChecksum < nCheckSums; ++iChecksum)
 				{
 					CChecksum &Checksum = _Destination.f_Insert();
 					umint nBytesToRead = fg_Min(nBytes, _ChunkSize);
@@ -1008,7 +1008,7 @@ namespace NMib::NFile
 			, mp_MinChunkSize(_MinChunkSize)
 			, mp_MaxChunkSize(_MaxChunkSize)
 			, mp_CurrentChunkSize(_MaxChunkSize)
-			, mp_MaxInFlightPackets(fg_Max(_MaxQueue / mc_OutstandingPerPacket, 1u))
+			, mp_MaxInFlightPackets(fg_Max(_MaxQueue / mcp_OutstandingPerPacket, 1u))
 			, mp_MaxPacketSize(_MaxPacketSize)
 			, mp_Flags(_Flags)
 		{
@@ -1050,18 +1050,18 @@ namespace NMib::NFile
 				(
 					[&]()
 					{
-						for (umint i = 0; i < mc_HashSize; ++i)
+						for (umint iHash = 0; iHash < mcp_HashSize; ++iHash)
 						{
-							auto &Tree = m_Hash[i];
+							auto &Tree = mp_Hash[iHash];
 							while (auto *pRoot = Tree.f_GetRoot())
 							{
 								while (auto *pInner = pRoot->m_InnerHash.f_GetRoot())
 								{
 									pRoot->m_InnerHash.f_Remove(pInner);
-									m_InnerPool.f_Delete(pInner);
+									mp_InnerPool.f_Delete(pInner);
 								}
 								Tree.f_Remove(pRoot);
-								m_OuterPool.f_Delete(pRoot);
+								mp_OuterPool.f_Delete(pRoot);
 							}
 						}
 					}
@@ -1080,18 +1080,18 @@ namespace NMib::NFile
 				{
 					CChecksum const &Checksum = _CheckSums.m_Checksums[iCurrentChecksum];
 					uint32 HashDigest = Checksum.m_Running;
-					HashDigest = ((HashDigest & uint32(0xFFFF)) ^ (HashDigest >> 16)) & mc_HashMask;
-					auto &Tree = m_Hash[HashDigest];
+					HashDigest = ((HashDigest & uint32(0xFFFF)) ^ (HashDigest >> 16)) & mcp_HashMask;
+					auto &Tree = mp_Hash[HashDigest];
 					auto *pOuter = Tree.f_FindEqual(Checksum.m_Running);
 					if (!pOuter)
 					{
-						pOuter = m_OuterPool.f_New(Checksum.m_Running);
+						pOuter = mp_OuterPool.f_New(Checksum.m_Running);
 						Tree.f_Insert(pOuter);
 					}
 					auto *pInner = pOuter->m_InnerHash.f_FindEqual(Checksum.m_Digest);
 					if (!pInner)
 					{
-						pInner = m_InnerPool.f_New(Checksum.m_Digest);
+						pInner = mp_InnerPool.f_New(Checksum.m_Digest);
 						pOuter->m_InnerHash.f_Insert(pInner);
 					}
 					pInner->m_Positions.f_Insert(CurrentPos);
@@ -1111,7 +1111,7 @@ namespace NMib::NFile
 			auto BufferSize = fg_Max(ChunkSize, gc_IdealIoSize);
 			ByteBuffer.f_SetLen(BufferSize);
 			auto pByteBuffer = ByteBuffer.f_GetArray();
-			auto TheseRegions = m_UnfoundRegions;
+			auto TheseRegions = mp_UnfoundRegions;
 
 			CHash_SHA256_16 HashSHA1;
 			CHash_MD5 HashMD5;
@@ -1127,13 +1127,13 @@ namespace NMib::NFile
 				CMibFilePos Start = iRegion->f_Start();
 				mp_OldFile.f_SetPosition(Start);
 
-				auto fl_CheckBytes = [&](umint _LocalPos)
+				auto fCheckBytes = [&](umint _LocalPos)
 					{
 						uint32 Digest = Rollsum.f_Digest();
 						uint32 HashDigest = Digest;
-						HashDigest = ((HashDigest & uint32(0xFFFF)) ^ (HashDigest >> 16)) & mc_HashMask;
+						HashDigest = ((HashDigest & uint32(0xFFFF)) ^ (HashDigest >> 16)) & mcp_HashMask;
 
-						auto &Map = m_Hash[HashDigest];
+						auto &Map = mp_Hash[HashDigest];
 						auto *pFind = Map.f_FindEqual(Digest);
 						if (pFind)
 						{
@@ -1149,9 +1149,9 @@ namespace NMib::NFile
 							{
 								umint nPosition = pPosition->m_Positions.f_GetLen();
 								uint64 const *pPositionArray = pPosition->m_Positions.f_GetArray();
-								for (umint j = 0; j < nPosition; ++j)
+								for (umint iPosition = 0; iPosition < nPosition; ++iPosition)
 								{
-									uint64 const &Position = pPositionArray[j];
+									uint64 const &Position = pPositionArray[iPosition];
 									umint Size = Rollsum.m_Count;
 									if (Position + Rollsum.m_Count > mp_FileSize)
 										Size = mp_FileSize - Position;
@@ -1161,7 +1161,7 @@ namespace NMib::NFile
 										return;
 									}
 								}
-								m_UnfoundRegions.f_MakeRegion
+								mp_UnfoundRegions.f_MakeRegion
 									(
 										_LocalPos
 										, _LocalPos + Rollsum.m_Count
@@ -1178,11 +1178,11 @@ namespace NMib::NFile
 								if (ChunkSize <= 4 * 1024)
 								{
 									pFind->m_InnerHash.f_Remove(pPosition);
-									m_InnerPool.f_Delete(pPosition);
+									mp_InnerPool.f_Delete(pPosition);
 									if (pFind->m_InnerHash.f_IsEmpty())
 									{
 										Map.f_Remove(pFind);
-										m_OuterPool.f_Delete(pFind);
+										mp_OuterPool.f_Delete(pFind);
 									}
 								}
 							}
@@ -1194,21 +1194,21 @@ namespace NMib::NFile
 									while (auto *pInner = pFind->m_InnerHash.f_GetRoot())
 									{
 										pFind->m_InnerHash.f_Remove(pInner);
-										m_InnerPool.f_Delete(pInner);
+										mp_InnerPool.f_Delete(pInner);
 									}
 									Map.f_Remove(pFind);
-									m_OuterPool.f_Delete(pFind);
+									mp_OuterPool.f_Delete(pFind);
 								}
 							}
 						}
 					}
 				;
 
-				for (CMibFilePos i = Start; i < End && !bFound;)
+				for (CMibFilePos iFilePos = Start; iFilePos < End && !bFound;)
 				{
-					umint nBuffer = fg_Min(uint64(End - i), BufferSize);
+					umint nBuffer = fg_Min(uint64(End - iFilePos), BufferSize);
 					mp_OldFile.f_ConsumeBytes(pByteBuffer, nBuffer);
-					umint k = 0;
+					umint iBuffer = 0;
 					if (_fCheckAbort)
 						_fCheckAbort();
 					auto *pBuffer = pByteBuffer;
@@ -1233,10 +1233,10 @@ namespace NMib::NFile
 								if (iCurrentHistory >= ChunkSize)
 									iCurrentHistory -= ChunkSize;
 							}
-							k += nBytes;
-							i += nBytes;
+							iBuffer += nBytes;
+							iFilePos += nBytes;
 
-							fl_CheckBytes(i - Rollsum.m_Count);
+							fCheckBytes(iFilePos - Rollsum.m_Count);
 							if (nSkipBytes == ChunkSize - 1 && nBuffer >= ChunkSize)
 							{
 								Rollsum = {};
@@ -1244,28 +1244,28 @@ namespace NMib::NFile
 								bAllSkipped = true;
 								nBuffer -= nBytes;
 								pBuffer += nBytes;
-								k -= nBytes;
+								iBuffer -= nBytes;
 							}
 						}
 					}
 
-					for (; k < nBuffer && !bFound; ++k)
+					for (; iBuffer < nBuffer && !bFound; ++iBuffer)
 					{
-						uint8 Byte = pBuffer[k];
+						uint8 Byte = pBuffer[iBuffer];
 						Rollsum.f_Advance(pHistory[iCurrentHistory], Byte);
 
 						pHistory[iCurrentHistory] = Byte;
 						++iCurrentHistory;
 						if (iCurrentHistory == ChunkSize)
 							iCurrentHistory = 0;
-						++i;
+						++iFilePos;
 
 						if (nSkipBytes)
 						{
 							--nSkipBytes;
 							continue;
 						}
-						fl_CheckBytes(i - Rollsum.m_Count);
+						fCheckBytes(iFilePos - Rollsum.m_Count);
 					}
 				}
 
@@ -1277,7 +1277,7 @@ namespace NMib::NFile
 					if (iCurrentHistory == ChunkSize)
 						iCurrentHistory = 0;
 
-					fl_CheckBytes(End - Rollsum.m_Count);
+					fCheckBytes(End - Rollsum.m_Count);
 				}
 			}
 
@@ -1337,14 +1337,14 @@ namespace NMib::NFile
 			if (mp_Outstanding.f_IsEmpty() && mp_bSentDoneMessage)
 				return false;
 
-			umint MaxPerPacket = mc_OutstandingPerPacket;
+			umint MaxPerPacket = mcp_OutstandingPerPacket;
 			CPacket_ClientOutstandingRanges ServerPacket;
 
 			umint nOutstanding = mp_Outstanding.f_GetLen();
 			umint iRemove = 0;
-			for (umint i = 0; i < nOutstanding && MaxPerPacket; ++i)
+			for (umint iOutstanding = 0; iOutstanding < nOutstanding && MaxPerPacket; ++iOutstanding)
 			{
-				COutstandingRange &Outstanding = mp_Outstanding[i];
+				COutstandingRange &Outstanding = mp_Outstanding[iOutstanding];
 				if (Outstanding.m_Length)
 				{
 					COutstandingRange &ToSend = ServerPacket.m_Outstanding.f_Insert();
@@ -1357,7 +1357,7 @@ namespace NMib::NFile
 				if (!Outstanding.m_Length)
 					++iRemove;
 			}
-			mp_RawBytes += mc_OutstandingPerPacket - MaxPerPacket;
+			mp_RawBytes += mcp_OutstandingPerPacket - MaxPerPacket;
 			mp_Outstanding.f_Remove(0, iRemove);
 
 			if (ServerPacket.m_Outstanding.f_IsEmpty())
@@ -1507,7 +1507,7 @@ namespace NMib::NFile
 						{
 							mp_OldFile.f_SetPosition(0);
 							if (mp_OldFile.f_GetLength())
-								m_UnfoundRegions.f_MakeRegion(0, mp_OldFile.f_GetLength());
+								mp_UnfoundRegions.f_MakeRegion(0, mp_OldFile.f_GetLength());
 						}
 
 						f_HandleChecksums(_ToSendToServer, pTypedPacket->m_InitialChecksums, _bWantOneMoreProcess, _fCheckAbort);
@@ -1605,11 +1605,11 @@ namespace NMib::NFile
 		EClientMode mp_ClientMode = EClientMode_Init;
 		TCLinkedList<TCVector<COutstandingRange>> mp_LastAskedFor;
 		TCVector<COutstandingRange> mp_Outstanding;
-		TCRegions<CMibFilePos, zbool> m_UnfoundRegions;
+		TCRegions<CMibFilePos, zbool> mp_UnfoundRegions;
 
-		static constexpr umint mc_HashSize = 65536;
-		static constexpr uint32 mc_HashMask = uint32(mc_HashSize) - 1;
-		static constexpr uint32 mc_OutstandingPerPacket = gc_IdealIoSize;
+		static constexpr umint mcp_HashSize = 65536;
+		static constexpr uint32 mcp_HashMask = uint32(mcp_HashSize) - 1;
+		static constexpr uint32 mcp_OutstandingPerPacket = gc_IdealIoSize;
 
 		struct CInnerHash
 		{
@@ -1658,10 +1658,10 @@ namespace NMib::NFile
 			NIntrusive::TCAVLTree<&CInnerHash::m_Link, CInnerHash::CCompare> m_InnerHash;
 		};
 
-		TCPool<CInnerHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_InnerPool;
-		TCPool<COuterHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> m_OuterPool;
+		TCPool<CInnerHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> mp_InnerPool;
+		TCPool<COuterHash, 128, NThread::CNoLock, NMemory::CPoolType_Growing, NMemory::CAllocator_Heap> mp_OuterPool;
 
-		NIntrusive::TCAVLTree<&COuterHash::m_Link, COuterHash::CCompare> m_Hash[mc_HashSize];
+		NIntrusive::TCAVLTree<&COuterHash::m_Link, COuterHash::CCompare> mp_Hash[mcp_HashSize];
 	};
 
 	CRSyncClient::CRSyncClient

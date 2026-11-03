@@ -293,12 +293,12 @@ namespace
 		{
 			DMibTestSuite("Basic")
 			{
-				for (umint e = 0; e < 2; ++e)
+				for (umint iEncrypt = 0; iEncrypt < 2; ++iEncrypt)
 				{
-					bool bEncrypt = e != 0;
-					for (umint i = 0; i < 2; ++i)
+					bool bEncrypt = iEncrypt != 0;
+					for (umint iInline = 0; iInline < 2; ++iInline)
 					{
-						bool bInline = i != 0;
+						bool bInline = iInline != 0;
 						fs_DoTests(1, 1, bInline, bEncrypt);
 						fs_DoTests(2, 2, bInline, bEncrypt);
 						fs_DoTests(1, 2, bInline, bEncrypt);

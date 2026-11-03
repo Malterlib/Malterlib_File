@@ -6,12 +6,6 @@
 
 namespace NMib::NFile
 {
-#ifdef DPlatformFamily_Windows
-	constinit NStr::CStr const CFile::mc_ExecutableExtension = NStr::gc_Str<".exe">;
-#else
-	constinit NStr::CStr const CFile::mc_ExecutableExtension = {};
-#endif
-
 	struct CSubSystem_File : public CSubSystem
 	{
 		struct CThreadLocal
@@ -32,11 +26,11 @@ namespace NMib::NFile
 	constinit TCSubSystem<CSubSystem_File, ESubSystemDestruction_BeforeMemoryManager> g_MalterlibSubSystem_File = {DAggregateInit};
 
 	CFile::CSetAttributeEmulationScope::CSetAttributeEmulationScope(bool _bEnableEmulation)
-		: m_bEnableEmulation(_bEnableEmulation)
+		: mp_bEnableEmulation(_bEnableEmulation)
 	{
 		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
 
-		m_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
+		mp_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
 		ThreadLocal.m_bEnableAttributesEmulation = _bEnableEmulation;
 	}
 
@@ -47,14 +41,14 @@ namespace NMib::NFile
 	void CFile::CSetAttributeEmulationScope::f_Suspend() noexcept
 	{
 		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
-		ThreadLocal.m_bEnableAttributesEmulation = m_bPreviousEnableEmulation;
+		ThreadLocal.m_bEnableAttributesEmulation = mp_bPreviousEnableEmulation;
 	}
 
 	void CFile::CSetAttributeEmulationScope::f_ResumeNoExcept() noexcept
 	{
 		auto &ThreadLocal = *g_MalterlibSubSystem_File->m_ThreadLocal;
-		m_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
-		ThreadLocal.m_bEnableAttributesEmulation = m_bEnableEmulation;
+		mp_bPreviousEnableEmulation = ThreadLocal.m_bEnableAttributesEmulation;
+		ThreadLocal.m_bEnableAttributesEmulation = mp_bEnableEmulation;
 	}
 
 	bool CFile::CSetAttributeEmulationScope::fs_IsEmulationEnabled()
@@ -209,23 +203,23 @@ namespace NMib::NFile
 		umint RootPathLen = RootPath.f_GetLen();
 		NStr::CStr ToPath = _ToPath + "/";
 
-		for (umint i = 0; i < nPaths; ++i)
+		for (umint iPath = 0; iPath < nPaths; ++iPath)
 		{
-			NStr::CStr Path = Paths[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Paths[iPath].f_Extract(RootPathLen);
 			fs_CreateDirectory(ToPath + Path);
 		}
 
 		umint nFiles = Files.f_GetLen();
-		for (umint i = 0; i < nFiles; ++i)
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
 		{
-			NStr::CStr Path = Files[i].f_Extract(RootPathLen);
+			NStr::CStr Path = Files[iFile].f_Extract(RootPathLen);
 			NStr::CStr ToFile = ToPath + Path;
 			fs_CreateDirectory(fs_GetPath(ToFile));
 
 			if (_bRaw)
-				fs_CopyFileRaw(Files[i], ToFile);
+				fs_CopyFileRaw(Files[iFile], ToFile);
 			else
-				fs_CopyFile(Files[i], ToFile);
+				fs_CopyFile(Files[iFile], ToFile);
 		}
 	}
 
@@ -504,7 +498,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBuffer.f_SetLen(mc_DefaultCacheSize);
+			mp_CacheBuffer.f_SetLen(mcp_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;
@@ -528,7 +522,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBuffer.f_SetLen(mc_DefaultCacheSize);
+			mp_CacheBuffer.f_SetLen(mcp_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;
@@ -553,7 +547,7 @@ namespace NMib::NFile
 		if (!(mp_OpenFlags & EFileOpen_NoLocalCache))
 		{
 			mp_CachedFileLen = NSys::NFile::fg_GetSize(mp_pFile);
-			mp_CacheBufferNonTracked.f_SetLen(mc_DefaultCacheSize);
+			mp_CacheBufferNonTracked.f_SetLen(mcp_DefaultCacheSize);
 		}
 		else
 			mp_CachedFileLen = -1;
@@ -1818,27 +1812,27 @@ namespace NMib::NFile
 		NStr::CStr Portion;
 		umint iHead = 0;
 		umint SectionsCharCount = 0;
-		NContainer::TCVector<NStr::CStr> lSections;
+		NContainer::TCVector<NStr::CStr> Sections;
 
-		auto fl_Push = [&](NStr::CStr &&_Section)
+		auto fPush = [&](NStr::CStr &&_Section)
 			{
-				if (lSections.f_GetLen() == iHead)
-					lSections.f_Insert(fg_Move(_Section));
+				if (Sections.f_GetLen() == iHead)
+					Sections.f_Insert(fg_Move(_Section));
 				else
-					lSections[iHead] = fg_Move(_Section);
+					Sections[iHead] = fg_Move(_Section);
 
-				SectionsCharCount += lSections[iHead].f_GetLen();
+				SectionsCharCount += Sections[iHead].f_GetLen();
 
 				++iHead;
 			}
 		;
 
-		auto fl_Pop = [&]()
+		auto fPop = [&]()
 			{
 				if (iHead)
 				{
 					--iHead;
-					SectionsCharCount -= lSections[iHead].f_GetLen();
+					SectionsCharCount -= Sections[iHead].f_GetLen();
 				}
 			}
 		;
@@ -1849,16 +1843,16 @@ namespace NMib::NFile
 
 			if (Portion == "..")
 			{
-				if (lSections.f_IsEmpty())
-					fl_Push(fg_Move(Portion));
+				if (Sections.f_IsEmpty())
+					fPush(fg_Move(Portion));
 				else
-					fl_Pop();
+					fPop();
 			}
 			else if (Portion == "." || Portion.f_IsEmpty())
 			{
 			}
 			else
-				fl_Push(fg_Move(Portion));
+				fPush(fg_Move(Portion));
 		}
 
 		if (iHead == 0)
@@ -1870,7 +1864,7 @@ namespace NMib::NFile
 		NStr::CStr::CChar *pEnd = pOut + nOutChars;
 		(void)pEnd;
 
-		auto fl_WriteStr = [&](NStr::CStr const &_Str)
+		auto fWriteStr = [&](NStr::CStr const &_Str)
 			{
 				umint const nChars = _Str.f_GetLen();
 				umint const nBytes = nChars * sizeof(NStr::CStr::CChar);
@@ -1881,21 +1875,21 @@ namespace NMib::NFile
 		;
 
 		if (!Prefix.f_IsEmpty())
-			fl_WriteStr(Prefix);
+			fWriteStr(Prefix);
 
-		umint iS = 0;
-		fl_WriteStr(lSections[iS]);
-		++iS;
+		umint iSection = 0;
+		fWriteStr(Sections[iSection]);
+		++iSection;
 
-		for (; iS < iHead; ++iS)
+		for (; iSection < iHead; ++iSection)
 		{
 			*pOut = '/';
 			++pOut;
-			fl_WriteStr(lSections[iS]);
+			fWriteStr(Sections[iSection]);
 		}
 
 		if (!Suffix.f_IsEmpty())
-			fl_WriteStr(Suffix);
+			fWriteStr(Suffix);
 
 		DMibSafeCheck(pOut == pEnd, "Incorrect string length calculation");
 		*pOut = 0;
@@ -2029,7 +2023,7 @@ namespace NMib::NFile
 
 		bool bRet = false;
 
-		auto fl_GetOwner = [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fGetOwner = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2042,7 +2036,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetGroup = [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fGetGroup = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2055,7 +2049,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetOwnerOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fGetOwnerOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2068,7 +2062,7 @@ namespace NMib::NFile
 				return NStr::CStr();
 			}
 		;
-		auto fl_GetGroupOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
+		auto fGetGroupOnLink = [&](NStr::CStr const &_Path) -> NStr::CStr
 			{
 				try
 				{
@@ -2082,11 +2076,11 @@ namespace NMib::NFile
 			}
 		;
 
-		auto fl_SetOwnerAndGroup = [&](NStr::CStr const &_Path)
+		auto fSetOwnerAndGroup = [&](NStr::CStr const &_Path)
 			{
 				if (!_Owner.f_IsEmpty())
 				{
-					if (fl_GetOwner(_Path) != _Owner)
+					if (fGetOwner(_Path) != _Owner)
 					{
 						bRet = true;
 						fs_SetOwner(_Path, _Owner);
@@ -2094,7 +2088,7 @@ namespace NMib::NFile
 				}
 				if (!_Group.f_IsEmpty())
 				{
-					if (fl_GetGroup(_Path) != _Group)
+					if (fGetGroup(_Path) != _Group)
 					{
 						bRet = true;
 						fs_SetGroup(_Path, _Group);
@@ -2103,11 +2097,11 @@ namespace NMib::NFile
 			}
 		;
 
-		auto fl_SetOwnerAndGroupOnLink = [&](NStr::CStr const &_Path)
+		auto fSetOwnerAndGroupOnLink = [&](NStr::CStr const &_Path)
 			{
 				if (!_Owner.f_IsEmpty())
 				{
-					if (fl_GetOwnerOnLink(_Path) != _Owner)
+					if (fGetOwnerOnLink(_Path) != _Owner)
 					{
 						bRet = true;
 						fs_SetOwnerOnLink(_Path, _Owner);
@@ -2115,7 +2109,7 @@ namespace NMib::NFile
 				}
 				if (!_Group.f_IsEmpty())
 				{
-					if (fl_GetGroupOnLink(_Path) != _Group)
+					if (fGetGroupOnLink(_Path) != _Group)
 					{
 						bRet = true;
 						fs_SetGroupOnLink(_Path, _Group);
@@ -2142,32 +2136,32 @@ namespace NMib::NFile
 				SourceDirectoriesSet[Key] = *iFile;
 			}
 
-			fl_SetOwnerAndGroup(_Path);
+			fSetOwnerAndGroup(_Path);
 
 			for (auto iFile = SourceDirectoriesSet.f_GetIterator(); iFile; ++iFile)
 			{
 				if (iFile->m_Attribs & EFileAttrib_Link && !_bFollowLinks)
-					fl_SetOwnerAndGroupOnLink(iFile->m_Path);
+					fSetOwnerAndGroupOnLink(iFile->m_Path);
 				else
-					fl_SetOwnerAndGroup(iFile->m_Path);
+					fSetOwnerAndGroup(iFile->m_Path);
 			}
 
 			for (auto iFile = SourceFilesSet.f_GetIterator(); iFile; ++iFile)
 			{
 				if (iFile->m_Attribs & EFileAttrib_Link && !_bFollowLinks)
-					fl_SetOwnerAndGroupOnLink(iFile->m_Path);
+					fSetOwnerAndGroupOnLink(iFile->m_Path);
 				else
-					fl_SetOwnerAndGroup(iFile->m_Path);
+					fSetOwnerAndGroup(iFile->m_Path);
 			}
 		}
 		else
 		{
 			if (SourceAttribs & EFileAttrib_Link && !_bFollowLinks)
-				fl_SetOwnerAndGroupOnLink(_Path);
+				fSetOwnerAndGroupOnLink(_Path);
 			else
 			{
 				if (CFile::fs_FileExists(_Path, EFileAttrib_File))
-					fl_SetOwnerAndGroup(_Path);
+					fSetOwnerAndGroup(_Path);
 			}
 		}
 		return bRet;
@@ -2536,8 +2530,8 @@ namespace NMib::NFile
 	{
 		NStr::CUStr Ret;
 
-		for (umint i = 0; i < _Len; ++i)
-			Ret += fsp_EncodeChar(_pChars[i]);
+		for (umint iChar = 0; iChar < _Len; ++iChar)
+			Ret += fsp_EncodeChar(_pChars[iChar]);
 
 		return Ret;
 	}
@@ -3314,11 +3308,11 @@ namespace NMib::NFile
 	{
 		while (true)
 		{
-			if (m_Notification.f_IsOpen())
+			if (mp_Notification.f_IsOpen())
 			{
 				NMib::NFile::CFileChangeNotification::CNotification Notification;
-				while (m_Notification.f_GetNotification(Notification))
-					m_Notify(Notification);
+				while (mp_Notification.f_GetNotification(Notification))
+					mp_Notify(Notification);
 			}
 			if (f_GetState() == NThread::EThreadState_EventWantQuit)
 				break;
@@ -3338,9 +3332,9 @@ namespace NMib::NFile
 			, NMib::NFile::EFileChange _OpenFlags
 			, NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> const &_Notify
 		)
-		: m_Notify(_Notify)
+		: mp_Notify(_Notify)
 	{
-		m_Notification.f_Open(_Path, _OpenFlags, &m_EventWantQuit);
+		mp_Notification.f_Open(_Path, _OpenFlags, &m_EventWantQuit);
 		f_Start();
 	}
 

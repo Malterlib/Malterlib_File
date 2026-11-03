@@ -323,8 +323,8 @@ namespace NMib::NFile
 		~CFileChangeNotifier();
 
 	private:
-		CFileChangeNotification m_Notification;
-		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> m_Notify;
+		CFileChangeNotification mp_Notification;
+		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> mp_Notify;
 		aint f_Main();
 		NMib::NStr::CStr f_GetThreadName();
 	};
@@ -354,8 +354,8 @@ namespace NMib::NFile
 			static bool fs_IsEmulationEnabled();
 
 		private:
-			bool m_bEnableEmulation = false;
-			bool m_bPreviousEnableEmulation = false;
+			bool mp_bEnableEmulation = false;
+			bool mp_bPreviousEnableEmulation = false;
 		};
 
 		struct CFoundFile
@@ -414,7 +414,11 @@ namespace NMib::NFile
 			, EDiffCopyChangeAction_Skip
 		};
 
-		static NStr::CStr const mc_ExecutableExtension;
+#ifdef DPlatformFamily_Windows
+		static constexpr NStr::CStr mc_ExecutableExtension = NStr::gc_Str<".exe">;
+#else
+		static constexpr NStr::CStr mc_ExecutableExtension = {};
+#endif
 
 	private:
 		void *mp_pFile = nullptr;
@@ -431,7 +435,7 @@ namespace NMib::NFile
 		uint8 *fp_GetCacheBuffer();
 		umint fp_GetCacheBufferLen();
 
-		static constexpr aint mc_DefaultCacheSize = 16 * 1024;
+		static constexpr aint mcp_DefaultCacheSize = 16 * 1024;
 
 		inline_small void fp_CheckOpen() const
 		{
