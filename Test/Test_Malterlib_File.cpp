@@ -105,7 +105,7 @@ namespace
 
 		struct CCommonPathResult
 		{
-			auto operator <=> (CCommonPathResult const &) const noexcept = default;
+			auto operator <=> (CCommonPathResult const &_Other) const noexcept = default;
 
 			template <typename tf_CStr>
 			void f_Format(tf_CStr &o_String) const

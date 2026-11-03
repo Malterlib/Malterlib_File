@@ -51,8 +51,8 @@ namespace
 		using CParent = TCBinaryStreamMemory<t_CStreamType, t_CVector>;
 
 	private:
-		TCBinaryStreamMemorySequential(TCBinaryStreamMemorySequential const &) = delete;
-		TCBinaryStreamMemorySequential &operator = (TCBinaryStreamMemorySequential const &) = delete;
+		TCBinaryStreamMemorySequential(TCBinaryStreamMemorySequential const &_Other) = delete;
+		TCBinaryStreamMemorySequential &operator = (TCBinaryStreamMemorySequential const &_Other) = delete;
 	};
 
 	struct CRSync_Tests : public NMib::NTest::CTest

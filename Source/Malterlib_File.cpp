@@ -492,7 +492,7 @@ namespace NMib::NFile
 		mp_CacheBufferNonTracked.f_Clear();
 	}
 
-	void CFile::f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags)
+	void CFile::f_Open(void *_pFile, ESysFileTag _Tag, EFileOpen _OpenFlags)
 	{
 		f_Close();
 		mp_FilePos = 0;

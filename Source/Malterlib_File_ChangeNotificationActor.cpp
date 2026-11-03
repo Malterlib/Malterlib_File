@@ -243,7 +243,7 @@ namespace NMib::NFile
 #endif
 		}
 
-		Notification.m_fOnChange(Notifications) > [pCleanup](auto &&)
+		Notification.m_fOnChange(Notifications) > [pCleanup](auto &&_Result)
 			{
 			}
 		;

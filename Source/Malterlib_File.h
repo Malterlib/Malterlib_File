@@ -331,10 +331,10 @@ namespace NMib::NFile
 
 	struct CFile
 	{
-		template <typename tf_CHash>
+		template <typename t_CHash>
 		struct TCFileChecksumState
 		{
-			tf_CHash m_Hash;
+			t_CHash m_Hash;
 			CMibFilePos m_Length;
 			NStorage::TCUniquePointer<CFile> m_pFile = fg_Construct();
 		};
@@ -485,10 +485,10 @@ namespace NMib::NFile
 		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName);
 
 	public:
-		CFile(CFile const &) = delete;
-		CFile &operator = (CFile const &) = delete;
-		CFile(CFile &&);
-		CFile &operator = (CFile &&);
+		CFile(CFile const &_Other) = delete;
+		CFile &operator = (CFile const &_Other) = delete;
+		CFile(CFile &&_Other);
+		CFile &operator = (CFile &&_Other);
 		CFile();
 		CFile(NStr::CStr const &_FileName, EFileOpen _OpenFlags);
 		CFile(NStr::CStrNonTracked const &_FileName, EFileOpen _OpenFlags);
@@ -503,7 +503,7 @@ namespace NMib::NFile
 		{
 		};
 
-		void f_Open(void *_pFile, ESysFileTag, EFileOpen _OpenFlags);
+		void f_Open(void *_pFile, ESysFileTag _Tag, EFileOpen _OpenFlags);
 
 		void f_Read(void *_pDest, umint _nBytes);
 		void f_ReadNoLocalCache(CMibFilePos _Position, void *_pDest, umint _nBytes);
@@ -879,9 +879,9 @@ namespace NMib::NFile
 		static tf_CStr fs_MakePathRelative(tf_CStr const &_AbsolutePath, tf_CStr const &_AbsoluteBase);
 
 		template <typename tf_CStr>
-		static tf_CStr fs_GetCommonPathAndMakeRelative(tf_CStr &_oPath0, tf_CStr &_oPath1);
+		static tf_CStr fs_GetCommonPathAndMakeRelative(tf_CStr &o_Path0, tf_CStr &o_Path1);
 		template <typename tf_CStr>
-		static tf_CStr fs_GetCommonPath(tf_CStr const &_oPath0, tf_CStr const &_oPath1);
+		static tf_CStr fs_GetCommonPath(tf_CStr const &_Path0, tf_CStr const &_Path1);
 
 		template <typename tf_CStr>
 		static tf_CStr fs_GetPath(tf_CStr const &_File);
