@@ -12,6 +12,8 @@ namespace NMib::NFile
 
 	struct CExeFS
 	{
+		~CExeFS();
+
 		NMib::NFile::CVirtualFS m_FileSystem;
 
 		// Either these two...
@@ -19,8 +21,6 @@ namespace NMib::NFile
 		NStream::TCBinaryStreamSubStream<> m_SubStream;
 		// ...or this one will be in use depending on how the ExeFs files were attached to the exe.
 		NStream::TCBinaryStreamMemoryPtr<> m_InProcStream;
-
-		~CExeFS();
 	};
 
 	bool fg_OpenExeFS(CExeFS &_FS);

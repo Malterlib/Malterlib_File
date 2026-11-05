@@ -48,22 +48,22 @@ namespace NMib::NFile
 
 	struct CUniqueFileIdentifier
 	{
+		auto operator <=> (CUniqueFileIdentifier const &_Right) const noexcept = default;
+
 		uint64 m_VolumeID = TCLimitsInt<uint64>::mc_Max;
 		uint128 m_FileID = TCLimitsInt<uint64>::mc_Max;
-
-		auto operator <=> (CUniqueFileIdentifier const &_Right) const noexcept = default;
 	};
 
 	struct CFileIoTempBuffer
 	{
-		CFileIoTempBuffer();
-		~CFileIoTempBuffer();
-
 		struct CUseBufferResult
 		{
 			uint8 *m_pBuffer;
 			umint m_nBytes;
 		};
+
+		CFileIoTempBuffer();
+		~CFileIoTempBuffer();
 
 		template <typename tf_CLength>
 		inline_small CUseBufferResult f_UseBuffer(tf_CLength _Length);
@@ -237,21 +237,21 @@ namespace NMib::NFile
 	\*_____________________________________________________________________________*/
 	struct CFileChangeNotification
 	{
+		struct CNotification
+		{
+			auto operator <=> (CNotification const &_Right) const noexcept = default;
+
+			EFileChangeNotification m_Notification = EFileChangeNotification_Undefined;
+			NStr::CStr m_Path;
+			NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
+		};
+
 		CFileChangeNotification();
 		~CFileChangeNotification();
 		void f_Close();
 		void f_Open(NStr::CStr const &_Path, EFileChange _OpenFlags, NMib::NThread::CSemaphoreAggregate *_pReportTo);
 		bool f_IsOpen();
 		bool f_Changed();
-
-		struct CNotification
-		{
-			EFileChangeNotification m_Notification = EFileChangeNotification_Undefined;
-			NStr::CStr m_Path;
-			NStr::CStr m_PathFrom; // Only used for EFileChangeNotification_Renamed
-
-			auto operator <=> (CNotification const &_Right) const noexcept = default;
-		};
 
 		bool f_GetNotification(CNotification &_ToFill);
 		static bool fs_Supported();
@@ -266,10 +266,11 @@ namespace NMib::NFile
 		~CFileChangeNotifier();
 
 	private:
-		CFileChangeNotification mp_Notification;
-		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> mp_fNotify;
 		aint f_Main();
 		NMib::NStr::CStr f_GetThreadName();
+
+		CFileChangeNotification mp_Notification;
+		NFunction::TCFunction<void (CFileChangeNotification::CNotification const &_Change)> mp_fNotify;
 	};
 
 	struct CFile
@@ -303,27 +304,27 @@ namespace NMib::NFile
 
 		struct CFoundFile
 		{
-			NStr::CStr m_Path;
-			EFileAttrib m_Attribs;
-
 			template <typename tf_CStream>
 			void f_Feed(tf_CStream &_Stream) const;
 			template <typename tf_CStream>
 			void f_Consume(tf_CStream &_Stream);
 
 			auto operator <=> (CFoundFile const &_Other) const noexcept = default;
+
+			NStr::CStr m_Path;
+			EFileAttrib m_Attribs;
 		};
 
 		struct CFindFilesOptions
 		{
+			CFindFilesOptions(NStr::CStr const &_Path, bool _bRecursive);
+
 			NStr::CStr m_Path;
 			EFileAttrib m_AttribMask = EFileAttrib_Directory | EFileAttrib_File;
 			bool m_bRecursive;
 			bool m_bFollowLinks = false;
 			NContainer::TCVector<NStr::CStr> m_ExcludePatterns;
 			NFunction::TCFunctionNoAlloc<void ()> m_fCheckAbort;
-
-			CFindFilesOptions(NStr::CStr const &_Path, bool _bRecursive);
 		};
 
 		enum EDiffCopyChange
@@ -344,94 +345,37 @@ namespace NMib::NFile
 			, EDiffCopyChangeAction_Skip
 		};
 
-#ifdef DPlatformFamily_Windows
-		static constexpr NStr::CStr mc_ExecutableExtension = NStr::gc_Str<".exe">;
-#else
-		static constexpr NStr::CStr mc_ExecutableExtension = {};
-#endif
+		enum ESysFileTag
+		{
+		};
 
-	private:
-		void *mp_pFile = nullptr;
-		CMibFilePos mp_FilePos = 0;
-		EFileOpen mp_OpenFlags = EFileOpen_None;
+		enum EInvalidPathReason
+		{
+			EInvalidPathReason_Valid
+			, EInvalidPathReason_Empty
+			, EInvalidPathReason_ControlCharacters
+			, EInvalidPathReason_SpecificCharacter // Character returned separately
+			, EInvalidPathReason_SpecificWord      // Word returned separately
+			, EInvalidPathReason_EndWithSpace
+			, EInvalidPathReason_EndWithDot
+			, EInvalidPathReason_EndWithSlash
+		};
 
-		CMibFilePos mp_CachePos = 0;
-		bool mp_bCacheDirty = false;
-		bool mp_bNonTracked = false;
-		CMibFilePos mp_CachedFileLen = 0;
-		NContainer::CByteVector mp_CacheBuffer;
-		NContainer::TCVector<uint8, NMemory::CAllocator_NonTrackedHeap> mp_CacheBufferNonTracked;
-
-		uint8 *fp_GetCacheBuffer();
-		umint fp_GetCacheBufferLen();
-
-		static constexpr aint mcp_DefaultCacheSize = 16 * 1024;
-
-		inline_small void fp_CheckOpen() const;
-
-		void fp_FlushCache();
-		void *fp_GetCache(CMibFilePos _CurrentPos, umint &_nBytesAvailable);
-		CMibFilePos fp_GetLength() const;
-
-		static bool fsp_OpenFile(NFile::CFile &_File, NStr::CStr const &_FileName, EFileOpen _Open, NTime::CTime const &_FileTime);
-		static NTime::CTimeSpan fsp_GetDefaultFileChangedMargin();
-
-		static auto fsp_DiffCopyFileOrDirectory
-			(
-				NStr::CStr const &_Source
-				, NStr::CStr const &_Destination
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
-				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
-			)
-			-> bool
-		;
-		static auto fsp_CopyFileDiff
-			(
-				NContainer::CByteVector const &_SourceData
-				, NStr::CStr const &_FromFileName
-				, NStr::CStr const &_ToFileName
-				, NTime::CTime const &_FileTime
-				, EFileAttrib _AddAttribs
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
-				, bool _bRemoveWriteProtection = false
-				, bool _bSourceDataValid = true
-				, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
-				, bool _bFileTimeIsNow = false
-			)
-			-> bool
-		;
-		static bool fsp_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs);
-		static auto fsp_CopyFileDiff
-			(
-				NStr::CStr const &_FromFileName
-				, NStr::CStr const &_ToFileName
-				, bool _bCopyDate
-				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
-				, bool _bRemoveWriteProtection = false
-			)
-			-> bool
-		;
-		static bool fsp_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName);
-		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName);
-
-	public:
 		CFile(CFile const &_Other) = delete;
-		CFile &operator = (CFile const &_Other) = delete;
 		CFile(CFile &&_Other);
-		CFile &operator = (CFile &&_Other);
 		CFile();
 		CFile(NStr::CStr const &_FileName, EFileOpen _OpenFlags);
 		CFile(NStr::CStrNonTracked const &_FileName, EFileOpen _OpenFlags);
 		~CFile();
+
+		CFile &operator = (CFile const &_Other) = delete;
+		CFile &operator = (CFile &&_Other);
 
 		bool f_IsValid() const;
 
 		void f_Close(bool _bCanThrow = true);
 		void f_Open(NStr::CStr const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
 		void f_Open(NStr::CStrNonTracked const &_FileName, EFileOpen _OpenFlags, EFileAttrib _Attributes = EFileAttrib_None);
-		enum ESysFileTag
-		{
-		};
 
 		void f_Open(void *_pFile, ESysFileTag _Tag, EFileOpen _OpenFlags);
 
@@ -762,40 +706,90 @@ namespace NMib::NFile
 		static EFileAttrib fs_AttribFromJson(NEncoding::CEJsonSorted const &_Json);
 		static NEncoding::CEJsonSorted fs_AttribToJson(EFileAttrib _Attribs);
 
-	private:
-		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
-		static auto fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr;
-
-	public:
 		static NStr::CStr fs_MakeNiceUniqueFilename(NStr::CStr const &_CurrentName);
-
-		enum EInvalidPathReason
-		{
-			EInvalidPathReason_Valid
-			, EInvalidPathReason_Empty
-			, EInvalidPathReason_ControlCharacters
-			, EInvalidPathReason_SpecificCharacter // Character returned separately
-			, EInvalidPathReason_SpecificWord      // Word returned separately
-			, EInvalidPathReason_EndWithSpace
-			, EInvalidPathReason_EndWithDot
-			, EInvalidPathReason_EndWithSlash
-		};
 
 		static bool fs_IsValidFilePath(NStr::CStr const &_File, EInvalidPathReason &_InvalidReason, NStr::CStr &_InvalidPart);
 		static bool fs_IsValidFilePath(NStr::CStr const &_File, NStr::CStr &_Error);
 		static bool fs_IsSafeRelativePath(NStr::CStr const &_File, NStr::CStr &o_Error);
+
+#ifdef DPlatformFamily_Windows
+		static constexpr NStr::CStr mc_ExecutableExtension = NStr::gc_Str<".exe">;
+#else
+		static constexpr NStr::CStr mc_ExecutableExtension = {};
+#endif
+
+	private:
+		uint8 *fp_GetCacheBuffer();
+		umint fp_GetCacheBufferLen();
+
+		inline_small void fp_CheckOpen() const;
+
+		void fp_FlushCache();
+		void *fp_GetCache(CMibFilePos _CurrentPos, umint &_nBytesAvailable);
+		CMibFilePos fp_GetLength() const;
+
+		static bool fsp_OpenFile(NFile::CFile &_File, NStr::CStr const &_FileName, EFileOpen _Open, NTime::CTime const &_FileTime);
+		static NTime::CTimeSpan fsp_GetDefaultFileChangedMargin();
+
+		static auto fsp_DiffCopyFileOrDirectory
+			(
+				NStr::CStr const &_Source
+				, NStr::CStr const &_Destination
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
+				, NContainer::TCVector<NStr::CStr> const &_ExcludePatterns
+			)
+			-> bool
+		;
+		static auto fsp_CopyFileDiff
+			(
+				NContainer::CByteVector const &_SourceData
+				, NStr::CStr const &_FromFileName
+				, NStr::CStr const &_ToFileName
+				, NTime::CTime const &_FileTime
+				, EFileAttrib _AddAttribs
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
+				, bool _bRemoveWriteProtection = false
+				, bool _bSourceDataValid = true
+				, CUniqueFileIdentifier const *_pExpectedSourceIdentity = nullptr
+				, bool _bFileTimeIsNow = false
+			)
+			-> bool
+		;
+		static bool fsp_CopyFileDiffDate(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName, NTime::CTime const &_FileTime, EFileAttrib _AddAttribs);
+		static auto fsp_CopyFileDiff
+			(
+				NStr::CStr const &_FromFileName
+				, NStr::CStr const &_ToFileName
+				, bool _bCopyDate
+				, NFunction::TCFunction<EDiffCopyChangeAction (EDiffCopyChange _Change, NStr::CStr const &_Source, NStr::CStr const &_Destination, NStr::CStr const &_Link)> const &_fOnChange
+				, bool _bRemoveWriteProtection = false
+			)
+			-> bool
+		;
+		static bool fsp_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName);
+		static bool fsp_FileIsSame(NContainer::CSecureByteVector const &_SourceData, NStr::CStr const &_ToFileName);
+
+		static auto fsp_EncodeChar(ch32 _Char) -> NStr::CFWStr16;
+		static auto fsp_EncodeString(ch32 *_pChars, umint _Len) -> NStr::CUStr;
+
+		static constexpr aint mcp_DefaultCacheSize = 16 * 1024;
+
+		void *mp_pFile = nullptr;
+		CMibFilePos mp_FilePos = 0;
+		EFileOpen mp_OpenFlags = EFileOpen_None;
+
+		CMibFilePos mp_CachePos = 0;
+		bool mp_bCacheDirty = false;
+		bool mp_bNonTracked = false;
+		CMibFilePos mp_CachedFileLen = 0;
+		NContainer::CByteVector mp_CacheBuffer;
+		NContainer::TCVector<uint8, NMemory::CAllocator_NonTrackedHeap> mp_CacheBufferNonTracked;
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
 	struct TCBinaryStreamFile : public t_CStreamType
 	{
-	protected:
-		DMibStreamImplementProtected(TCBinaryStreamFile);
-
-	public:
 		DMibStreamImplementOperators(TCBinaryStreamFile);
-
-		CFile m_File;
 
 		TCBinaryStreamFile();
 
@@ -822,6 +816,11 @@ namespace NMib::NFile
 		NStream::CFilePos f_GetLength() const;
 		umint f_ContainerLengthLimit() const;
 		void f_SetLength(NStream::CFilePos _Length);
+
+		CFile m_File;
+
+	protected:
+		DMibStreamImplementProtected(TCBinaryStreamFile);
 	};
 
 	template <typename t_CStreamType = NStream::CBinaryStreamDefault>
@@ -852,11 +851,11 @@ namespace NMib::NFile
 		umint f_ContainerLengthLimit() const;
 		void f_SetLength(NStream::CFilePos _Length);
 
-	private:
-		CFile *mp_pFile;
-
 	protected:
 		DMibStreamImplementProtected(TCBinaryStreamFilePtr);
+
+	private:
+		CFile *mp_pFile;
 	};
 
 	struct CLockFile
@@ -886,14 +885,14 @@ namespace NMib::NFile
 		bool f_HasLock() const; // Do I have the lock?
 
 	private:
-		NStr::CStr mp_FilePath;
-		NFile::CFile mp_LockFile;
-		NFile::EFileOpen mp_LockFlags;
-
 		CLockFile(CLockFile const &_ToCopy); // delete
 		CLockFile(CLockFile &&_ToMove); // delete
 		CLockFile &operator = (CLockFile const &_ToCopy); // delete
 		CLockFile &operator = (CLockFile &&_ToMove);      // delete
+
+		NStr::CStr mp_FilePath;
+		NFile::CFile mp_LockFile;
+		NFile::EFileOpen mp_LockFlags;
 	};
 }
 

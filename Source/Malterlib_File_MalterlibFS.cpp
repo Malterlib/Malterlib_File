@@ -7,12 +7,6 @@ namespace NMib::NFile
 {
 	struct CVirtualFS_FixFSFileTree
 	{
-		CVirtualFS_FixFSFileTree(CVirtualFS::CCheckReporter *_pReporter, uint32 _Version)
-		{
-			mp_pReporter = _pReporter;
-			mp_Version = _Version;
-		}
-
 		struct CDirectoryKey
 		{
 			CVirtualFS::CDirectoryID m_DirectoryID;
@@ -21,28 +15,33 @@ namespace NMib::NFile
 
 		struct CFile
 		{
+			struct CCompareFileClusterID
+			{
+				inline_small CVirtualFS::CClusterID const &operator () (CFile const &_Node) const;
+			};
+
+			struct CCompareDirectoryID
+			{
+				inline_small COrdering_Partial operator () (CFile const &_Left, CFile const &_Right) const;
+
+				inline_small COrdering_Partial operator () (CFile const &_Left, CDirectoryKey const &_Right) const;
+
+				inline_small COrdering_Partial operator () (CDirectoryKey const &_Left, CFile const &_Right) const;
+			};
+
+			CFile(CVirtualFS_FixFSFileTree *_pTree);
+
+			~CFile();
+
+			uint32 f_GetDepth();
+
+			void f_SetParent(CFile *_pParent);
+
+			CVirtualFS::CDirectory::CFile *f_GetDirectoryEntry(CVirtualFS::CDirectoryID _Cluster);
+
+			CFile *f_GetFileByName(NStr::CStr const &_Name);
+
 			CVirtualFS_FixFSFileTree *m_pTree;
-			CFile(CVirtualFS_FixFSFileTree *_pTree)
-			{
-				m_DirectoryID = 0;
-				m_ParentID = 0;
-				m_FileClusterID = 0;
-				m_bIsDir = false;
-				m_FileSize = 0;
-				m_pParent = nullptr;
-				m_pTree = _pTree;
-			}
-
-			~CFile()
-			{
-				f_SetParent(nullptr);
-				m_Children.f_DeleteAllDefiniteType();
-				if (m_FileClusterIDLink.f_IsInTree())
-					m_pTree->m_FileClusters.f_Remove(this);
-				if (m_DirectoryIDLink.f_IsInTree())
-					m_pTree->m_Directories.f_Remove(this);
-			}
-
 			bool m_bIsDir;
 			NStr::CMStrPreserve m_FileName;
 			CVirtualFS::CDirectoryID m_DirectoryID;
@@ -53,149 +52,22 @@ namespace NMib::NFile
 
 			CVirtualFS::CDirectory m_Directory;
 
-			uint32 f_GetDepth()
-			{
-				uint32 Depth = 0;
-				CFile *pParent = this;
-				while (pParent)
-				{
-					if (pParent->m_FileClusterID == 1 && pParent->m_DirectoryID == 1)
-						return 0xffffffff;
-					++Depth;
-					pParent = pParent->m_pParent;
-				}
-				return Depth;
-			}
-
-			void f_SetParent(CFile *_pParent)
-			{
-				if (m_pParent)
-				{
-					if (m_ChildLink.f_IsInList())
-						m_pParent->m_Children.f_Remove(this);
-				}
-				m_pParent = _pParent;
-				if (_pParent)
-					_pParent->m_Children.f_Insert(this);
-			}
-
-			struct CCompareFileClusterID
-			{
-				inline_small CVirtualFS::CClusterID const &operator () (CFile const &_Node) const
-				{
-					return _Node.m_FileClusterID;
-				}
-			};
-
 			NIntrusive::TCAVLLink<> m_FileClusterIDLink;
 
 			DMibListLinkDS_Link(CFile, m_ChildLink);
 			DMibListLinkDS_List(CFile, m_ChildLink) m_Children;
 
-			CVirtualFS::CDirectory::CFile *f_GetDirectoryEntry(CVirtualFS::CDirectoryID _Cluster)
-			{
-				umint nFiles = m_Directory.m_Files.f_GetLen();
-				for (umint iFile = 0; iFile < nFiles; ++iFile)
-				{
-					if (m_Directory.m_Files[iFile].m_FileRecordCluster == _Cluster)
-						return &m_Directory.m_Files[iFile];
-				}
-				return nullptr;
-			}
-
-			CFile *f_GetFileByName(NStr::CStr const &_Name)
-			{
-				DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = m_Children;
-
-				while (iChild)
-				{
-					if (iChild->m_FileName == _Name)
-						return iChild;
-
-					++iChild;
-				}
-				return nullptr;
-			}
-
-			struct CCompareDirectoryID
-			{
-				inline_small COrdering_Partial operator () (CFile const &_Left, CFile const &_Right) const
-				{
-					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
-						return Result;
-					return _Left.m_FileClusterID <=> _Right.m_FileClusterID;
-				}
-
-				inline_small COrdering_Partial operator () (CFile const &_Left, CDirectoryKey const &_Right) const
-				{
-					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
-						return Result;
-					return _Left.m_FileClusterID <=> _Right.m_ClusterID;
-				}
-
-				inline_small COrdering_Partial operator () (CDirectoryKey const &_Left, CFile const &_Right) const
-				{
-					if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
-						return Result;
-					return _Left.m_ClusterID <=> _Right.m_FileClusterID;
-				}
-			};
-
 			NIntrusive::TCAVLLink<> m_DirectoryIDLink;
 			DMibListLinkDS_Link(CFile, m_RootLink);
 		};
-		DMibListLinkDS_List(CFile, m_RootLink) m_Roots;
+
+		CVirtualFS_FixFSFileTree(CVirtualFS::CCheckReporter *_pReporter, uint32 _Version);
 
 		void f_FindRoots();
 
-		void f_TraceTreeRecursive(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter)
-		{
-			DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = _pFile->m_Children;
+		void f_TraceTreeRecursive(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter);
 
-			while (iChild)
-			{
-				NStr::CStr ToTrace
-					= NStr::CStr::CFormat("{sj*6}{}: Dir: {} Cluster: {}    Parent: {}     FileSize: {}")
-					<< ""
-					<< NStr::CStr(iChild->m_FileName)
-					<< iChild->m_DirectoryID
-					<< iChild->m_FileClusterID
-					<< iChild->m_ParentID
-					<< iChild->m_FileSize
-					<< _Depth * 3
-				;
-				if (1)
-					DMibDTrace("{}" DMibNewLine, ToTrace);
-				else
-					_pReporter->f_ReportError(ToTrace);
-				f_TraceTreeRecursive(iChild, _Depth + 1, _pReporter);
-				++iChild;
-			}
-		}
-
-		void f_TraceTree(CVirtualFS::CCheckReporter *_pReporter)
-		{
-			DMibListLinkDS_Iter(CFile, m_RootLink) iRoot = m_Roots;
-
-			while (iRoot)
-			{
-				NStr::CStr ToTrace
-					= NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}")
-					<< iRoot->m_DirectoryID
-					<< iRoot->m_FileClusterID
-					<< iRoot->m_ParentID
-					<< iRoot->m_FileSize
-				;
-				if (1)
-					DMibDTrace("{}" DMibNewLine, ToTrace);
-				else
-					_pReporter->f_ReportError(ToTrace);
-
-				f_TraceTreeRecursive(iRoot, 1, _pReporter);
-
-				++iRoot;
-			}
-		}
+		void f_TraceTree(CVirtualFS::CCheckReporter *_pReporter);
 
 		void f_CopyFile(CVirtualFS::CFileRecord &_FileRecord, CVirtualFS::CFile &_File, uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream);
 		void f_CopyTreeRecursive
@@ -210,117 +82,15 @@ namespace NMib::NFile
 		;
 		void f_CopyTree(uint64 _ClusterSize, uint64 _ClusterIDsPerCluster, NStream::CBinaryStream *_pStorageStream, CVirtualFS *_pFixDestinationFS);
 
-		CFile *f_GetFile(CVirtualFS::CClusterID _Cluster)
-		{
-			CVirtualFS_FixFSFileTree::CFile *pFile = m_FileClusters.f_FindEqual(_Cluster);
+		CFile *f_GetFile(CVirtualFS::CClusterID _Cluster);
 
-			if (!pFile)
-			{
-				pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
-				pFile->m_FileClusterID = _Cluster;
-				m_FileClusters.f_Insert(pFile);
-			}
-			return pFile;
-		}
+		CFile *f_GetDirectory(CVirtualFS::CDirectoryID _DirID);
 
-		CFile *f_GetDirectory(CVirtualFS::CDirectoryID _DirID)
-		{
-			CVirtualFS_FixFSFileTree::CDirectoryKey Key;
-			Key.m_DirectoryID = _DirID;
-			Key.m_ClusterID = 0;
+		CFile *f_GetDirectory(CVirtualFS::CClusterID _Cluster, CVirtualFS::CDirectoryID _DirID);
 
-			CVirtualFS_FixFSFileTree::CFile *pFile = m_Directories.f_FindSmallestGreaterThanEqual(Key);
-			if (pFile && pFile->m_DirectoryID != _DirID)
-				pFile = nullptr;
+		void f_Destroy();
 
-			if (!pFile)
-			{
-				// No directory found, lets create a virtual directory
-				pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
-				pFile->m_DirectoryID = _DirID;
-				m_Directories.f_Insert(pFile);
-			}
-			return pFile;
-		}
-
-		CFile *f_GetDirectory(CVirtualFS::CClusterID _Cluster, CVirtualFS::CDirectoryID _DirID)
-		{
-			CVirtualFS_FixFSFileTree::CDirectoryKey Key;
-			Key.m_DirectoryID = _DirID;
-			Key.m_ClusterID = _Cluster;
-			CVirtualFS_FixFSFileTree::CFile *pFileDir = m_Directories.f_FindEqual(Key);
-			if (!pFileDir)
-			{
-				Key.m_ClusterID = 0;
-				pFileDir = m_Directories.f_FindEqual(Key);
-			}
-			CVirtualFS_FixFSFileTree::CFile *pFileCluster = m_FileClusters.f_FindEqual(_Cluster);
-
-			if (pFileDir)
-			{
-				if (pFileCluster)
-				{
-					if (pFileCluster == pFileDir)
-						return pFileDir;
-
-					DMibSafeCheck(pFileDir->m_FileClusterID == 0, "This directory must be virtual");
-
-					// Move over children from virtual directory to real directory
-					while (pFileDir->m_Children.f_GetFirst())
-					{
-						CFile *pFile = pFileDir->m_Children.f_GetFirst();
-						pFile->f_SetParent(pFileCluster);
-					}
-
-					// We can now discard the virtual directory
-					fg_DeleteObject(NMemory::CDefaultAllocator(), pFileDir);
-
-					if (pFileCluster->m_DirectoryIDLink.f_IsInTree())
-						m_Directories.f_Remove(pFileCluster);
-
-					// Map the cluster file to be a directory
-					pFileCluster->m_DirectoryID = _DirID;
-					pFileCluster->m_bIsDir = true;
-					m_Directories.f_Insert(pFileCluster);
-
-					return pFileCluster;
-				}
-				else
-				{
-					DMibSafeCheck(pFileDir->m_FileClusterID == 0, "This directory must be virtual");
-
-					if (pFileDir->m_FileClusterIDLink.f_IsInTree())
-						m_FileClusters.f_Remove(pFileDir);
-					pFileDir->m_FileClusterID = _Cluster;
-					pFileDir->m_bIsDir = true;
-					m_FileClusters.f_Insert(pFileDir);
-					return pFileDir;
-				}
-			}
-			else if (pFileCluster)
-			{
-				pFileCluster->m_DirectoryID = _DirID;
-				pFileCluster->m_bIsDir = true;
-				m_Directories.f_Insert(pFileCluster);
-				return pFileCluster;
-			}
-
-			CVirtualFS_FixFSFileTree::CFile *pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
-			pFile->m_DirectoryID = _DirID;
-			pFile->m_FileClusterID = _Cluster;
-			pFile->m_bIsDir = true;
-			m_FileClusters.f_Insert(pFile);
-			m_Directories.f_Insert(pFile);
-			return pFile;
-		}
-
-		void f_Destroy()
-		{
-			m_Roots.f_Clear();
-
-			m_FileClusters.f_DeleteAllDefiniteType();
-			m_Directories.f_DeleteAllDefiniteType();
-		}
+		DMibListLinkDS_List(CFile, m_RootLink) m_Roots;
 
 		NIntrusive::TCAVLTree<&CFile::m_FileClusterIDLink, CFile::CCompareFileClusterID> m_FileClusters;
 		NIntrusive::TCAVLTree<&CFile::m_DirectoryIDLink, CFile::CCompareDirectoryID> m_Directories;
@@ -329,6 +99,267 @@ namespace NMib::NFile
 		CVirtualFS::CCheckReporter *mp_pReporter;
 		uint32 mp_Version;
 	};
+
+	CVirtualFS::CClusterID const &CVirtualFS_FixFSFileTree::CFile::CCompareFileClusterID::operator () (CFile const &_Node) const
+	{
+		return _Node.m_FileClusterID;
+	}
+
+	COrdering_Partial CVirtualFS_FixFSFileTree::CFile::CCompareDirectoryID::operator () (CFile const &_Left, CFile const &_Right) const
+	{
+		if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+			return Result;
+		return _Left.m_FileClusterID <=> _Right.m_FileClusterID;
+	}
+
+	COrdering_Partial CVirtualFS_FixFSFileTree::CFile::CCompareDirectoryID::operator () (CFile const &_Left, CDirectoryKey const &_Right) const
+	{
+		if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+			return Result;
+		return _Left.m_FileClusterID <=> _Right.m_ClusterID;
+	}
+
+	COrdering_Partial CVirtualFS_FixFSFileTree::CFile::CCompareDirectoryID::operator () (CDirectoryKey const &_Left, CFile const &_Right) const
+	{
+		if (auto Result = _Left.m_DirectoryID <=> _Right.m_DirectoryID; Result != 0)
+			return Result;
+		return _Left.m_ClusterID <=> _Right.m_FileClusterID;
+	}
+
+	CVirtualFS_FixFSFileTree::CFile::CFile(CVirtualFS_FixFSFileTree *_pTree)
+	{
+		m_DirectoryID = 0;
+		m_ParentID = 0;
+		m_FileClusterID = 0;
+		m_bIsDir = false;
+		m_FileSize = 0;
+		m_pParent = nullptr;
+		m_pTree = _pTree;
+	}
+
+	CVirtualFS_FixFSFileTree::CFile::~CFile()
+	{
+		f_SetParent(nullptr);
+		m_Children.f_DeleteAllDefiniteType();
+		if (m_FileClusterIDLink.f_IsInTree())
+			m_pTree->m_FileClusters.f_Remove(this);
+		if (m_DirectoryIDLink.f_IsInTree())
+			m_pTree->m_Directories.f_Remove(this);
+	}
+
+	uint32 CVirtualFS_FixFSFileTree::CFile::f_GetDepth()
+	{
+		uint32 Depth = 0;
+		CFile *pParent = this;
+		while (pParent)
+		{
+			if (pParent->m_FileClusterID == 1 && pParent->m_DirectoryID == 1)
+				return 0xffffffff;
+			++Depth;
+			pParent = pParent->m_pParent;
+		}
+		return Depth;
+	}
+
+	void CVirtualFS_FixFSFileTree::CFile::f_SetParent(CFile *_pParent)
+	{
+		if (m_pParent)
+		{
+			if (m_ChildLink.f_IsInList())
+				m_pParent->m_Children.f_Remove(this);
+		}
+		m_pParent = _pParent;
+		if (_pParent)
+			_pParent->m_Children.f_Insert(this);
+	}
+
+	CVirtualFS::CDirectory::CFile *CVirtualFS_FixFSFileTree::CFile::f_GetDirectoryEntry(CVirtualFS::CDirectoryID _Cluster)
+	{
+		umint nFiles = m_Directory.m_Files.f_GetLen();
+		for (umint iFile = 0; iFile < nFiles; ++iFile)
+		{
+			if (m_Directory.m_Files[iFile].m_FileRecordCluster == _Cluster)
+				return &m_Directory.m_Files[iFile];
+		}
+		return nullptr;
+	}
+
+	CVirtualFS_FixFSFileTree::CFile *CVirtualFS_FixFSFileTree::CFile::f_GetFileByName(NStr::CStr const &_Name)
+	{
+		DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = m_Children;
+
+		while (iChild)
+		{
+			if (iChild->m_FileName == _Name)
+				return iChild;
+
+			++iChild;
+		}
+		return nullptr;
+	}
+
+	CVirtualFS_FixFSFileTree::CVirtualFS_FixFSFileTree(CVirtualFS::CCheckReporter *_pReporter, uint32 _Version)
+	{
+		mp_pReporter = _pReporter;
+		mp_Version = _Version;
+	}
+
+	void CVirtualFS_FixFSFileTree::f_TraceTreeRecursive(CFile *_pFile, int _Depth, CVirtualFS::CCheckReporter *_pReporter)
+	{
+		DMibListLinkDS_Iter(CFile, m_ChildLink) iChild = _pFile->m_Children;
+
+		while (iChild)
+		{
+			NStr::CStr ToTrace
+				= NStr::CStr::CFormat("{sj*6}{}: Dir: {} Cluster: {}    Parent: {}     FileSize: {}")
+				<< ""
+				<< NStr::CStr(iChild->m_FileName)
+				<< iChild->m_DirectoryID
+				<< iChild->m_FileClusterID
+				<< iChild->m_ParentID
+				<< iChild->m_FileSize
+				<< _Depth * 3
+			;
+			if (1)
+				DMibDTrace("{}" DMibNewLine, ToTrace);
+			else
+				_pReporter->f_ReportError(ToTrace);
+			f_TraceTreeRecursive(iChild, _Depth + 1, _pReporter);
+			++iChild;
+		}
+	}
+
+	void CVirtualFS_FixFSFileTree::f_TraceTree(CVirtualFS::CCheckReporter *_pReporter)
+	{
+		DMibListLinkDS_Iter(CFile, m_RootLink) iRoot = m_Roots;
+
+		while (iRoot)
+		{
+			NStr::CStr ToTrace
+				= NStr::CStr::CFormat("Root Dir: {} Cluster: {}    Parent: {}    FileSize: {}") << iRoot->m_DirectoryID << iRoot->m_FileClusterID << iRoot->m_ParentID << iRoot->m_FileSize
+			;
+			if (1)
+				DMibDTrace("{}" DMibNewLine, ToTrace);
+			else
+				_pReporter->f_ReportError(ToTrace);
+
+			f_TraceTreeRecursive(iRoot, 1, _pReporter);
+
+			++iRoot;
+		}
+	}
+
+	CVirtualFS_FixFSFileTree::CFile *CVirtualFS_FixFSFileTree::f_GetFile(CVirtualFS::CClusterID _Cluster)
+	{
+		CVirtualFS_FixFSFileTree::CFile *pFile = m_FileClusters.f_FindEqual(_Cluster);
+
+		if (!pFile)
+		{
+			pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
+			pFile->m_FileClusterID = _Cluster;
+			m_FileClusters.f_Insert(pFile);
+		}
+		return pFile;
+	}
+
+	CVirtualFS_FixFSFileTree::CFile *CVirtualFS_FixFSFileTree::f_GetDirectory(CVirtualFS::CDirectoryID _DirID)
+	{
+		CVirtualFS_FixFSFileTree::CDirectoryKey Key;
+		Key.m_DirectoryID = _DirID;
+		Key.m_ClusterID = 0;
+
+		CVirtualFS_FixFSFileTree::CFile *pFile = m_Directories.f_FindSmallestGreaterThanEqual(Key);
+		if (pFile && pFile->m_DirectoryID != _DirID)
+			pFile = nullptr;
+
+		if (!pFile)
+		{
+			// No directory found, lets create a virtual directory
+			pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
+			pFile->m_DirectoryID = _DirID;
+			m_Directories.f_Insert(pFile);
+		}
+		return pFile;
+	}
+
+	CVirtualFS_FixFSFileTree::CFile *CVirtualFS_FixFSFileTree::f_GetDirectory(CVirtualFS::CClusterID _Cluster, CVirtualFS::CDirectoryID _DirID)
+	{
+		CVirtualFS_FixFSFileTree::CDirectoryKey Key;
+		Key.m_DirectoryID = _DirID;
+		Key.m_ClusterID = _Cluster;
+		CVirtualFS_FixFSFileTree::CFile *pFileDir = m_Directories.f_FindEqual(Key);
+		if (!pFileDir)
+		{
+			Key.m_ClusterID = 0;
+			pFileDir = m_Directories.f_FindEqual(Key);
+		}
+		CVirtualFS_FixFSFileTree::CFile *pFileCluster = m_FileClusters.f_FindEqual(_Cluster);
+
+		if (pFileDir)
+		{
+			if (pFileCluster)
+			{
+				if (pFileCluster == pFileDir)
+					return pFileDir;
+
+				DMibSafeCheck(pFileDir->m_FileClusterID == 0, "This directory must be virtual");
+
+				// Move over children from virtual directory to real directory
+				while (pFileDir->m_Children.f_GetFirst())
+				{
+					CFile *pFile = pFileDir->m_Children.f_GetFirst();
+					pFile->f_SetParent(pFileCluster);
+				}
+
+				// We can now discard the virtual directory
+				fg_DeleteObject(NMemory::CDefaultAllocator(), pFileDir);
+
+				if (pFileCluster->m_DirectoryIDLink.f_IsInTree())
+					m_Directories.f_Remove(pFileCluster);
+
+				// Map the cluster file to be a directory
+				pFileCluster->m_DirectoryID = _DirID;
+				pFileCluster->m_bIsDir = true;
+				m_Directories.f_Insert(pFileCluster);
+
+				return pFileCluster;
+			}
+			else
+			{
+				DMibSafeCheck(pFileDir->m_FileClusterID == 0, "This directory must be virtual");
+
+				if (pFileDir->m_FileClusterIDLink.f_IsInTree())
+					m_FileClusters.f_Remove(pFileDir);
+				pFileDir->m_FileClusterID = _Cluster;
+				pFileDir->m_bIsDir = true;
+				m_FileClusters.f_Insert(pFileDir);
+				return pFileDir;
+			}
+		}
+		else if (pFileCluster)
+		{
+			pFileCluster->m_DirectoryID = _DirID;
+			pFileCluster->m_bIsDir = true;
+			m_Directories.f_Insert(pFileCluster);
+			return pFileCluster;
+		}
+
+		CVirtualFS_FixFSFileTree::CFile *pFile = fg_ConstructObject<CVirtualFS_FixFSFileTree::CFile>(NMemory::CDefaultAllocator(), this);
+		pFile->m_DirectoryID = _DirID;
+		pFile->m_FileClusterID = _Cluster;
+		pFile->m_bIsDir = true;
+		m_FileClusters.f_Insert(pFile);
+		m_Directories.f_Insert(pFile);
+		return pFile;
+	}
+
+	void CVirtualFS_FixFSFileTree::f_Destroy()
+	{
+		m_Roots.f_Clear();
+
+		m_FileClusters.f_DeleteAllDefiniteType();
+		m_Directories.f_DeleteAllDefiniteType();
+	}
 
 	CVirtualFS::CRootData::CRootData()
 	{

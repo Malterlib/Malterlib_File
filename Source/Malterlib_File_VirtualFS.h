@@ -7,6 +7,23 @@ namespace NMib::NFile
 {
 	struct ICFileSystemInterface
 	{
+		struct CCopyFilesProgress
+		{
+			//! Reports data copied.
+			/*! Return false to abort. */
+			virtual bool f_IncreaseProgress(uint64 _nInc) = 0;
+			virtual void f_StepDown(uint64 _nMax) = 0;
+			virtual void f_StepUp() = 0;
+		};
+
+		enum ECopyFilesBackupFlag
+		{
+			ECopyFilesBackupFlag_None                = 0
+			, ECopyFilesBackupFlag_Incremental       = DMibBit(0)
+			, ECopyFilesBackupFlag_MarkDestBackedUp  = DMibBit(1)
+			, ECopyFilesBackupFlag_ClearDestBackedUp = DMibBit(2)
+		};
+
 		virtual ~ICFileSystemInterface();
 		// Minimal interface
 		virtual NStorage::TCSharedPointer<NStream::CBinaryStreamDefaultRef> f_OpenStream(NStr::CStr const &_FileName, NMib::NFile::EFileOpen _OpenFlags) const = 0;
@@ -113,23 +130,6 @@ namespace NMib::NFile
 			)
 			const
 		;
-
-		struct CCopyFilesProgress
-		{
-			//! Reports data copied.
-			/*! Return false to abort. */
-			virtual bool f_IncreaseProgress(uint64 _nInc) = 0;
-			virtual void f_StepDown(uint64 _nMax) = 0;
-			virtual void f_StepUp() = 0;
-		};
-
-		enum ECopyFilesBackupFlag
-		{
-			ECopyFilesBackupFlag_None                = 0
-			, ECopyFilesBackupFlag_Incremental       = DMibBit(0)
-			, ECopyFilesBackupFlag_MarkDestBackedUp  = DMibBit(1)
-			, ECopyFilesBackupFlag_ClearDestBackedUp = DMibBit(2)
-		};
 
 		//! Copy files recursively.
 		/*! Returns true if completed successfully. */

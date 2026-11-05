@@ -86,12 +86,6 @@ namespace NMib::NFile
 
 	struct CDirectoryManifest
 	{
-		template <typename tf_CStream>
-		void f_Stream(tf_CStream &_Stream, uint32 _Version);
-
-		NEncoding::CEJsonSorted f_ToJson() const;
-		static CDirectoryManifest fs_FromJson(NEncoding::CEJsonSorted const &_Json);
-
 		enum EManifestStreamVersion : uint32
 		{
 			EManifestStreamVersion_Min              = 0x102
@@ -99,7 +93,11 @@ namespace NMib::NFile
 			, EManifestStreamVersion_Current        = 0x103
 		};
 
-		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
+		template <typename tf_CStream>
+		void f_Stream(tf_CStream &_Stream, uint32 _Version);
+
+		NEncoding::CEJsonSorted f_ToJson() const;
+		static CDirectoryManifest fs_FromJson(NEncoding::CEJsonSorted const &_Json);
 
 		static EDirectoryManifestSyncFlag fs_GetSyncFlags(CDirectoryManifestConfig const &_Config, NStr::CStr const &_FileName);
 
@@ -124,6 +122,8 @@ namespace NMib::NFile
 			)
 			-> CDirectoryManifest
 		;
+
+		NContainer::TCMap<NStr::CStr, CDirectoryManifestFile> m_Files;
 	};
 
 	struct CDirectoryManifestLatestVersion : CDirectoryManifest

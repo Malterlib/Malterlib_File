@@ -9,8 +9,6 @@ namespace NMib::NFile
 
 	struct CMalterlibPatchEncodeHelper
 	{
-		static constexpr umint mc_MapLength = 64;
-
 		struct CMappedPos
 		{
 			DMibListLinkSA_Link(CMappedPos, m_Link);
@@ -20,71 +18,15 @@ namespace NMib::NFile
 		{
 			struct CCompare
 			{
+				CCompare(CMalterlibPatchEncodeHelper *_pContext);
+
+				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, CMappedChunk const &_Right) const;
+
+				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, uint8 const *_pSecond) const;
+
+				inline_small COrdering_Partial operator () (uint8 const *_pFirst, CMappedChunk const &_Right) const;
+
 				CMalterlibPatchEncodeHelper &m_Context;
-				CCompare(CMalterlibPatchEncodeHelper *_pContext)
-					: m_Context(*_pContext)
-				{
-				}
-
-				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, CMappedChunk const &_Right) const
-				{
-					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					umint Len0 = m_Context.m_nMapped - Pos0;
-					umint Len1 = m_Context.m_nMapped - Pos1;
-					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
-
-					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
-					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
-					DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
-					DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
-
-					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, CompareLen);
-					if (Diff)
-						return Diff <=> 0;
-
-					return Len0 <=> Len1;
-				}
-
-				inline_small COrdering_Partial operator () (CMappedChunk const &_Left, uint8 const *_pSecond) const
-				{
-					umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					umint Pos1 = _pSecond - m_Context.m_pFindData;
-					umint Len0 = m_Context.m_nMapped - Pos0;
-					umint Len1 = m_Context.m_FindLen - Pos1;
-					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
-
-					DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
-					DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
-					DMibFastCheck(_pSecond >= m_Context.m_pFindData);
-					DMibFastCheck((_pSecond + CompareLen) <= m_Context.m_pFindDataEnd);
-
-					auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, CompareLen);
-					if (Diff)
-						return Diff <=> 0;
-
-					return Len0 <=> Len1;
-				}
-
-				inline_small COrdering_Partial operator () (uint8 const *_pFirst, CMappedChunk const &_Right) const
-				{
-					umint Pos0 = _pFirst - m_Context.m_pFindData;
-					umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
-					umint Len0 = m_Context.m_FindLen - Pos0;
-					umint Len1 = m_Context.m_nMapped - Pos1;
-					umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
-
-					DMibFastCheck(_pFirst >= m_Context.m_pFindData);
-					DMibFastCheck((_pFirst + CompareLen) <= m_Context.m_pFindDataEnd);
-					DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
-					DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
-
-					auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, CompareLen);
-					if (Diff)
-						return Diff <=> 0;
-
-					return Len0 <=> Len1;
-				}
 			};
 
 			NIntrusive::TCAVLLinkAggregate<> m_TreeLink;
@@ -92,6 +34,14 @@ namespace NMib::NFile
 		};
 
 		using CMappedPosIter = DMibListLinkS_Iter(CMappedPos, m_Link);
+
+		~CMalterlibPatchEncodeHelper();
+
+		void f_MapOrig(NContainer::CByteVector const &_Orig);
+
+		void f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::TCBinaryStreamMemory<> &_Stream);
+
+		static constexpr umint mc_MapLength = 64;
 
 		NIntrusive::TCAVLTree<&CMappedChunk::m_TreeLink, CMappedChunk::CCompare> m_MappedTree;
 
@@ -107,147 +57,212 @@ namespace NMib::NFile
 		uint8 const *m_pOrigDataEnd;
 		uint8 const *m_pFindDataEnd;
 #endif
+	};
 
-		void f_MapOrig(NContainer::CByteVector const &_Orig)
+	CMalterlibPatchEncodeHelper::CMappedChunk::CCompare::CCompare(CMalterlibPatchEncodeHelper *_pContext)
+		: m_Context(*_pContext)
+	{
+	}
+
+	COrdering_Partial CMalterlibPatchEncodeHelper::CMappedChunk::CCompare::operator () (CMappedChunk const &_Left, CMappedChunk const &_Right) const
+	{
+		umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+		umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+		umint Len0 = m_Context.m_nMapped - Pos0;
+		umint Len1 = m_Context.m_nMapped - Pos1;
+		umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+		DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
+		DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
+		DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
+		DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
+
+		auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, m_Context.m_pOrigData + Pos1, CompareLen);
+		if (Diff)
+			return Diff <=> 0;
+
+		return Len0 <=> Len1;
+	}
+
+	COrdering_Partial CMalterlibPatchEncodeHelper::CMappedChunk::CCompare::operator () (CMappedChunk const &_Left, uint8 const *_pSecond) const
+	{
+		umint Pos0 = _Left.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+		umint Pos1 = _pSecond - m_Context.m_pFindData;
+		umint Len0 = m_Context.m_nMapped - Pos0;
+		umint Len1 = m_Context.m_FindLen - Pos1;
+		umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+		DMibFastCheck((m_Context.m_pOrigData + Pos0) >= m_Context.m_pOrigData);
+		DMibFastCheck((m_Context.m_pOrigData + Pos0 + CompareLen) <= m_Context.m_pOrigDataEnd);
+		DMibFastCheck(_pSecond >= m_Context.m_pFindData);
+		DMibFastCheck((_pSecond + CompareLen) <= m_Context.m_pFindDataEnd);
+
+		auto Diff = NMemory::fg_MemCmp(m_Context.m_pOrigData + Pos0, _pSecond, CompareLen);
+		if (Diff)
+			return Diff <=> 0;
+
+		return Len0 <=> Len1;
+	}
+
+	COrdering_Partial CMalterlibPatchEncodeHelper::CMappedChunk::CCompare::operator () (uint8 const *_pFirst, CMappedChunk const &_Right) const
+	{
+		umint Pos0 = _pFirst - m_Context.m_pFindData;
+		umint Pos1 = _Right.m_MappedPositions.f_GetFirst() - m_Context.m_MappedPos.f_GetArray();
+		umint Len0 = m_Context.m_FindLen - Pos0;
+		umint Len1 = m_Context.m_nMapped - Pos1;
+		umint CompareLen = fg_Min(Len0, Len1, mc_MapLength);
+
+		DMibFastCheck(_pFirst >= m_Context.m_pFindData);
+		DMibFastCheck((_pFirst + CompareLen) <= m_Context.m_pFindDataEnd);
+		DMibFastCheck((m_Context.m_pOrigData + Pos1) >= m_Context.m_pOrigData);
+		DMibFastCheck((m_Context.m_pOrigData + Pos1 + CompareLen) <= m_Context.m_pOrigDataEnd);
+
+		auto Diff = NMemory::fg_MemCmp(_pFirst, m_Context.m_pOrigData + Pos1, CompareLen);
+		if (Diff)
+			return Diff <=> 0;
+
+		return Len0 <=> Len1;
+	}
+
+	CMalterlibPatchEncodeHelper::~CMalterlibPatchEncodeHelper()
+	{
+		CMappedChunk *pChunk = m_MappedTree.f_GetRoot();
+		while (pChunk)
 		{
-			uint8 const *pOrig = _Orig.f_GetArray();
-			if (!pOrig)
-				return;
-			m_pOrigData = pOrig;
-			uint8 const *pOrigSave = pOrig;
-			uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
-#if DMibEnableSafeCheck > 0
-			m_pOrigDataEnd = pOrigEnd;
-#endif
+			m_MappedTree.f_Remove(pChunk, CMappedChunk::CCompare(this));
 
-			aint iMapped = 0;
-			umint nMapped = pOrigEnd - pOrig;
-			m_nMapped = nMapped;
-			m_MappedPos.f_SetLen(nMapped);
-			m_MappedChunk.f_SetLen(nMapped);
-			CMappedPos *pMappedArray = m_MappedPos.f_GetArray();
-			CMappedChunk *pMappedChunkArray = m_MappedChunk.f_GetArray();
+			pChunk->m_MappedPositions.f_Clear();
 
-			m_pFindData = m_pOrigData;
-			m_FindLen = _Orig.f_GetLen();
-#if DMibEnableSafeCheck > 0
-			m_pFindDataEnd = m_pFindData + m_FindLen;
-#endif
-
-			while (pOrig < pOrigEnd)
-			{
-				CMappedChunk *pChunk = m_MappedTree.f_FindEqual(pOrig, CMappedChunk::CCompare(this));
-				CMappedPos *pPos = pMappedArray + (pOrig - pOrigSave);
-				if (!pChunk)
-				{
-					pChunk = pMappedChunkArray + iMapped++;
-					pChunk->m_MappedPositions.f_Construct();
-					pChunk->m_TreeLink.f_Construct();
-					pChunk->m_MappedPositions.f_UnsafeInsert(pPos);
-					m_MappedTree.f_Insert(pChunk, CMappedChunk::CCompare(this));
-				}
-				else
-					pChunk->m_MappedPositions.f_UnsafeInsert(pPos);
-
-				++pOrig;
-			}
+			pChunk = m_MappedTree.f_GetRoot();
 		}
+	}
 
-		void f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::TCBinaryStreamMemory<> &_Stream)
-		{
-			m_pFindData = _Changed.f_GetArray();
-			m_FindLen = _Changed.f_GetLen();
+	void CMalterlibPatchEncodeHelper::f_MapOrig(NContainer::CByteVector const &_Orig)
+	{
+		uint8 const *pOrig = _Orig.f_GetArray();
+		if (!pOrig)
+			return;
+		m_pOrigData = pOrig;
+		uint8 const *pOrigSave = pOrig;
+		uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
 #if DMibEnableSafeCheck > 0
-			m_pFindDataEnd = m_pFindData + m_FindLen;
+		m_pOrigDataEnd = pOrigEnd;
 #endif
 
-			uint8 const *pChanged = _Changed.f_GetArray();
-			uint8 const *pChangedEnd = pChanged + _Changed.f_GetLen();
-			uint8 const *pStartUnsaved = pChanged;
+		aint iMapped = 0;
+		umint nMapped = pOrigEnd - pOrig;
+		m_nMapped = nMapped;
+		m_MappedPos.f_SetLen(nMapped);
+		m_MappedChunk.f_SetLen(nMapped);
+		CMappedPos *pMappedArray = m_MappedPos.f_GetArray();
+		CMappedChunk *pMappedChunkArray = m_MappedChunk.f_GetArray();
 
-			uint8 const *pOrig = _Orig.f_GetArray();
-			uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
-			CMappedPos const *pMappedArray = m_MappedPos.f_GetArray();
+		m_pFindData = m_pOrigData;
+		m_FindLen = _Orig.f_GetLen();
+#if DMibEnableSafeCheck > 0
+		m_pFindDataEnd = m_pFindData + m_FindLen;
+#endif
 
-			while (pChanged < pChangedEnd)
+		while (pOrig < pOrigEnd)
+		{
+			CMappedChunk *pChunk = m_MappedTree.f_FindEqual(pOrig, CMappedChunk::CCompare(this));
+			CMappedPos *pPos = pMappedArray + (pOrig - pOrigSave);
+			if (!pChunk)
 			{
-				CMappedChunk *pChunk = m_MappedTree.f_FindLargestLessThanEqual(pChanged, CMappedChunk::CCompare(this));
-				if (pChunk)
+				pChunk = pMappedChunkArray + iMapped++;
+				pChunk->m_MappedPositions.f_Construct();
+				pChunk->m_TreeLink.f_Construct();
+				pChunk->m_MappedPositions.f_UnsafeInsert(pPos);
+				m_MappedTree.f_Insert(pChunk, CMappedChunk::CCompare(this));
+			}
+			else
+				pChunk->m_MappedPositions.f_UnsafeInsert(pPos);
+
+			++pOrig;
+		}
+	}
+
+	void CMalterlibPatchEncodeHelper::f_CreatePatchData(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed, NStream::TCBinaryStreamMemory<> &_Stream)
+	{
+		m_pFindData = _Changed.f_GetArray();
+		m_FindLen = _Changed.f_GetLen();
+#if DMibEnableSafeCheck > 0
+		m_pFindDataEnd = m_pFindData + m_FindLen;
+#endif
+
+		uint8 const *pChanged = _Changed.f_GetArray();
+		uint8 const *pChangedEnd = pChanged + _Changed.f_GetLen();
+		uint8 const *pStartUnsaved = pChanged;
+
+		uint8 const *pOrig = _Orig.f_GetArray();
+		uint8 const *pOrigEnd = pOrig + _Orig.f_GetLen();
+		CMappedPos const *pMappedArray = m_MappedPos.f_GetArray();
+
+		while (pChanged < pChangedEnd)
+		{
+			CMappedChunk *pChunk = m_MappedTree.f_FindLargestLessThanEqual(pChanged, CMappedChunk::CCompare(this));
+			if (pChunk)
+			{
+				uint32 BestStart = 0;
+				uint32 BestLen = 0;
+
+				CMappedPosIter iMappedPosition = pChunk->m_MappedPositions;
+				while (iMappedPosition)
 				{
-					uint32 BestStart = 0;
-					uint32 BestLen = 0;
+					uint8 const *pFind0 = pChanged;
+					umint MappedPos = (iMappedPosition.f_GetCurrent() - pMappedArray);
+					uint8 const *pFind1 = pOrig + MappedPos;
 
-					CMappedPosIter iMappedPosition = pChunk->m_MappedPositions;
-					while (iMappedPosition)
+					while (pFind0 < pChangedEnd && pFind1 < pOrigEnd)
 					{
-						uint8 const *pFind0 = pChanged;
-						umint MappedPos = (iMappedPosition.f_GetCurrent() - pMappedArray);
-						uint8 const *pFind1 = pOrig + MappedPos;
+						if (*pFind0 != *pFind1)
+							break;
 
-						while (pFind0 < pChangedEnd && pFind1 < pOrigEnd)
-						{
-							if (*pFind0 != *pFind1)
-								break;
-
-							++pFind0;
-							++pFind1;
-						}
-
-						uint32 LenFound = pFind0 - pChanged;
-						if (LenFound > BestLen)
-						{
-							BestStart = MappedPos;
-							BestLen = LenFound;
-						}
-
-						++iMappedPosition;
+						++pFind0;
+						++pFind1;
 					}
 
-					if (BestLen > 8) // Only use if resulting patch file is smaller
+					uint32 LenFound = pFind0 - pChanged;
+					if (LenFound > BestLen)
 					{
-						if (pStartUnsaved != pChanged)
-						{
-							// Encode data
-							uint32 nBytes = pChanged - pStartUnsaved;
-							_Stream << nBytes;
-							_Stream.f_FeedBytes(pStartUnsaved, nBytes);
-						}
-						_Stream << uint32(0);
-						_Stream << BestStart;
-						_Stream << BestLen;
-
-						pChanged += BestLen;
-						pStartUnsaved = pChanged;
+						BestStart = MappedPos;
+						BestLen = LenFound;
 					}
-					else
-						++pChanged;
+
+					++iMappedPosition;
+				}
+
+				if (BestLen > 8) // Only use if resulting patch file is smaller
+				{
+					if (pStartUnsaved != pChanged)
+					{
+						// Encode data
+						uint32 nBytes = pChanged - pStartUnsaved;
+						_Stream << nBytes;
+						_Stream.f_FeedBytes(pStartUnsaved, nBytes);
+					}
+					_Stream << uint32(0);
+					_Stream << BestStart;
+					_Stream << BestLen;
+
+					pChanged += BestLen;
+					pStartUnsaved = pChanged;
 				}
 				else
 					++pChanged;
 			}
-
-			if (pStartUnsaved != pChangedEnd)
-			{
-				// Encode data
-				uint32 nBytes = pChangedEnd - pStartUnsaved;
-				_Stream << nBytes;
-				_Stream.f_FeedBytes(pStartUnsaved, nBytes);
-			}
+			else
+				++pChanged;
 		}
 
-		~CMalterlibPatchEncodeHelper()
+		if (pStartUnsaved != pChangedEnd)
 		{
-			CMappedChunk *pChunk = m_MappedTree.f_GetRoot();
-			while (pChunk)
-			{
-				m_MappedTree.f_Remove(pChunk, CMappedChunk::CCompare(this));
-
-				pChunk->m_MappedPositions.f_Clear();
-
-				pChunk = m_MappedTree.f_GetRoot();
-			}
+			// Encode data
+			uint32 nBytes = pChangedEnd - pStartUnsaved;
+			_Stream << nBytes;
+			_Stream.f_FeedBytes(pStartUnsaved, nBytes);
 		}
-	};
+	}
 
 	NContainer::CByteVector fg_MalterlibPatchEncode(NContainer::CByteVector const &_Orig, NContainer::CByteVector const &_Changed)
 	{

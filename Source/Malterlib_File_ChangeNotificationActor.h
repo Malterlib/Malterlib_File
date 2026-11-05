@@ -10,16 +10,14 @@ namespace NMib::NFile
 {
 	struct CFileChangeNotificationActor : public NConcurrency::CActor
 	{
-		static constexpr NConcurrency::EPriority mc_Priority = NConcurrency::EPriority_NormalHighCPU; // Tree scans can consume substantial CPU without requiring low latency.
-
-		CFileChangeNotificationActor();
-		~CFileChangeNotificationActor();
-
 		struct CCoalesceSettings
 		{
 			umint m_nMaxOutstanding = 5;
 			fp64 m_Delay = 1.0;
 		};
+
+		CFileChangeNotificationActor();
+		~CFileChangeNotificationActor();
 
 		auto f_RegisterForChanges
 			(
@@ -30,6 +28,8 @@ namespace NMib::NFile
 			)
 			-> NConcurrency::TCFuture<NConcurrency::CActorSubscription>
 		;
+
+		static constexpr NConcurrency::EPriority mc_Priority = NConcurrency::EPriority_NormalHighCPU; // Tree scans can consume substantial CPU without requiring low latency.
 
 	private:
 		struct CInternal;
