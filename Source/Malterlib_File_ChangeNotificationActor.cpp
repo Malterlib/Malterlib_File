@@ -21,17 +21,8 @@ namespace NMib::NFile
 				uint64 m_Sequence = 0;
 			};
 
-			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings &&_CoalesceSettings)
-				: m_pDestroyed(fg_Construct(false))
-				, m_CoalesceSettings(fg_Move(_CoalesceSettings))
-			{
-			}
-
-			~CNotification()
-			{
-				if (m_pDestroyed)
-					*m_pDestroyed = true;
-			}
+			CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings &&_CoalesceSettings);
+			~CNotification();
 
 			TCSharedPointer<bool> m_pDestroyed;
 			TCUniquePointer<CFileChangeNotifier> m_pNotifier;
@@ -50,6 +41,18 @@ namespace NMib::NFile
 
 		NContainer::TCLinkedList<CNotification> m_Notifications;
 	};
+
+	CFileChangeNotificationActor::CInternal::CNotification::CNotification(NConcurrency::CActor *_pActor, CCoalesceSettings &&_CoalesceSettings)
+		: m_pDestroyed(fg_Construct(false))
+		, m_CoalesceSettings(fg_Move(_CoalesceSettings))
+	{
+	}
+
+	CFileChangeNotificationActor::CInternal::CNotification::~CNotification()
+	{
+		if (m_pDestroyed)
+			*m_pDestroyed = true;
+	}
 
 	CFileChangeNotificationActor::CFileChangeNotificationActor()
 		: mp_pInternal(fg_Construct())

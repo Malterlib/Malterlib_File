@@ -31,42 +31,52 @@ namespace NMib::NFile
 		{
 			CDescriptor() = default;
 
-			explicit CDescriptor(int _Descriptor)
-				: m_Descriptor(_Descriptor)
-			{
-			}
+			explicit CDescriptor(int _Descriptor);
 
-			CDescriptor(CDescriptor &&_Other)
-				: m_Descriptor(fg_Exchange(_Other.m_Descriptor, -1))
-			{
-			}
+			CDescriptor(CDescriptor &&_Other);
 
-			CDescriptor &operator = (CDescriptor &&_Other)
-			{
-				if (this != &_Other)
-				{
-					f_Close();
-					m_Descriptor = fg_Exchange(_Other.m_Descriptor, -1);
-				}
+			~CDescriptor();
 
-				return *this;
-			}
+			CDescriptor &operator = (CDescriptor &&_Other);
 
-			~CDescriptor()
-			{
-				f_Close();
-			}
-
-			void f_Close()
-			{
-				if (m_Descriptor >= 0)
-					::close(m_Descriptor);
-
-				m_Descriptor = -1;
-			}
+			void f_Close();
 
 			int m_Descriptor = -1;
 		};
+
+		CDescriptor::CDescriptor(int _Descriptor)
+			: m_Descriptor(_Descriptor)
+		{
+		}
+
+		CDescriptor::CDescriptor(CDescriptor &&_Other)
+			: m_Descriptor(fg_Exchange(_Other.m_Descriptor, -1))
+		{
+		}
+
+		CDescriptor::~CDescriptor()
+		{
+			f_Close();
+		}
+
+		CDescriptor &CDescriptor::operator = (CDescriptor &&_Other)
+		{
+			if (this != &_Other)
+			{
+				f_Close();
+				m_Descriptor = fg_Exchange(_Other.m_Descriptor, -1);
+			}
+
+			return *this;
+		}
+
+		void CDescriptor::f_Close()
+		{
+			if (m_Descriptor >= 0)
+				::close(m_Descriptor);
+
+			m_Descriptor = -1;
+		}
 
 		// Numbers the temporary files of the writes in this process, so concurrent writes of one target don't share one
 		constinit NAtomic::TCAtomic<uint64> g_iTemporaryFile = 0;

@@ -12,16 +12,18 @@ namespace NMib::NFile
 		{
 			CThreadLocal() = default;
 
-			CThreadLocal(CThreadLocal const &_ThreadLocal)
-				: m_bEnableAttributesEmulation(_ThreadLocal.m_bEnableAttributesEmulation.f_Load())
-			{
-			}
+			CThreadLocal(CThreadLocal const &_ThreadLocal);
 
 			NAtomic::TCAtomic<bool> m_bEnableAttributesEmulation = true;
 		};
 
 		NThread::TCThreadLocal<CThreadLocal, NMemory::CAllocator_Heap, NThread::EThreadLocalFlag_Inherit> m_ThreadLocal;
 	};
+
+	CSubSystem_File::CThreadLocal::CThreadLocal(CThreadLocal const &_ThreadLocal)
+		: m_bEnableAttributesEmulation(_ThreadLocal.m_bEnableAttributesEmulation.f_Load())
+	{
+	}
 
 	constinit TCSubSystem<CSubSystem_File, ESubSystemDestruction_BeforeMemoryManager> g_MalterlibSubSystem_File = {DAggregateInit};
 
