@@ -44,9 +44,7 @@ namespace NMib::NFile
 
 		CDirectorySyncClient();
 
-		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
-		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		virtual NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) = 0;
 		virtual NConcurrency::TCFuture<void> f_Finished() = 0;
 	};
@@ -129,9 +127,7 @@ namespace NMib::NFile
 	private:
 		struct CInternal;
 
-		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		NConcurrency::TCFuture<FRunRSync> f_StartManifestRSync(NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
-		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		NConcurrency::TCFuture<FRunRSync> f_StartRSync(NStr::CStr _FileName, NConcurrency::TCActorSubscriptionWithID<> _Subscription) override;
 		NConcurrency::TCFuture<void> f_Finished() override;
 

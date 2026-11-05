@@ -43,7 +43,6 @@ namespace NMib::NFile
 		CInternal(CDirectorySyncSend *_pThis, CConfig &&_Config);
 		static void fs_CheckDestroy(TCSharedPointer<NAtomic::TCAtomic<bool>> const &_pDestroyed);
 		NException::CExceptionPointer f_CheckFileName(CStr const &_FileName);
-		// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 		auto f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>;
 
 		CDirectorySyncSend *m_pThis = nullptr;
@@ -156,7 +155,6 @@ namespace NMib::NFile
 		co_return fg_Move(ByteStats);
 	}
 
-	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::CInternal::f_StartRSync(TCActorSubscriptionWithID<> _Subscription, TCFunctionMutable<void (CRunningSyncState &_State)> _fOpenRSync) -> TCFuture<FRunRSync>
 	{
 		auto pCanDestroy = m_pCanDestroyTracker;
@@ -251,7 +249,6 @@ namespace NMib::NFile
 		co_return co_await fg_Move(Promise.m_Future);
 	}
 
-	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::f_StartManifestRSync(TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
@@ -326,7 +323,6 @@ namespace NMib::NFile
 		;
 	}
 
-	// NOLINTNEXTLINE(malterlib-conceptual-prefix): a subscription handle like CActorSubscription, which the check misses because it is derived from it
 	auto CDirectorySyncSend::f_StartRSync(NStr::CStr _FileName, TCActorSubscriptionWithID<> _Subscription) -> TCFuture<FRunRSync>
 	{
 		uint32 ProtocolVersion = fg_GetCallingHostInfo().f_GetProtocolVersion();
