@@ -182,11 +182,7 @@ namespace
 					DMibExpectException
 						(
 							CFileBeneath::fs_ReadFile(Given, "Secret.txt", 100)
-							, DMibImpErrorInstance
-							(
-								NMib::NFile::CExceptionFile
-								, "Failed to open the directory '{}': {}"_f << Given << NMib::NPlatform::fg_ErrnoString<CStr>(NotFollowedError)
-							)
+							, DMibImpErrorInstance(NMib::NFile::CExceptionFile, "Failed to open the directory '{}': {}"_f << Given << NMib::NPlatform::fg_ErrnoString<CStr>(NotFollowedError))
 						)
 					;
 				}
@@ -206,11 +202,7 @@ namespace
 				DMibExpectException
 					(
 						CFileBeneath::fs_GetType(LinkRoot, ".")
-						, DMibImpErrorInstance
-						(
-							NMib::NFile::CExceptionFile
-							, "Failed to open the directory '{}': {}"_f << LinkRoot << NMib::NPlatform::fg_ErrnoString<CStr>(NotFollowedError)
-						)
+						, DMibImpErrorInstance(NMib::NFile::CExceptionFile, "Failed to open the directory '{}': {}"_f << LinkRoot << NMib::NPlatform::fg_ErrnoString<CStr>(NotFollowedError))
 					)
 				;
 				DMibExpectTrue(CFileBeneath::fs_GetType(Root, ".") == EFileBeneathType::mc_Directory);
