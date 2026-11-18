@@ -2121,6 +2121,16 @@ namespace
 				DMibExpectTrue(bThrewFileException);
 			}
 
+			{
+				DMibTestPath("Cache reset after failed close");
+
+				CFile File;
+				fOpenUnflushable(File);
+				DMibExpectExceptionType(File.f_Close(), CExceptionFile);
+				File.f_SetCacheSize(4096);
+				DMibExpectFalse(File.f_IsValid());
+			}
+
 			DMibExpect(CFile::fs_GetFileSize(FilePath), ==, CMibFilePos(0));
 		};
 #	endif
