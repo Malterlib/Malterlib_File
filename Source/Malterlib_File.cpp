@@ -469,6 +469,15 @@ namespace NMib::NFile
 
 	void CFile::f_Close(bool _bCanThrow)
 	{
+		// A failed flush leaves the cache dirty, and a later f_SetCacheSize on the closed file would try to write it through the null mp_pFile
+		auto ResetCache = g_OnScopeExit / [&]
+			{
+				mp_bCacheDirty = false;
+				mp_CacheBuffer.f_Clear();
+				mp_CacheBufferNonTracked.f_Clear();
+			}
+		;
+
 		if (mp_pFile)
 		{
 			try
@@ -494,8 +503,6 @@ namespace NMib::NFile
 					throw;
 			}
 		}
-		mp_CacheBuffer.f_Clear();
-		mp_CacheBufferNonTracked.f_Clear();
 	}
 
 	void CFile::f_Open(void *_pFile, ESysFileTag _Tag, EFileOpen _OpenFlags)
