@@ -14,6 +14,9 @@ using namespace NMib;
 #	include <sys/stat.h>
 #	include <fcntl.h>
 #	include <stdlib.h>
+#	include <unistd.h>
+#	include <signal.h>
+#	include <sys/resource.h>
 #endif
 #if defined(DPlatformFamily_macOS) || defined(DPlatformFamily_Linux)
 #	include <sys/xattr.h>
@@ -2024,6 +2027,101 @@ namespace
 
 			DMibExpectTrue(!CFile::fs_TryCloneFileData(Fifo, TestDir + "/Clone"));
 			DMibExpectTrue(!CFile::fs_FileExists(TestDir + "/Clone"));
+		};
+
+		DMibTestSuite("Close Reports Failed Flush")
+		{
+			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCloseFailedFlush";
+			if (CFile::fs_FileExists(TestDir))
+				CFile::fs_DeleteDirectoryRecursive(TestDir);
+			CFile::fs_CreateDirectory(TestDir);
+
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				}
+			;
+
+			CStr FilePath = TestDir / "File";
+			CFile::fs_WriteStringToFile(FilePath, "", false);
+
+			// The data stays in the file's cache until it is flushed, which fails through the read-only descriptor put in place
+			// of the file's own
+			auto fOpenUnflushable = [&](CFile &o_File)
+				{
+					o_File.f_Open(FilePath, EFileOpen_Write | EFileOpen_ShareAll);
+					o_File.f_Write("Data", 4);
+
+					int ReadOnly = open(FilePath, O_RDONLY | O_CLOEXEC);
+					DMibAssert(ReadOnly, >=, 0);
+					auto CloseReadOnly = g_OnScopeExit / [&]
+						{
+							close(ReadOnly);
+						}
+					;
+					DMibAssert(dup2(ReadOnly, int(umint(o_File.f_GetOSFile()))), >=, 0);
+				}
+			;
+
+			{
+				DMibTestPath("Close throws");
+
+				CFile File;
+				fOpenUnflushable(File);
+				DMibExpectExceptionType(File.f_Close(), CExceptionFile);
+				DMibExpectFalse(File.f_IsValid());
+			}
+
+			{
+				DMibTestPath("Destructor swallows");
+
+				CFile File;
+				fOpenUnflushable(File);
+			}
+
+			{
+				DMibTestPath("Write helper throws");
+
+				// With a file size limit of 0 the final flush is the write that fails, as the data is still in the cache
+				struct sigaction IgnoreFileSizeSignal = {};
+				IgnoreFileSizeSignal.sa_handler = SIG_IGN;
+				struct sigaction PreviousFileSizeSignal = {};
+				DMibAssert(sigaction(SIGXFSZ, &IgnoreFileSizeSignal, &PreviousFileSizeSignal), ==, 0);
+				auto RestoreFileSizeSignal = g_OnScopeExit / [&]
+					{
+						DMibExpect(sigaction(SIGXFSZ, &PreviousFileSizeSignal, nullptr), ==, 0);
+					}
+				;
+
+				struct rlimit PreviousFileSizeLimit = {};
+				DMibAssert(getrlimit(RLIMIT_FSIZE, &PreviousFileSizeLimit), ==, 0);
+
+				// The limit also blocks writes to a test log redirected to a file, so it is restored before the result is reported
+				bool bThrewFileException = false;
+				{
+					struct rlimit FileSizeLimit = PreviousFileSizeLimit;
+					FileSizeLimit.rlim_cur = 0;
+					DMibAssert(setrlimit(RLIMIT_FSIZE, &FileSizeLimit), ==, 0);
+					auto RestoreFileSizeLimit = g_OnScopeExit / [&]
+						{
+							DMibExpect(setrlimit(RLIMIT_FSIZE, &PreviousFileSizeLimit), ==, 0);
+						}
+					;
+
+					try
+					{
+						CFile::fs_WriteStringToFile(FilePath, "Data", false);
+					}
+					catch (CExceptionFile const &)
+					{
+						bThrewFileException = true;
+					}
+				}
+
+				DMibExpectTrue(bThrewFileException);
+			}
+
+			DMibExpect(CFile::fs_GetFileSize(FilePath), ==, CMibFilePos(0));
 		};
 #	endif
 
