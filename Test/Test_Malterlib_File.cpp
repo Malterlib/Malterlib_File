@@ -2133,6 +2133,81 @@ namespace
 
 			DMibExpect(CFile::fs_GetFileSize(FilePath), ==, CMibFilePos(0));
 		};
+
+		DMibTestSuite("Create Directory With Attributes")
+		{
+			mode_t PreviousUmask = umask(022);
+			auto UmaskRestore = g_OnScopeExit / [&]
+				{
+					umask(PreviousUmask);
+				}
+			;
+
+			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCreateDirectoryAttributes";
+			if (CFile::fs_FileExists(TestDir))
+				CFile::fs_DeleteDirectoryRecursive(TestDir);
+			CFile::fs_CreateDirectory(TestDir);
+
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				}
+			;
+
+			auto fCheckModes = [&](CStr const &_Root, umint _Mask, umint _ParentMode, umint _Mode)
+				{
+					for (auto &Path : {_Root, _Root / "Nested", _Root / "Nested" / "Directory"})
+					{
+						DMibTestPath(CFile::fs_MakePathRelative(Path, TestDir));
+						struct stat Stats;
+						DMibAssert(stat(Path, &Stats), ==, 0);
+						DMibExpect(umint(Stats.st_mode & _Mask), ==, Path.f_EndsWith("/Directory") ? _Mode : _ParentMode);
+					}
+				}
+			;
+
+			constexpr EFileAttrib c_OwnerOnly = EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute;
+
+			DMibTestCategory("OwnerOnly")
+			{
+				CStr Root = TestDir / "OwnerOnly";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", c_OwnerOnly, c_OwnerOnly);
+				fCheckModes(Root, 0777, 0700, 0700);
+			};
+
+			DMibTestCategory("NoUnixAttributes")
+			{
+				CStr Root = TestDir / "NoUnixAttributes";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_None, EFileAttrib_None);
+				fCheckModes(Root, 0777, 0755, 0755);
+			};
+
+			DMibTestCategory("ParentAttributes")
+			{
+				CStr Root = TestDir / "ParentAttributes";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", c_OwnerOnly | EFileAttrib_GroupRead | EFileAttrib_GroupExecute, c_OwnerOnly);
+				fCheckModes(Root, 0777, 0700, 0750);
+			};
+
+			DMibTestCategory("NotWritableByOwner")
+			{
+				CStr Root = TestDir / "NotWritableByOwner";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute, c_OwnerOnly);
+				fCheckModes(Root, 0777, 0700, 0500);
+			};
+
+			DMibTestCategory("ParentNotWritableByOwner")
+			{
+				CStr Root = TestDir / "ParentNotWritableByOwner";
+				DMibExpectExceptionType
+					(
+						CFile::fs_CreateDirectory(Root / "Nested" / "Directory", c_OwnerOnly, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute)
+						, CExceptionFile
+					)
+				;
+				DMibExpectFalse(CFile::fs_FileExists(Root));
+			};
+		};
 #	endif
 
 #	ifdef DPlatformFamily_macOS

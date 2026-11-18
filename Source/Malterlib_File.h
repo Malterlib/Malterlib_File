@@ -181,6 +181,7 @@ namespace NMib::NSys::NFile
 	void fg_Delete(NMib::NStr::CStr const &_File);
 	void fg_DeleteDirectory(NMib::NStr::CStr const &_File);
 	void fg_CreateDirectory(NMib::NStr::CStr const &_FileDirectory);
+	void fg_CreateDirectory(NMib::NStr::CStr const &_FileDirectory, NMib::NFile::EFileAttrib _Attributes, NMib::NFile::EFileAttrib _ParentAttributes);
 	void fg_Delete(NMib::NStr::CStrNonTracked const &_File);
 	void fg_DeleteDirectory(NMib::NStr::CStrNonTracked const &_File);
 	void fg_CreateDirectory(NMib::NStr::CStrNonTracked const &_FileDirectory);
@@ -469,6 +470,7 @@ namespace NMib::NFile
 		static void fs_SetCurrentDirectory(NStr::CStr const &_Directory);
 
 		static void fs_CreateDirectory(NStr::CStr const &_Path);
+		static void fs_CreateDirectory(NStr::CStr const &_Path, EFileAttrib _Attributes, EFileAttrib _ParentAttributes);
 		static void fs_CreateDirectoryForFile(NStr::CStr const &_Path);
 		static void fs_DeleteFile(NStr::CStr const &_File);
 		static void fs_DeleteDirectory(NStr::CStr const &_File);

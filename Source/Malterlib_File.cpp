@@ -1476,6 +1476,14 @@ namespace NMib::NFile
 		NSys::NFile::fg_CreateDirectory(_Path);
 	}
 
+	/// Creates the missing directories of _Path: _Path with the unix permissions of _Attributes, and its missing parents with those of
+	/// _ParentAttributes, limited by the umask. The permissions of the parents must give the owner write and search. Directories that exist keep
+	/// their permissions. Without EFileAttrib_UnixAttributesValid directories get the default permissions, and on Windows the attributes are ignored.
+	void CFile::fs_CreateDirectory(NStr::CStr const &_Path, EFileAttrib _Attributes, EFileAttrib _ParentAttributes)
+	{
+		NSys::NFile::fg_CreateDirectory(_Path, _Attributes, _ParentAttributes);
+	}
+
 	void CFile::fs_CreateDirectoryForFile(NStr::CStr const &_Path)
 	{
 		NSys::NFile::fg_CreateDirectory(CFile::fs_GetPath(_Path));
