@@ -2133,6 +2133,286 @@ namespace
 
 			DMibExpect(CFile::fs_GetFileSize(FilePath), ==, CMibFilePos(0));
 		};
+
+		DMibTestSuite("Create Directory With Attributes")
+		{
+			mode_t PreviousUmask = umask(022);
+			auto UmaskRestore = g_OnScopeExit / [&]
+				{
+					umask(PreviousUmask);
+				}
+			;
+
+			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestCreateDirectoryAttributes";
+			if (CFile::fs_FileExists(TestDir))
+				CFile::fs_DeleteDirectoryRecursive(TestDir);
+			CFile::fs_CreateDirectory(TestDir);
+
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					CFile::fs_DeleteDirectoryRecursive(TestDir);
+				}
+			;
+
+			auto fCheckModes = [&](CStr const &_Root, umint _Mask, umint _Mode)
+				{
+					for (auto &Path : {_Root, _Root / "Nested", _Root / "Nested" / "Directory"})
+					{
+						DMibTestPath(CFile::fs_MakePathRelative(Path, TestDir));
+						struct stat Stats;
+						DMibAssert(stat(Path, &Stats), ==, 0);
+						DMibExpect(umint(Stats.st_mode & _Mask), ==, _Mode);
+					}
+				}
+			;
+
+			auto fRestoreOwnerAccess = [&](CStr const &_Root)
+				{
+					for (auto &Path : {_Root, _Root / "Nested", _Root / "Nested" / "Directory"})
+					{
+						DMibTestPath("Restore {}"_f << CFile::fs_MakePathRelative(Path, TestDir));
+						if (CFile::fs_FileExists(Path))
+							DMibExpect(chmod(Path, 0700), ==, 0);
+					}
+				}
+			;
+
+			DMibTestCategory("OwnerOnly")
+			{
+				CStr Root = TestDir / "OwnerOnly";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
+				fCheckModes(Root, 0777, 0700);
+			};
+
+			DMibTestCategory("NoUnixAttributes")
+			{
+				CStr Root = TestDir / "NoUnixAttributes";
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_None);
+				fCheckModes(Root, 0700, 0700);
+			};
+
+			DMibTestCategory("NotWritableByOwner")
+			{
+				CStr Root = TestDir / "NotWritableByOwner";
+				auto RestoreWrite = g_OnScopeExit / [&]
+					{
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute);
+				fCheckModes(Root, 0777, 0500);
+			};
+
+			DMibTestCategory("UmaskWithoutOwnerWrite")
+			{
+				CStr Root = TestDir / "UmaskWithoutOwnerWrite";
+				auto RestoreWrite = g_OnScopeExit / [&]
+					{
+						umask(022);
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				umask(0200);
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute);
+				fCheckModes(Root, 0777, 0500);
+			};
+
+			DMibTestCategory("UmaskWithoutOwnerWriteOwnerOnly")
+			{
+				CStr Root = TestDir / "UmaskWithoutOwnerWriteOwnerOnly";
+				auto RestoreWrite = g_OnScopeExit / [&]
+					{
+						umask(022);
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				umask(0200);
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
+				fCheckModes(Root, 0777, 0500);
+			};
+
+			DMibTestCategory("UmaskWithoutOwnerRead")
+			{
+				CStr Root = TestDir / "UmaskWithoutOwnerRead";
+				auto RestoreRead = g_OnScopeExit / [&]
+					{
+						umask(022);
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				umask(0400);
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
+				fCheckModes(Root, 0777, 0300);
+			};
+
+			DMibTestCategory("UmaskWithoutOwnerReadNotWritableByOwner")
+			{
+				CStr Root = TestDir / "UmaskWithoutOwnerReadNotWritableByOwner";
+				auto RestoreRead = g_OnScopeExit / [&]
+					{
+						umask(022);
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				// A created parent without owner read can't be opened to remove the owner write it gets meanwhile, unless the caller may
+				// read any directory
+				umask(0400);
+				bool bCreated = false;
+				try
+				{
+					CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute);
+					bCreated = true;
+				}
+				catch (CExceptionFile const &_Exception)
+				{
+					DMibExpect(_Exception.f_GetErrorStr(), !=, "");
+				}
+
+				if (bCreated)
+					fCheckModes(Root, 0777, 0100);
+				else
+					DMibExpectFalse(CFile::fs_FileExists(Root));
+			};
+
+			// Creates a deep path with only _nDescriptors descriptors free, after filling the free descriptors below the highest open one
+			auto fCreateDeepWithDescriptorLimit = [&](CStr const &_Root, EFileAttrib _Attributes, rlim_t _nDescriptors, umint _Mode)
+				{
+					TCVector<CStr> Paths{_Root};
+					for (umint iLevel = 0; iLevel < 32; ++iLevel)
+						Paths.f_Insert(Paths.f_GetLast() / "D");
+
+					auto RestoreWrite = g_OnScopeExit / [&]
+						{
+							umask(022);
+							for (auto &Path : Paths)
+							{
+								DMibTestPath("Restore {}"_f << CFile::fs_MakePathRelative(Path, TestDir));
+								if (CFile::fs_FileExists(Path))
+									DMibExpect(chmod(Path, 0700), ==, 0);
+							}
+						}
+					;
+
+					struct rlimit PreviousLimit = {};
+					DMibAssert(getrlimit(RLIMIT_NOFILE, &PreviousLimit), ==, 0);
+
+					int MaxOpen = -1;
+					for (int iDescriptor = 0; rlim_t(iDescriptor) < fg_Min(PreviousLimit.rlim_cur, rlim_t(65536)); ++iDescriptor)
+					{
+						if (fcntl(iDescriptor, F_GETFD) >= 0)
+							MaxOpen = iDescriptor;
+					}
+
+					TCVector<int> Fillers;
+					auto CloseFillers = g_OnScopeExit / [&]
+						{
+							for (int Filler : Fillers)
+								close(Filler);
+						}
+					;
+
+					while (true)
+					{
+						int Filler = open("/dev/null", O_RDONLY | O_CLOEXEC);
+						DMibAssert(Filler, >=, 0)(ETestFlag_Aggregated);
+						if (Filler > MaxOpen)
+						{
+							close(Filler);
+							break;
+						}
+						Fillers.f_Insert(Filler);
+					}
+
+					// The limit also blocks the test log, so it is restored before the result is reported
+					CStr Error;
+					{
+						struct rlimit Limit = PreviousLimit;
+						Limit.rlim_cur = rlim_t(MaxOpen + 1) + _nDescriptors;
+						DMibAssert(setrlimit(RLIMIT_NOFILE, &Limit), ==, 0);
+						auto RestoreLimit = g_OnScopeExit / [&]
+							{
+								DMibExpect(setrlimit(RLIMIT_NOFILE, &PreviousLimit), ==, 0);
+							}
+						;
+
+						try
+						{
+							CFile::fs_CreateDirectory(Paths.f_GetLast(), _Attributes);
+						}
+						catch (CExceptionFile const &_Exception)
+						{
+							Error = _Exception.f_GetErrorStr();
+						}
+					}
+
+					DMibExpect(Error, ==, "");
+					for (auto &Path : Paths)
+					{
+						DMibTestPath(CFile::fs_MakePathRelative(Path, TestDir));
+						struct stat Stats;
+						DMibAssert(stat(Path, &Stats), ==, 0);
+						DMibExpect(umint(Stats.st_mode & 0777), ==, _Mode);
+
+						// The next path is below this directory, which a mode without owner search keeps the owner from reaching
+						if (!(_Mode & 0100))
+							DMibAssert(chmod(Path, 0700), ==, 0);
+					}
+				}
+			;
+
+			DMibTestCategory("DeepNotWritableByOwner")
+			{
+				fCreateDeepWithDescriptorLimit(TestDir / "DeepNotWritableByOwner", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute, 4, 0500);
+			};
+
+			DMibTestCategory("DeepNotSearchableByOwner")
+			{
+				fCreateDeepWithDescriptorLimit(TestDir / "DeepNotSearchableByOwner", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite, 4, 0600);
+			};
+
+			DMibTestCategory("DeepUmaskWithoutOwnerRead")
+			{
+				umask(0400);
+				fCreateDeepWithDescriptorLimit
+					(
+						TestDir / "DeepUmaskWithoutOwnerRead"
+						, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute
+						, 1
+						, 0300
+					)
+				;
+			};
+
+#		ifdef DPlatformFamily_Linux
+			DMibTestCategory("SetGroupIDInherited")
+			{
+				CStr Root = TestDir / "SetGroupIDInherited";
+				auto RestoreWrite = g_OnScopeExit / [&]
+					{
+						fRestoreOwnerAccess(Root);
+					}
+				;
+
+				CFile::fs_CreateDirectory(Root);
+				DMibAssert(chown(Root, uid_t(-1), getegid()), ==, 0);
+				DMibAssert(chmod(Root, 02700), ==, 0);
+
+				CFile::fs_CreateDirectory(Root / "Nested" / "Directory", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute);
+				for (auto &Path : {Root / "Nested", Root / "Nested" / "Directory"})
+				{
+					DMibTestPath(CFile::fs_MakePathRelative(Path, TestDir));
+					struct stat Stats;
+					DMibAssert(stat(Path, &Stats), ==, 0);
+					DMibExpect(umint(Stats.st_mode & 07777), ==, umint(02500));
+				}
+			};
+#		endif
+		};
 #	endif
 
 #	ifdef DPlatformFamily_macOS

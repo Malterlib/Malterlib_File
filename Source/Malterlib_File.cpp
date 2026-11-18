@@ -1476,6 +1476,19 @@ namespace NMib::NFile
 		NSys::NFile::fg_CreateDirectory(_Path);
 	}
 
+	/// Creates the missing directories of _Path with the unix permissions of _Attributes, masked by the umask, so that their modes never give
+	/// other users more access than that. On Linux a default ACL of a parent takes the place of the umask, and they get the permissions of
+	/// _Attributes limited by that ACL. On macOS they also inherit the inheritable entries of the ACL of their parent, which the mode doesn't
+	/// limit, so a caller that needs them private creates them in a parent without such entries. Created parents have owner write and search
+	/// while the directories below them are created, also when the umask masks them. A created parent that needs a change of mode fails the
+	/// creation when the umask masks owner read, or on Linux when the change clears the set-group-ID bit it inherits, since its children would
+	/// not get its group. Without EFileAttrib_UnixAttributesValid they get the default permissions. On Windows they take the access control of
+	/// their parent.
+	void CFile::fs_CreateDirectory(NStr::CStr const &_Path, EFileAttrib _Attributes)
+	{
+		NSys::NFile::fg_CreateDirectory(_Path, _Attributes);
+	}
+
 	void CFile::fs_CreateDirectoryForFile(NStr::CStr const &_Path)
 	{
 		NSys::NFile::fg_CreateDirectory(CFile::fs_GetPath(_Path));
