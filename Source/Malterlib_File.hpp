@@ -921,6 +921,7 @@ namespace NMib::NFile
 		TCBinaryStreamFile Stream;
 		Stream.f_Open(_FileName, _OpenFlags, _Attributes);
 		Stream << _Data;
+		Stream.f_Close();
 	}
 
 	template <typename t_CStreamType>

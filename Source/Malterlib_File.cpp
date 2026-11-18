@@ -456,6 +456,7 @@ namespace NMib::NFile
 		f_Open(_FileName, _OpenFlags);
 	}
 
+	// Ignores errors from flushing the write cache or closing the file; call f_Close() to get them
 	CFile::~CFile()
 	{
 		f_Close(false);
@@ -478,8 +479,17 @@ namespace NMib::NFile
 			}
 			catch (CExceptionFile const &)
 			{
-				NSys::NFile::fg_Close(mp_pFile);
+				// After a failed flush this closes the OS file. After a failed close the wrapper no longer has its OS file, and this only frees the wrapper.
+				try
+				{
+					NSys::NFile::fg_Close(mp_pFile);
+				}
+				catch (CExceptionFile const &)
+				{
+					NSys::NFile::fg_Close(mp_pFile); // The flush error takes precedence
+				}
 				mp_pFile = nullptr;
+
 				if (_bCanThrow)
 					throw;
 			}
@@ -1020,6 +1030,7 @@ namespace NMib::NFile
 		CFile OutFile;
 		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
+		OutFile.f_Close();
 	}
 
 	void CFile::fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, NStr::CStr const &_FileTo)
@@ -1027,6 +1038,7 @@ namespace NMib::NFile
 		CFile OutFile;
 		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
+		OutFile.f_Close();
 	}
 
 	bool CFile::fs_FileIsSame(NContainer::CByteVector const &_SourceData, NStr::CStr const &_ToFileName)
@@ -1287,6 +1299,7 @@ namespace NMib::NFile
 
 				// Take "now" after securing the data so a slow read does not backdate the copy.
 				File.f_SetWriteTime(_bFileTimeIsNow ? NTime::CTime::fs_NowUTC() : _FileTime);
+				File.f_Close();
 			}
 
 			CFile::fs_AtomicReplaceFile(TempFileName, _ToFileName);
@@ -2319,6 +2332,7 @@ namespace NMib::NFile
 		if (_bAddBOM)
 			File.f_Write(BOM, 3);
 		File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());
+		File.f_Close();
 	}
 
 	NStr::CStr CFile::fs_ReadStringFromFile(NStr::CStr const &_Path, bool _bAssumeUTF8)
@@ -2341,6 +2355,7 @@ namespace NMib::NFile
 		if (_bAddBOM)
 			File.f_Write(BOM, 3);
 		File.f_Write(UTF8.f_GetStr(), UTF8.f_GetLen());
+		File.f_Close();
 	}
 
 	NStr::CStrNonTracked CFile::fs_ReadStringFromFile(NStr::CStrNonTracked const &_Path, bool _bAssumeUTF8)
@@ -2366,6 +2381,7 @@ namespace NMib::NFile
 		CFile File;
 		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
 		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
+		File.f_Close();
 	}
 
 	NContainer::CByteVector CFile::fs_ReadFile(NStr::CStr const &_Path)
@@ -2383,6 +2399,7 @@ namespace NMib::NFile
 		CFile File;
 		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
 		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
+		File.f_Close();
 	}
 
 	NContainer::CSecureByteVector CFile::fs_ReadFileSecure(NStr::CStr const &_Path)
