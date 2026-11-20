@@ -38,6 +38,7 @@ namespace NMib::NFile
 		static bool fs_Rename(NStr::CStr const &_Root, NStr::CStr const &_From, NStr::CStr const &_To, bool _bNoReplace);
 		static void fs_Delete(NStr::CStr const &_Root, NStr::CStr const &_RelativePath);
 		static void fs_DeleteRecursive(NStr::CStr const &_Root, NStr::CStr const &_RelativePath);
+		static void fs_SetOwnerAndGroup(NStr::CStr const &_Root, NStr::CStr const &_RelativePath, NStr::CStr const &_Owner, NStr::CStr const &_Group);
 		static NContainer::TCVector<NStr::CStr> fs_SplitRelativePath(NStr::CStr const &_RelativePath);
 	};
 }

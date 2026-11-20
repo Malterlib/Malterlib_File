@@ -5,6 +5,7 @@
 
 #ifndef DPlatformFamily_Windows
 #	include <Mib/Core/PlatformSpecific/PosixErrNo>
+#	include <Mib/Core/PlatformSpecific/PosixUser>
 #	include <errno.h>
 #	include <fcntl.h>
 #	include <stdio.h>
@@ -98,11 +99,18 @@ namespace NMib::NFile
 			return EFileBeneathType::mc_Other;
 		}
 
+		// Opens a directory without read permission, to reach the names in it or to change the directory itself
+#	ifdef DPlatformFamily_Linux
+		constexpr int gc_SearchOnlyDirectoryAccess = O_PATH;
+#	else
+		constexpr int gc_SearchOnlyDirectoryAccess = O_SEARCH;
+#	endif
+
 		/// Opens the root as a directory. The directories above it are trusted, but the root itself can be a name in a directory someone
 		/// else writes, such as a checkout in a directory a container has mounted, so a link there isn't followed. O_NOFOLLOW only
 		/// applies to the last component, and a trailing slash or a last component of "." or ".." makes that something other than the
 		/// root's own name, which would follow a link the root's name is.
-		CDescriptor fg_OpenRoot(CStr const &_Root)
+		CDescriptor fg_OpenRoot(CStr const &_Root, int _Access = O_RDONLY)
 		{
 			CStr Root = _Root;
 			while (Root.f_GetLen() > 1 && Root.f_EndsWith("/"))
@@ -112,7 +120,7 @@ namespace NMib::NFile
 			if (Name == "." || Name == "..")
 				DMibErrorFile("The directory '{}' doesn't end in a name, so it can't be opened without following links"_f << _Root);
 
-			int Descriptor = ::open(Root.f_GetStr(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+			int Descriptor = ::open(Root.f_GetStr(), _Access | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 			if (Descriptor < 0)
 				DMibErrorFile("Failed to open the directory '{}': {}"_f << _Root << NMib::NPlatform::fg_ErrnoString<CStr>(errno));
 
@@ -120,21 +128,23 @@ namespace NMib::NFile
 		}
 
 		/// Opens each directory of _Components under _Root without following a symbolic link at any step. With _bCreate missing
-		/// directories are created, which a planted symbolic link with the same name makes fail instead of being followed.
-		CDescriptor fg_OpenDirectory(CStr const &_Root, TCVector<CStr> const &_Components, umint _nComponents, bool _bCreate)
+		/// directories are created, which a planted symbolic link with the same name makes fail instead of being followed. The root and each
+		/// directory are opened with _Access, and the descriptor of the last one is returned. Pass gc_SearchOnlyDirectoryAccess when the entries of
+		/// the directories don't need to be read.
+		CDescriptor fg_OpenDirectory(CStr const &_Root, TCVector<CStr> const &_Components, umint _nComponents, bool _bCreate, int _Access = O_RDONLY)
 		{
-			CDescriptor Current = fg_OpenRoot(_Root);
+			CDescriptor Current = fg_OpenRoot(_Root, _Access);
 
 			for (umint iComponent = 0; iComponent < _nComponents; ++iComponent)
 			{
 				CStr const &Component = _Components[iComponent];
-				int Descriptor = ::openat(Current.m_Descriptor, Component.f_GetStr(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+				int Descriptor = ::openat(Current.m_Descriptor, Component.f_GetStr(), _Access | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 				if (Descriptor < 0 && errno == ENOENT && _bCreate)
 				{
 					if (::mkdirat(Current.m_Descriptor, Component.f_GetStr(), 0755) != 0 && errno != EEXIST)
 						DMibErrorFile("Failed to create '{}' under '{}': {}"_f << Component << _Root << NMib::NPlatform::fg_ErrnoString<CStr>(errno));
 
-					Descriptor = ::openat(Current.m_Descriptor, Component.f_GetStr(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+					Descriptor = ::openat(Current.m_Descriptor, Component.f_GetStr(), _Access | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 				}
 
 				if (Descriptor < 0)
@@ -289,25 +299,37 @@ namespace NMib::NFile
 	}
 #endif
 
+	namespace
+	{
+		/// Splits a relative path at '/', and refuses a leading slash or backslash, ".." components and components with a backslash or NUL. Empty
+		/// and "." components are dropped, so no components means the root itself. Only the text is checked; links are not resolved.
+		TCVector<CStr> fg_SplitComponents(CStr const &_RelativePath)
+		{
+			if (_RelativePath.f_StartsWith("/") || _RelativePath.f_StartsWith("\\"))
+				DMibErrorFile("'{}' is an absolute path, not one relative to a root"_f << _RelativePath);
+
+			TCVector<CStr> Components;
+			for (auto &Component : _RelativePath.f_Split("/"))
+			{
+				if (Component.f_IsEmpty() || Component == ".")
+					continue;
+
+				if (Component == ".." || Component.f_FindChar('\\') >= 0 || Component.f_FindChar(0) >= 0)
+					DMibErrorFile("'{}' has a component that could leave its root"_f << _RelativePath);
+
+				Components.f_Insert(Component);
+			}
+
+			return Components;
+		}
+	}
+
 	/// The components of a relative path, refusing anything that could leave the root: an absolute path or "..". "." and empty
 	/// components are dropped, so "." is the root, as a repository at the root of a checkout is. What remains must be a safe relative
 	/// path by CFile::fs_IsSafeRelativePath, which refuses names that Windows can't hold. No components means the root itself.
 	TCVector<CStr> CFileBeneath::fs_SplitRelativePath(CStr const &_RelativePath)
 	{
-		if (_RelativePath.f_StartsWith("/") || _RelativePath.f_StartsWith("\\"))
-			DMibErrorFile("'{}' is an absolute path, not one relative to a root"_f << _RelativePath);
-
-		TCVector<CStr> Components;
-		for (auto &Component : _RelativePath.f_Split("/"))
-		{
-			if (Component.f_IsEmpty() || Component == ".")
-				continue;
-
-			if (Component == ".." || Component.f_FindChar('\\') >= 0 || Component.f_FindChar(0) >= 0)
-				DMibErrorFile("'{}' has a component that could leave its root"_f << _RelativePath);
-
-			Components.f_Insert(Component);
-		}
+		auto Components = fg_SplitComponents(_RelativePath);
 
 		CStr Error;
 		if (!CFile::fs_IsSafeRelativePath(CStr::fs_Join(Components, "/"), Error))
@@ -605,6 +627,65 @@ namespace NMib::NFile
 
 		fg_DeleteRecursiveAt(Directory.m_Descriptor, Components.f_GetLast(), _Root / _RelativePath);
 	}
+
+	/// Changes the owner, the group or both of what is at the path; an empty name keeps that one, and two empty names return without checking the
+	/// path. A root or a directory leading to the path that is a symbolic link fails the call, and a symbolic link at the path is changed itself, not
+	/// its target. Only POSIX supports it, so the relative path isn't checked for Windows names like in the other functions.
+	void CFileBeneath::fs_SetOwnerAndGroup(CStr const &_Root, CStr const &_RelativePath, CStr const &_Owner, CStr const &_Group)
+	{
+		if (_Owner.f_IsEmpty() && _Group.f_IsEmpty())
+			return;
+
+		auto Components = fg_SplitComponents(_RelativePath);
+
+		uid_t UserID = uid_t(-1);
+		if (!_Owner.f_IsEmpty())
+		{
+			NMib::NPlatform::CGetPwUidState State;
+			passwd *pPasswd = NMib::NPlatform::fg_Helper_GetPwNam(_Owner.f_GetStr(), State);
+			if (!pPasswd && State.m_Error == 0)
+				DMibErrorFile("The user '{}' to own '{}' doesn't exist"_f << _Owner << (_Root / _RelativePath));
+			else if (!pPasswd)
+				DMibErrorFile("Failed to find the user '{}' to own '{}': {}"_f << _Owner << (_Root / _RelativePath) << NMib::NPlatform::fg_ErrnoString<CStr>(State.m_Error));
+
+			UserID = pPasswd->pw_uid;
+		}
+
+		gid_t GroupID = gid_t(-1);
+		if (!_Group.f_IsEmpty())
+		{
+			NMib::NPlatform::CGetGrGidState State;
+			group *pGroup = NMib::NPlatform::fg_Helper_GetGrNam(_Group.f_GetStr(), State);
+			if (!pGroup && State.m_Error == 0)
+				DMibErrorFile("The group '{}' to own '{}' doesn't exist"_f << _Group << (_Root / _RelativePath));
+			else if (!pGroup)
+				DMibErrorFile("Failed to find the group '{}' to own '{}': {}"_f << _Group << (_Root / _RelativePath) << NMib::NPlatform::fg_ErrnoString<CStr>(State.m_Error));
+
+			GroupID = pGroup->gr_gid;
+		}
+
+		if (Components.f_IsEmpty())
+		{
+			// The root's name can be in a directory others write, so the owner is changed through a directory descriptor: a hard link put in place
+			// of the name can't be opened as a directory. The open needs no read permission, but on macOS O_SEARCH needs search permission on the
+			// root itself, which a change by name would not.
+			auto Root = fg_OpenRoot(_Root, gc_SearchOnlyDirectoryAccess);
+#	ifdef DPlatformFamily_Linux
+			// fchown refuses an O_PATH descriptor, so the owner of the directory is changed with fchownat and AT_EMPTY_PATH
+			int Result = ::fchownat(Root.m_Descriptor, "", UserID, GroupID, AT_EMPTY_PATH);
+#	else
+			int Result = ::fchown(Root.m_Descriptor, UserID, GroupID);
+#	endif
+			if (Result != 0)
+				DMibErrorFile("Failed to change the owner of '{}': {}"_f << _Root << NMib::NPlatform::fg_ErrnoString<CStr>(errno));
+
+			return;
+		}
+
+		auto Directory = fg_OpenDirectory(_Root, Components, Components.f_GetLen() - 1, false, gc_SearchOnlyDirectoryAccess);
+		if (::fchownat(Directory.m_Descriptor, Components.f_GetLast().f_GetStr(), UserID, GroupID, AT_SYMLINK_NOFOLLOW) != 0)
+			DMibErrorFile("Failed to change the owner of '{}': {}"_f << (_Root / _RelativePath) << NMib::NPlatform::fg_ErrnoString<CStr>(errno));
+	}
 #else
 	EFileBeneathType CFileBeneath::fs_GetType(CStr const &_Root, CStr const &_RelativePath)
 	{
@@ -652,6 +733,11 @@ namespace NMib::NFile
 	}
 
 	void CFileBeneath::fs_DeleteRecursive(CStr const &_Root, CStr const &_RelativePath)
+	{
+		DMibErrorFile("CFileBeneath isn't supported on Windows");
+	}
+
+	void CFileBeneath::fs_SetOwnerAndGroup(CStr const &_Root, CStr const &_RelativePath, CStr const &_Owner, CStr const &_Group)
 	{
 		DMibErrorFile("CFileBeneath isn't supported on Windows");
 	}

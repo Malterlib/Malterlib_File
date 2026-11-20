@@ -9,6 +9,7 @@
 
 #ifndef DPlatformFamily_Windows
 #	include <Mib/Core/PlatformSpecific/PosixErrNo>
+#	include <Mib/Core/PlatformSpecific/PosixUser>
 #	include <sys/stat.h>
 #	include <unistd.h>
 #endif
@@ -292,6 +293,89 @@ namespace
 						, DMibImpErrorInstance(NMib::NFile::CExceptionFile, "'A/b:c' isn't a safe relative path: it can't the character :")
 					)
 				;
+			};
+
+			DMibTestCategory("Owner")
+			{
+				CFileBeneath::fs_WriteStringToFile(Root, "Owned/Dir/File.txt", "x");
+				CStr Owner = CFile::fs_GetOwner(Root / "Owned/Dir");
+				CStr Group = CFile::fs_GetGroup(Root / "Owned/Dir");
+
+				CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir", Owner, Group);
+				CFileBeneath::fs_SetOwnerAndGroup(Root, "", Owner, Group);
+				CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir/File.txt", "", Group);
+
+				{
+					DMibTestPath("Search only");
+
+					// A directory leading to the path without read permission doesn't fail the change, as for chown
+					DMibAssert(::chmod((Root / "Owned").f_GetStr(), 0300), ==, 0);
+					auto RestoreMode = g_OnScopeExit / [&]
+						{
+							::chmod((Root / "Owned").f_GetStr(), 0755);
+						}
+					;
+
+					CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir/File.txt", "", Group);
+				}
+
+				{
+					DMibTestPath("Search only root");
+
+					DMibAssert(::chmod((Root / "Owned/Dir").f_GetStr(), 0300), ==, 0);
+					auto RestoreMode = g_OnScopeExit / [&]
+						{
+							::chmod((Root / "Owned/Dir").f_GetStr(), 0755);
+						}
+					;
+
+					CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", "", "", Group);
+					CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", ".", "", Group);
+				}
+
+				CFile::fs_CreateDirectory(Root / "OwnerLinks");
+				DMibAssert(::symlink(Outside.f_GetStr(), (Root / "OwnerLinks/ToOutside").f_GetStr()), ==, 0);
+				DMibExpectException
+					(
+						CFileBeneath::fs_SetOwnerAndGroup(Root, "OwnerLinks/ToOutside/Secret.txt", Owner, Group)
+						, DMibImpErrorInstance
+						(
+							NMib::NFile::CExceptionFile
+							, "Failed to open the directory 'OwnerLinks/ToOutside' under '{}' without following links: {}"_f
+							<< Root
+							<< NMib::NPlatform::fg_ErrnoString<CStr>(NotFollowedError)
+						)
+					)
+				;
+
+				// Setting the dangling link to its own group succeeds only because the link isn't followed: its target doesn't exist
+				DMibAssert(::symlink((Root / "Missing").f_GetStr(), (Root / "OwnerLinks/Dangling").f_GetStr()), ==, 0);
+				CFileBeneath::fs_SetOwnerAndGroup(Root, "OwnerLinks/Dangling", "", CFile::fs_GetGroupOnLink(Root / "OwnerLinks/Dangling"));
+
+				// When this user is in a group that the target doesn't have, setting that group on the link changes the link and not the target
+				struct stat OutsideStat;
+				DMibAssert(::stat(Outside.f_GetStr(), &OutsideStat), ==, 0);
+
+				gid_t Groups[256];
+				int nGroups = ::getgroups(256, Groups);
+				CStr OtherGroup;
+				for (int iGroup = 0; iGroup < nGroups && OtherGroup.f_IsEmpty(); ++iGroup)
+				{
+					if (Groups[iGroup] == OutsideStat.st_gid)
+						continue;
+
+					NMib::NPlatform::CGetGrGidState State;
+					if (group *pGroup = NMib::NPlatform::fg_Helper_GetGrGid(Groups[iGroup], State))
+						OtherGroup = pGroup->gr_name;
+				}
+
+				if (!OtherGroup.f_IsEmpty())
+				{
+					CStr OutsideGroup = CFile::fs_GetGroup(Outside);
+					CFileBeneath::fs_SetOwnerAndGroup(Root, "OwnerLinks/ToOutside", "", OtherGroup);
+					DMibExpect(CFile::fs_GetGroup(Outside), ==, OutsideGroup);
+					DMibExpect(CFile::fs_GetGroupOnLink(Root / "OwnerLinks/ToOutside"), ==, OtherGroup);
+				}
 			};
 
 			DMibTestCategory("Rename")
