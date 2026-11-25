@@ -305,32 +305,43 @@ namespace
 				CFileBeneath::fs_SetOwnerAndGroup(Root, "", Owner, Group);
 				CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir/File.txt", "", Group);
 
+				// macOS before 13 opens the directories for reading, which a caller other than root can't do without read permission
+				bool bSearchOnlyOpens = true;
+#	ifdef DPlatformFamily_macOS
+				bSearchOnlyOpens = ::geteuid() == 0;
+				if (__builtin_available(macOS 13, *))
+					bSearchOnlyOpens = true;
+#	endif
+
+				if (bSearchOnlyOpens)
 				{
-					DMibTestPath("Search only");
+					{
+						DMibTestPath("Search only");
 
-					// A directory leading to the path without read permission doesn't fail the change, as for chown
-					DMibAssert(::chmod((Root / "Owned").f_GetStr(), 0300), ==, 0);
-					auto RestoreMode = g_OnScopeExit / [&]
-						{
-							::chmod((Root / "Owned").f_GetStr(), 0755);
-						}
-					;
+						// A directory leading to the path without read permission doesn't fail the change, as for chown
+						DMibAssert(::chmod((Root / "Owned").f_GetStr(), 0300), ==, 0);
+						auto RestoreMode = g_OnScopeExit / [&]
+							{
+								::chmod((Root / "Owned").f_GetStr(), 0755);
+							}
+						;
 
-					CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir/File.txt", "", Group);
-				}
+						CFileBeneath::fs_SetOwnerAndGroup(Root, "Owned/Dir/File.txt", "", Group);
+					}
 
-				{
-					DMibTestPath("Search only root");
+					{
+						DMibTestPath("Search only root");
 
-					DMibAssert(::chmod((Root / "Owned/Dir").f_GetStr(), 0300), ==, 0);
-					auto RestoreMode = g_OnScopeExit / [&]
-						{
-							::chmod((Root / "Owned/Dir").f_GetStr(), 0755);
-						}
-					;
+						DMibAssert(::chmod((Root / "Owned/Dir").f_GetStr(), 0300), ==, 0);
+						auto RestoreMode = g_OnScopeExit / [&]
+							{
+								::chmod((Root / "Owned/Dir").f_GetStr(), 0755);
+							}
+						;
 
-					CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", "", "", Group);
-					CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", ".", "", Group);
+						CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", "", "", Group);
+						CFileBeneath::fs_SetOwnerAndGroup(Root / "Owned/Dir", ".", "", Group);
+					}
 				}
 
 				CFile::fs_CreateDirectory(Root / "OwnerLinks");

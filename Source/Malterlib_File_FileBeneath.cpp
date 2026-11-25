@@ -99,7 +99,8 @@ namespace NMib::NFile
 			return EFileBeneathType::mc_Other;
 		}
 
-		// Opens a directory without read permission, to reach the names in it or to change the directory itself
+		// Opens a directory without read permission, to reach the names in it or to change the directory itself. macOS before 13 ignores
+		// O_SEARCH and opens the directory for reading, so there a caller other than root needs read permission on the directory.
 #	ifdef DPlatformFamily_Linux
 		constexpr int gc_SearchOnlyDirectoryAccess = O_PATH;
 #	else
@@ -630,7 +631,8 @@ namespace NMib::NFile
 
 	/// Changes the owner, the group or both of what is at the path; an empty name keeps that one, and two empty names return without checking the
 	/// path. A root or a directory leading to the path that is a symbolic link fails the call, and a symbolic link at the path is changed itself, not
-	/// its target. Only POSIX supports it, so the relative path isn't checked for Windows names like in the other functions.
+	/// its target. Only POSIX supports it, so the relative path isn't checked for Windows names like in the other functions. On macOS before 13 a
+	/// caller other than root needs read permission on the root and on the directories leading to the path.
 	void CFileBeneath::fs_SetOwnerAndGroup(CStr const &_Root, CStr const &_RelativePath, CStr const &_Owner, CStr const &_Group)
 	{
 		if (_Owner.f_IsEmpty() && _Group.f_IsEmpty())
