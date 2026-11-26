@@ -437,6 +437,10 @@ namespace NMib::NFile
 		static void fs_CreateSymbolicLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo, EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 		static void fs_CreateHardLink(NMib::NStr::CStr const &_FileFrom, NMib::NStr::CStr const &_FileTo);
 		static NMib::NStr::CStr fs_ResolveSymbolicLink(NMib::NStr::CStr const &_FileFrom);
+		static bool fs_FindAncestorByIdentity(NStr::CStr const &_Path, NStr::CStr const &_Directory, NStr::CStr &o_Relative);
+#ifndef DPlatformFamily_Windows
+		static bool fs_ResolveDirectory(NStr::CStr const &_Path, NStr::CStr &o_Resolved, NStr::CStr &o_Failed, NContainer::TCSet<NStr::CStr> &o_Dependencies);
+#endif
 		static bool fs_CanCreateSymbolicLink(EFileAttrib _Type, ESymbolicLinkFlag _Flags);
 
 		static void fs_CopyFiles

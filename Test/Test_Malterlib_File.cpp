@@ -14,6 +14,7 @@ using namespace NMib;
 #	include <sys/stat.h>
 #	include <fcntl.h>
 #	include <stdlib.h>
+#	include <unistd.h>
 #endif
 #if defined(DPlatformFamily_macOS) || defined(DPlatformFamily_Linux)
 #	include <sys/xattr.h>
@@ -406,6 +407,14 @@ namespace
 					)
 				;
 			}
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/", true, -1))) == DMibExpr("\\\\?\\D:\\"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:", true, -1))) == DMibExpr("\\\\?\\D:\\"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/..", true, _MAX_PATH))) == DMibExpr("D:\\"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("//?/D:/", true, -1))) == DMibExpr("\\\\?\\d:\\"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("\\\\?\\D:\\")))) == DMibExpr("d:"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("D:\\")))) == DMibExpr("d:"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(NStr::CWStr(CStr("D:\\"))))) == DMibExpr("d:"));
+			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertFromWindowsPath(CStr("D:x")))) == DMibExpr("d:x"));
 			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/./Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
 			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/../Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
 			DMibTest(DMibExpr(NStr::CStr(NFile::NPlatform::fg_ConvertToWindowsPath("D:/Testing1/../Test", true, -1))) == DMibExpr("\\\\?\\D:\\Test"));
@@ -2692,6 +2701,178 @@ namespace
 #endif
 			CFile::fs_DeleteDirectoryRecursive(CurrentDir);
 		};
+#ifdef DPlatformFamily_Windows
+		DMibTestSuite("FindAncestorByIdentityDriveRoot")
+		{
+			// Windows reads a drive alone as the drive's current directory, which is not its root here
+			CStr ProgramDirectory = CFile::fs_GetProgramDirectory();
+			CStr Drive = CFile::fs_GetDrive(ProgramDirectory);
+			CStr CurrentDirectory = CFile::fs_GetCurrentDirectory();
+			CFile::fs_SetCurrentDirectory(ProgramDirectory);
+			auto RestoreCurrentDirectory = g_OnScopeExit / [&]
+				{
+					CFile::fs_SetCurrentDirectory(CurrentDirectory);
+				}
+			;
+
+			DMibExpectTrue(CFile::fs_GetUniqueIdentifier(Drive) == CFile::fs_GetUniqueIdentifier(Drive + "/"));
+			DMibExpectFalse(CFile::fs_GetUniqueIdentifier(Drive) == CFile::fs_GetUniqueIdentifier(ProgramDirectory));
+
+			CStr Relative = "stale";
+			DMibExpectTrue(CFile::fs_FindAncestorByIdentity(Drive, Drive + "/", Relative));
+			DMibExpect(Relative, ==, "");
+			DMibExpectTrue(CFile::fs_FindAncestorByIdentity(Drive + "/MissingFindAncestorByIdentity", Drive, Relative));
+			DMibExpect(Relative, ==, "MissingFindAncestorByIdentity");
+			DMibExpectTrue(CFile::fs_FindAncestorByIdentity(ProgramDirectory, Drive, Relative));
+			DMibExpect(Relative, ==, CFile::fs_MakePathRelative(ProgramDirectory, Drive + "/"));
+
+			// The administrative share of the drive, where the host has one, which the program directory through it shows. Windows can fail
+			// to give the attributes of a bare share root, so that no share is found as an ancestor, which is a known limit: where the
+			// probe of the root fails, the cases are skipped
+			CStr Share = "//localhost/" + Drive.f_Left(1) + "$";
+			if (CFile::fs_FileExists(Share / ProgramDirectory.f_Extract(3), EFileAttrib_Directory) && CFile::fs_FileExists(Share, EFileAttrib_Directory))
+			{
+				DMibTestPath("Share");
+				DMibExpectTrue(CFile::fs_FindAncestorByIdentity(Share / "MissingFindAncestorByIdentity", Share, Relative));
+				DMibExpect(Relative, ==, "MissingFindAncestorByIdentity");
+				DMibExpectTrue(CFile::fs_FindAncestorByIdentity(Share / ProgramDirectory.f_Extract(3), Share + "/", Relative));
+				DMibExpect(Relative, ==, ProgramDirectory.f_Extract(3));
+			}
+		};
+#else
+		DMibTestSuite("ResolveDirectory")
+		{
+			CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestResolveDirectory";
+			fg_TestAddCleanupPath(RootPath);
+
+			// CFile would delete the directory with a backslash in its name by another path, and can't delete in a directory it can't search
+			auto fUnlock = [&]
+				{
+					if (CFile::fs_FileExists(RootPath / "Locked", EFileAttrib_Directory))
+						CFile::fs_SetAttributes(RootPath / "Locked", EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
+				}
+			;
+			auto fPrepareRemove = [&]
+				{
+					::rmdir((RootPath + "/Backslash/a\\b").f_GetStr());
+					fUnlock();
+				}
+			;
+			fPrepareRemove();
+			auto PrepareRemove = g_OnScopeExit / [&]
+				{
+					fPrepareRemove();
+				}
+			;
+			if (CFile::fs_FileExists(RootPath))
+				CFile::fs_DeleteDirectoryRecursive(RootPath, true);
+
+			CFile::fs_CreateDirectory(RootPath);
+
+			auto fResolve = [](CStr const &_Path, CStr &o_Failed) -> CStr
+				{
+					CStr Resolved;
+					NContainer::TCSet<CStr> Dependencies;
+					if (!CFile::fs_ResolveDirectory(_Path, Resolved, o_Failed, Dependencies))
+						return CStr();
+
+					return Resolved;
+				}
+			;
+
+			CStr Failed;
+			CStr RealRoot = fResolve(RootPath, Failed);
+			DMibAssertFalse(RealRoot.f_IsEmpty());
+
+			// The file functions of CFile take a backslash for a separator, the kernel takes it as a character of a name. A link keeps its
+			// target as it is given, so a backslash in it stays a character of a name
+			auto fMakeLink = [](CStr const &_Target, CStr const &_Link)
+				{
+					DMibTestPath(_Link);
+					CFile::fs_CreateSymbolicLink(_Target, _Link, EFileAttrib_Directory, ESymbolicLinkFlag_None);
+				}
+			;
+
+			{
+				DMibTestPath("BackslashTargetWithSlashDirectory");
+				CFile::fs_CreateDirectory(RootPath / "Slash/a/b");
+				fMakeLink("a\\b", RootPath / "Slash/Link");
+
+				Failed.f_Clear();
+				DMibExpect(fResolve(RootPath / "Slash/Link", Failed), ==, "");
+				DMibExpect(Failed, ==, RealRoot + "/Slash/a\\b");
+			}
+			{
+				DMibTestPath("BackslashTargetWithBackslashDirectory");
+				CFile::fs_CreateDirectory(RootPath / "Backslash");
+				DMibAssert(::mkdir((RootPath + "/Backslash/a\\b").f_GetStr(), 0777), ==, 0);
+				fMakeLink("a\\b", RootPath / "Backslash/Link");
+
+				Failed.f_Clear();
+				DMibExpect(fResolve(RootPath / "Backslash/Link", Failed), ==, RealRoot + "/Backslash/a\\b");
+				DMibExpect(fResolve(RootPath + "/Backslash/Link/../a\\b", Failed), ==, RealRoot + "/Backslash/a\\b");
+			}
+			{
+				DMibTestPath("SearchPermission");
+				CFile::fs_CreateDirectory(RootPath / "Locked");
+				CFile::fs_SetAttributes(RootPath / "Locked", EFileAttrib_UnixAttributesValid);
+				auto Unlock = g_OnScopeExit / [&]
+					{
+						fUnlock();
+					}
+				;
+
+				// The kernel looks . and .. up in the directory too, which needs the permission to search it. The superuser has it
+				if (NSys::fg_UserManagement_GetProcessEffectiveUser() != "0")
+				{
+					Failed.f_Clear();
+					DMibExpect(fResolve(RootPath / "Locked", Failed), ==, RealRoot / "Locked");
+					DMibExpect(fResolve(RootPath + "/Locked/..", Failed), ==, "");
+					DMibExpect(Failed, ==, RealRoot + "/Locked/..");
+					Failed.f_Clear();
+					DMibExpect(fResolve(RootPath + "/Locked/.", Failed), ==, "");
+					DMibExpect(Failed, ==, RealRoot + "/Locked/.");
+				}
+			}
+			{
+				DMibTestPath("DotDotAfterLink");
+				CFile::fs_CreateDirectory(RootPath / "Data/Deep/Sub");
+				CFile::fs_CreateDirectory(RootPath / "Data/Temp");
+				CFile::fs_CreateDirectory(RootPath / "Hops");
+				CFile::fs_CreateSymbolicLink(RootPath / "Data/Deep", RootPath / "Hops/Hop", EFileAttrib_Directory, ESymbolicLinkFlag_None);
+
+				NContainer::TCSet<CStr> Dependencies;
+				CStr Resolved;
+				DMibAssertTrue(CFile::fs_ResolveDirectory(RootPath + "/Hops/Hop/../Temp", Resolved, Failed, Dependencies));
+				DMibExpect(Resolved, ==, RealRoot / "Data/Temp");
+				DMibExpectTrue(!!Dependencies.f_FindEqual(RealRoot / "Hops"));
+				DMibExpectTrue(!!Dependencies.f_FindEqual(RealRoot / "Data"));
+			}
+			{
+				DMibTestPath("FindAncestorByIdentity");
+				CStr Relative = "stale";
+				DMibExpectTrue(CFile::fs_FindAncestorByIdentity(RealRoot / "Data/Deep/Sub/Missing", RootPath / "Hops/Hop", Relative));
+				DMibExpect(Relative, ==, "Sub/Missing");
+				DMibExpectTrue(CFile::fs_FindAncestorByIdentity(RootPath / "Hops/Hop", RealRoot / "Data/Deep", Relative));
+				DMibExpect(Relative, ==, "");
+				DMibExpectFalse(CFile::fs_FindAncestorByIdentity(RootPath / "Data/Temp", RootPath / "Hops/Hop", Relative));
+
+				// A relative path is relative to the current directory
+				CStr CurrentDirectory = CFile::fs_GetCurrentDirectory();
+				CFile::fs_SetCurrentDirectory(RootPath);
+				auto RestoreCurrentDirectory = g_OnScopeExit / [&]
+					{
+						CFile::fs_SetCurrentDirectory(CurrentDirectory);
+					}
+				;
+				DMibExpectTrue(CFile::fs_FindAncestorByIdentity("Data/Deep/Sub", ".", Relative));
+				DMibExpect(Relative, ==, "Data/Deep/Sub");
+			}
+
+			fPrepareRemove();
+			CFile::fs_DeleteDirectoryRecursive(RootPath, true);
+		};
+#endif
 		DMibTestSuite("Time")
 		{
 			CStr RootPath = CFile::fs_GetProgramDirectory() / "FileTestTime";

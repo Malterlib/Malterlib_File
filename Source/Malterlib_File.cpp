@@ -4,6 +4,12 @@
 #include <Mib/Cryptography/RandomID>
 #include <Mib/Encoding/EJson>
 
+#ifndef DPlatformFamily_Windows
+#	include <limits.h>
+#	include <sys/stat.h>
+#	include <unistd.h>
+#endif
+
 namespace NMib::NFile
 {
 	struct CSubSystem_File : public CSubSystem
@@ -1014,6 +1020,137 @@ namespace NMib::NFile
 	{
 		return NSys::NFile::fg_ResolveSymbolicLink(_FileFrom);
 	}
+
+	// Whether _Path, or a directory that holds it, is the directory _Directory, told by identity, however the two are spelled. o_Relative is
+	// the rest of _Path below it, empty for _Path itself. A drive's root is a directory of its own, and a UNC path ends at its share
+	bool CFile::fs_FindAncestorByIdentity(NStr::CStr const &_Path, NStr::CStr const &_Directory, NStr::CStr &o_Relative)
+	{
+		using namespace NStr;
+
+		CStr Directory = fs_GetExpandedPath(_Directory);
+		if (!fs_FileExists(Directory, EFileAttrib_Directory))
+			return false;
+
+		auto Identifier = fs_GetUniqueIdentifier(Directory);
+		CStr Path = fs_GetExpandedPath(_Path);
+		CStr Drive = fs_GetDrive(Path);
+		CStr Relative;
+		for (CStr Ancestor = Path; !Ancestor.f_IsEmpty();)
+		{
+			if (fs_FileExists(Ancestor, EFileAttrib_Directory) && fs_GetUniqueIdentifier(Ancestor) == Identifier)
+			{
+				o_Relative = Relative;
+				return true;
+			}
+
+			// The drive of a UNC path is its server, which is no directory
+			CStr Parent = fs_GetPath(Ancestor);
+			if (Parent.f_IsEmpty() || Parent == Ancestor || (Parent == Drive && !Drive.f_EndsWith(":")))
+				break;
+
+			Relative = fs_GetFile(Ancestor) / Relative;
+			Ancestor = Parent;
+		}
+
+		return false;
+	}
+
+#ifndef DPlatformFamily_Windows
+	// Resolves the absolute _Path, a directory, as the kernel resolves it: one component at a time, . and .. as they come, and a symbolic
+	// link by putting its target's components before the ones left, from / for an absolute target, up to the kernel's bound on links. So
+	// a .. after a link leaves the link's target, not the link. o_Resolved is the directory, without symbolic links, . or .., or when the
+	// resolution fails at a component (missing, not a directory, unreadable or a link too many), o_Failed is that component's path, from
+	// the resolved directory holding it. o_Dependencies gets the directories whose entries decide a step the resolved path doesn't spell:
+	// the one holding each symbolic link, which retargeting replaces, and the one holding each component a .. discards, which can be
+	// removed or created. A component kept in the resolved path needs nothing: the path stops resolving without it.
+	//
+	// The paths are spelled as the kernel takes them, a backslash a character of a name, so the walk calls the system itself: the file
+	// functions of CFile take a backslash for a separator.
+	bool CFile::fs_ResolveDirectory(NStr::CStr const &_Path, NStr::CStr &o_Resolved, NStr::CStr &o_Failed, NContainer::TCSet<NStr::CStr> &o_Dependencies)
+	{
+		using namespace NStr;
+		using namespace NContainer;
+
+		long MaxLinks = ::sysconf(_SC_SYMLOOP_MAX);
+		if (MaxLinks <= 0)
+			MaxLinks = 40; // Linux's bound, which it doesn't report
+
+		auto fJoinComponents = [](TCVector<CStr> const &_Components) -> CStr
+			{
+				return "/" + CStr::fs_Join(_Components, "/");
+			}
+		;
+
+		TCVector<CStr> Left; // The components left, the next one last
+		auto fPushComponents = [&](CStr const &_Components)
+			{
+				Left.f_Insert(_Components.f_Split<true>("/").f_Reverse());
+			}
+		;
+		fPushComponents(_Path);
+
+		TCVector<CStr> Resolved;
+		long nLinks = 0;
+		while (!Left.f_IsEmpty())
+		{
+			CStr Component = Left.f_PopBack();
+			CStr Directory = fJoinComponents(Resolved);
+			CStr Path = CFile::fs_AppendPath(Directory, Component);
+
+			// The kernel looks . and .. up in the directory too, which needs the permission to search it
+			struct ::stat Stats;
+			if (::lstat(Path.f_GetStr(), &Stats) != 0)
+			{
+				o_Failed = Path;
+				return false;
+			}
+
+			if (Component == ".")
+				continue;
+
+			if (Component == "..")
+			{
+				if (!Resolved.f_IsEmpty())
+				{
+					Resolved.f_PopBack();
+					o_Dependencies[fJoinComponents(Resolved)];
+				}
+				continue;
+			}
+
+			if (S_ISDIR(Stats.st_mode))
+			{
+				Resolved.f_Insert(Component);
+				continue;
+			}
+
+			if (!S_ISLNK(Stats.st_mode) || ++nLinks > MaxLinks)
+			{
+				o_Failed = Path;
+				return false;
+			}
+
+			o_Dependencies[Directory];
+			CStr Target;
+			ssize_t TargetLength = ::readlink(Path.f_GetStr(), Target.f_GetStr(PATH_MAX + 1), PATH_MAX);
+			if (TargetLength <= 0)
+			{
+				o_Failed = Path;
+				return false;
+			}
+
+			Target.f_SetAt(TargetLength, 0);
+			Target.f_TrimSize();
+			if (Target.f_StartsWith("/"))
+				Resolved.f_Clear();
+
+			fPushComponents(Target);
+		}
+
+		o_Resolved = fJoinComponents(Resolved);
+		return true;
+	}
+#endif
 
 	bool CFile::fs_CanCreateSymbolicLink(EFileAttrib _Type, ESymbolicLinkFlag _Flags)
 	{
