@@ -423,6 +423,7 @@ namespace NMib::NFile
 		// Static functions
 		static bool fs_MakeFileWritable(NStr::CStr const &_LocalPath, bool _bWritable = true);
 		static bool fs_IsFileWritable(NStr::CStr const &_LocalPath);
+		static bool fs_IsFileWritable(EFileAttrib _Attributes);
 		static void fs_DeleteDirectoryRecursive(NStr::CStr const &_File, bool _bRemoveWriteProtection = false);
 		static void fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo, CFileProgress &_Progress);
 		static void fs_CopyFile(NStr::CStr const &_FileFrom, NStr::CStr const &_FileTo);

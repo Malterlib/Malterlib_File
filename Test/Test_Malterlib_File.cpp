@@ -1812,6 +1812,43 @@ namespace
 			}
 		};
 
+		DMibTestSuite("Writable Attributes")
+		{
+			bool bPermissions = (CFile::fs_GetSupportedAttributes() & EFileAttrib_UserWrite) != EFileAttrib_None;
+			DMibExpectFalse(CFile::fs_IsFileWritable(EFileAttrib_File | EFileAttrib_ReadOnly | EFileAttrib_UserWrite));
+			DMibExpectTrue(CFile::fs_IsFileWritable(EFileAttrib_File | EFileAttrib_UserWrite));
+			DMibExpect(CFile::fs_IsFileWritable(EFileAttrib_File), ==, !bPermissions);
+
+			CStr Path = CFile::fs_GetProgramDirectory() / "TestWritableAttributes.txt";
+			auto fRemove = [&]
+				{
+					if (!CFile::fs_FileExists(Path, EFileAttrib_File))
+						return;
+
+					CFile::fs_MakeFileWritable(Path);
+					CFile::fs_DeleteFile(Path);
+				}
+			;
+			fRemove();
+			CFile::fs_WriteStringToFile(Path, "", false);
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					fRemove();
+				}
+			;
+			{
+				DMibTestPath("Writable");
+				DMibExpectTrue(CFile::fs_IsFileWritable(CFile::fs_GetAttributes(Path)));
+				DMibExpectTrue(CFile::fs_IsFileWritable(Path));
+			}
+			{
+				DMibTestPath("ReadOnly");
+				CFile::fs_MakeFileWritable(Path, false);
+				DMibExpectFalse(CFile::fs_IsFileWritable(CFile::fs_GetAttributes(Path)));
+				DMibExpectFalse(CFile::fs_IsFileWritable(Path));
+			}
+		};
+
 #ifndef DPlatformFamily_Windows
 		DMibTestSuite("Duplicate Permissions")
 		{

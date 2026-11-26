@@ -855,7 +855,7 @@ namespace NMib::NFile
 			EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);
 			if (_bWritable)
 			{
-				if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
+				if (!fs_IsFileWritable(Attributes))
 					CFile::fs_SetAttributes(_LocalPath, (Attributes & ~EFileAttrib_ReadOnly) | (SupportedAttributes & EFileAttrib_UserWrite) | ValidAttributes);
 			}
 			else
@@ -875,17 +875,22 @@ namespace NMib::NFile
 	{
 		try
 		{
-			EFileAttrib SupportedAttributes = CFile::fs_GetSupportedAttributes();
-			EFileAttrib Attributes = CFile::fs_GetAttributes(_LocalPath);
-			if ((Attributes & EFileAttrib_ReadOnly) || (!(Attributes & EFileAttrib_UserWrite) && (SupportedAttributes & EFileAttrib_UserWrite)))
-				return false;
-			else
-				return true;
+			return fs_IsFileWritable(CFile::fs_GetAttributes(_LocalPath));
 		}
 		catch (CExceptionFile)
 		{
 			return false;
 		}
+	}
+
+	// Whether a file of the attributes, as fs_GetAttributes reads them, is writable: it is not marked read-only, and has its owner's
+	// write permission where the system has permissions.
+	bool CFile::fs_IsFileWritable(EFileAttrib _Attributes)
+	{
+		if (_Attributes & EFileAttrib_ReadOnly)
+			return false;
+
+		return (_Attributes & EFileAttrib_UserWrite) || !(CFile::fs_GetSupportedAttributes() & EFileAttrib_UserWrite);
 	}
 
 	void fg_DeleteFilesInDirs(NStr::CStr const &_File, bool _bRemoveWriteProtection, NStr::CStr &_Errors)
