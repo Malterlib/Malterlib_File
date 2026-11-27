@@ -1858,7 +1858,118 @@ namespace
 			}
 		};
 
+		// Windows refuses to delete a read-only file, so the copy makes the destination file that a source directory replaces writable first
+		DMibTestSuite("Diff Copy Directory Over Read-Only File")
+		{
+			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestDiffCopyReadOnly";
+			if (CFile::fs_FileExists(TestDir))
+				CFile::fs_DeleteDirectoryRecursive(TestDir, true);
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					if (CFile::fs_FileExists(TestDir))
+						CFile::fs_DeleteDirectoryRecursive(TestDir, true);
+				}
+			;
+
+			CFile::fs_CreateDirectory(TestDir / "Source");
+			CFile::fs_WriteStringToFile(TestDir / "Source/Inner.txt", "inner\n", false);
+			CFile::fs_WriteStringToFile(TestDir / "Replaced", "old\n", false);
+			CFile::fs_MakeFileWritable(TestDir / "Replaced", false);
+
+			DMibExpectTrue(CFile::fs_DiffCopyFileOrDirectory(TestDir / "Source", TestDir / "Replaced", nullptr, {}, 0.0f));
+			DMibExpect(CFile::fs_ReadStringFromFile(TestDir / "Replaced/Inner.txt"), ==, "inner\n");
+		};
+
 #ifndef DPlatformFamily_Windows
+		// A file or link that the copy deletes keeps its mode, which others share: the attributes CFile gives for a link are its target's, and a
+		// file's are shared by its other hard links. An unlink fails for its directory, so neither is changed when it fails
+		DMibTestSuite("Diff Copy Delete Keeps Attributes")
+		{
+			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestDiffCopyLinkTarget";
+			if (CFile::fs_FileExists(TestDir))
+				CFile::fs_DeleteDirectoryRecursive(TestDir, true);
+			CFile::fs_CreateDirectory(TestDir);
+			auto Cleanup = g_OnScopeExit / [&]
+				{
+					CFile::fs_DeleteDirectoryRecursive(TestDir, true);
+				}
+			;
+
+			EFileAttrib Permissions
+				= EFileAttrib_UserRead
+				| EFileAttrib_UserWrite
+				| EFileAttrib_UserExecute
+				| EFileAttrib_GroupRead
+				| EFileAttrib_GroupWrite
+				| EFileAttrib_GroupExecute
+				| EFileAttrib_EveryoneRead
+				| EFileAttrib_EveryoneWrite
+				| EFileAttrib_EveryoneExecute
+			;
+			EFileAttrib ReadOnly = EFileAttrib_UserRead | EFileAttrib_GroupRead | EFileAttrib_EveryoneRead;
+			CFile::fs_WriteStringToFile(TestDir / "Target", "target\n", false);
+			CFile::fs_SetAttributes(TestDir / "Target", ReadOnly | EFileAttrib_UnixAttributesValid);
+			auto fTargetPermissions = [&]
+				{
+					return CFile::fs_GetAttributes(TestDir / "Target") & Permissions;
+				}
+			;
+			DMibExpect(fTargetPermissions(), ==, ReadOnly);
+
+			{
+				DMibTestPath("Link over link");
+				CFile::fs_WriteStringToFile(TestDir / "NewTarget", "new\n", false);
+				CFile::fs_CreateSymbolicLink(TestDir / "NewTarget", TestDir / "SourceLink", EFileAttrib_File, ESymbolicLinkFlag_Relative);
+				CFile::fs_CreateSymbolicLink(TestDir / "Target", TestDir / "DestinationLink", EFileAttrib_File, ESymbolicLinkFlag_Relative);
+
+				DMibExpectTrue(CFile::fs_DiffCopyFileOrDirectory(TestDir / "SourceLink", TestDir / "DestinationLink", nullptr, {}, 0.0f));
+				DMibExpect(fTargetPermissions(), ==, ReadOnly);
+				DMibExpect(CFile::fs_ReadStringFromFile(TestDir / "DestinationLink"), ==, "new\n");
+			}
+			{
+				DMibTestPath("Directory over link");
+				CFile::fs_CreateDirectory(TestDir / "Source");
+				CFile::fs_WriteStringToFile(TestDir / "Source/Inner.txt", "inner\n", false);
+				CFile::fs_CreateSymbolicLink(TestDir / "Target", TestDir / "ReplacedLink", EFileAttrib_File, ESymbolicLinkFlag_Relative);
+
+				DMibExpectTrue(CFile::fs_DiffCopyFileOrDirectory(TestDir / "Source", TestDir / "ReplacedLink", nullptr, {}, 0.0f));
+				DMibExpect(fTargetPermissions(), ==, ReadOnly);
+				DMibExpect(CFile::fs_ReadStringFromFile(TestDir / "ReplacedLink/Inner.txt"), ==, "inner\n");
+			}
+			{
+				DMibTestPath("Directory over hard link");
+				CFile::fs_CreateHardLink(TestDir / "Target", TestDir / "HardLink");
+
+				DMibExpectTrue(CFile::fs_DiffCopyFileOrDirectory(TestDir / "Source", TestDir / "HardLink", nullptr, {}, 0.0f));
+				DMibExpect(fTargetPermissions(), ==, ReadOnly);
+				DMibExpect(CFile::fs_ReadStringFromFile(TestDir / "HardLink/Inner.txt"), ==, "inner\n");
+			}
+			// The superuser can delete in a directory without write permission
+			if (NSys::fg_UserManagement_GetProcessEffectiveUser() != "0")
+			{
+				DMibTestPath("Directory over file in unwritable directory");
+				CStr Locked = TestDir / "Locked";
+				CFile::fs_CreateDirectory(Locked);
+				CFile::fs_WriteStringToFile(Locked / "Replaced", "old\n", false);
+				CFile::fs_SetAttributes(Locked / "Replaced", ReadOnly | EFileAttrib_UnixAttributesValid);
+				// Marked read-only, which on macOS is the immutable flag that the copy clears before it retries
+				CFile::fs_WriteStringToFile(Locked / "Protected", "old\n", false);
+				CFile::fs_MakeFileWritable(Locked / "Protected", false);
+				CFile::fs_SetAttributes(Locked, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserExecute);
+				auto Unlock = g_OnScopeExit / [&]
+					{
+						CFile::fs_SetAttributes(Locked, EFileAttrib_UnixAttributesValid | EFileAttrib_UserRead | EFileAttrib_UserWrite | EFileAttrib_UserExecute);
+					}
+				;
+
+				DMibExpectExceptionType(CFile::fs_DiffCopyFileOrDirectory(TestDir / "Source", Locked / "Replaced", nullptr, {}, 0.0f), CExceptionFile);
+				DMibExpect(CFile::fs_GetAttributes(Locked / "Replaced") & Permissions, ==, ReadOnly);
+
+				DMibExpectExceptionType(CFile::fs_DiffCopyFileOrDirectory(TestDir / "Source", Locked / "Protected", nullptr, {}, 0.0f), CExceptionFile);
+				DMibExpectTrue((CFile::fs_GetAttributes(Locked / "Protected") & EFileAttrib_ReadOnly) != EFileAttrib_None);
+			}
+		};
+
 		DMibTestSuite("Duplicate Permissions")
 		{
 			CStr TestDir = CFile::fs_GetProgramDirectory() / "FileTestDuplicatePermissions";

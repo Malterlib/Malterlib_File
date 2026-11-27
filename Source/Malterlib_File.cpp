@@ -1,6 +1,7 @@
 // Copyright © Unbroken AB
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
+#include <Mib/Core/OnScopeExitCatch>
 #include <Mib/Cryptography/RandomID>
 #include <Mib/Encoding/EJson>
 
@@ -2985,6 +2986,64 @@ namespace NMib::NFile
 		return true;
 	}
 
+	namespace
+	{
+		// Deletes the file or link of a diff copy, and clears only what blocks the delete when it fails: a read-only file or link on Windows,
+		// and the immutable flag that macOS reads as read-only. An unlink outside Windows fails for its directory, not the file's mode, which
+		// the other hard links of the file share and which for a link is its target's, so the mode is never changed
+		void fg_DiffCopyDeleteFile(NStr::CStr const &_File)
+		{
+#if defined(DPlatformFamily_Windows) || defined(DPlatformFamily_macOS)
+			EFileAttrib Attributes = EFileAttrib_None;
+			try
+			{
+				CFile::fs_DeleteFile(_File);
+				return;
+			}
+			catch (CExceptionFile const &)
+			{
+				Attributes = CFile::fs_GetAttributesOnLink(_File);
+#	ifdef DPlatformFamily_Windows
+				if (CFile::fs_IsFileWritable(Attributes))
+					throw;
+#	else
+				if (!(Attributes & EFileAttrib_ReadOnly))
+					throw;
+#	endif
+			}
+
+			// A delete that fails also after the protection is cleared, as in a directory that can't be written, leaves it protected
+			auto RestoreProtection = g_OnScopeExitCatch / [&]
+				{
+#	ifdef DPlatformFamily_Windows
+					if (Attributes & EFileAttrib_Link)
+						CFile::fs_SetAttributesOnLink(_File, Attributes);
+					else
+						CFile::fs_SetAttributes(_File, Attributes);
+#	else
+					CFile::fs_SetAttributesOnLink(_File, Attributes | EFileAttrib_UnixAttributesValid);
+#	endif
+				}
+			;
+
+#	ifdef DPlatformFamily_Windows
+			if (Attributes & EFileAttrib_Link)
+				CFile::fs_SetAttributesOnLink(_File, Attributes & ~EFileAttrib_ReadOnly);
+			else
+				CFile::fs_MakeFileWritable(_File, true);
+#	else
+			// The mode bits are given as they are, so only the flag changes
+			CFile::fs_SetAttributesOnLink(_File, (Attributes & ~EFileAttrib_ReadOnly) | EFileAttrib_UnixAttributesValid);
+#	endif
+
+			CFile::fs_DeleteFile(_File);
+			RestoreProtection.f_Clear();
+#else
+			CFile::fs_DeleteFile(_File);
+#endif
+		}
+	}
+
 	auto CFile::fs_RemoveIncompatible
 		(
 			EFileAttrib _SourceAttribs
@@ -3024,8 +3083,7 @@ namespace NMib::NFile
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
 						bChanged = true;
-						CFile::fs_MakeFileWritable(_Destination, true);
-						CFile::fs_DeleteFile(_Destination);
+						fg_DiffCopyDeleteFile(_Destination);
 					}
 				}
 			}
@@ -3043,8 +3101,7 @@ namespace NMib::NFile
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
 						bChanged = true;
-						CFile::fs_MakeFileWritable(_Destination, true);
-						CFile::fs_DeleteFile(_Destination);
+						fg_DiffCopyDeleteFile(_Destination);
 					}
 				}
 			}
@@ -3061,7 +3118,7 @@ namespace NMib::NFile
 				if (Action == EDiffCopyChangeAction_Perform)
 				{
 					bChanged = true;
-					CFile::fs_DeleteFile(_Destination);
+					fg_DiffCopyDeleteFile(_Destination);
 				}
 			}
 			else if ((Attribs & EFileAttrib_Directory) != (_SourceAttribs & EFileAttrib_Directory))
@@ -3089,8 +3146,7 @@ namespace NMib::NFile
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
 						bChanged = true;
-						CFile::fs_MakeFileWritable(_Destination, true);
-						CFile::fs_DeleteFile(_Destination);
+						fg_DiffCopyDeleteFile(_Destination);
 					}
 				}
 			}
@@ -3123,7 +3179,7 @@ namespace NMib::NFile
 
 				if (Action == EDiffCopyChangeAction_Perform)
 				{
-					CFile::fs_DeleteFile(_Destination);
+					fg_DiffCopyDeleteFile(_Destination);
 					bChanged = true;
 				}
 			}
@@ -3168,8 +3224,7 @@ namespace NMib::NFile
 					if (Action == EDiffCopyChangeAction_Perform)
 					{
 						bChanged = true;
-						CFile::fs_MakeFileWritable(iFile->m_Path, true);
-						CFile::fs_DeleteFile(iFile->m_Path);
+						fg_DiffCopyDeleteFile(iFile->m_Path);
 					}
 				}
 			}
