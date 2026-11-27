@@ -520,7 +520,7 @@ namespace NMib::NFile
 						NewPath = New;
 				}
 			}
-			else if (SubPath == ".")
+			else if (SubPath == "." || SubPath.f_IsEmpty())
 			{
 			}
 			else
@@ -609,7 +609,7 @@ namespace NMib::NFile
 						NewPath = New;
 				}
 			}
-			else if (SubPath == ".")
+			else if (SubPath == "." || SubPath.f_IsEmpty())
 			{
 			}
 			else

@@ -242,6 +242,13 @@ namespace
 			DMibTest(DMibExpr(fs_GetExpandedPath("//Testing/Testing1/Testing2/../Test")) == DMibExpr("//Testing/Testing1/Test"));
 			DMibTest(DMibExpr(fs_GetExpandedPath("//Testing/Testing1/Testing2/")) == DMibExpr("//Testing/Testing1/Testing2"));
 			DMibTest(DMibExpr(fs_GetExpandedPath("//Testing/Testing1//Testing2/")) == DMibExpr("//Testing/Testing1/Testing2"));
+			{
+				DMibTestPath("Expand repeated separators");
+				DMibExpect(CFile::fs_GetExpandedPath(CStr("secrets//../Key.pem"), CStr("/Base")), ==, "/Base/Key.pem");
+				DMibExpect(CFile::fs_GetExpandedPath(CStr("a//b"), CStr("/Base")), ==, "/Base/a/b");
+				DMibExpect(fs_GetExpandedPath("/Fred//../Wilma"), ==, CurrentDrive + "/Wilma");
+				DMibExpect(fs_GetExpandedPath("//Testing/Testing1//../Test"), ==, "//Testing/Test");
+			}
 
 			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma")) == DMibExpr("/Fred/Wilma"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("Fred/Wilma")) == DMibExpr("Fred/Wilma"));
