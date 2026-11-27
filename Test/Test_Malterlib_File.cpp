@@ -247,8 +247,8 @@ namespace
 			DMibTest(DMibExpr(CFile::fs_CondensePath("Fred/Wilma")) == DMibExpr("Fred/Wilma"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/")) == DMibExpr("/Fred/Wilma/"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/BamBam")) == DMibExpr("/Fred/Barney/BamBam"));
-			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/..")) == DMibExpr(""));
-			DMibTest(DMibExpr(CFile::fs_CondensePath("/")) == DMibExpr(""));
+			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/..")) == DMibExpr("/"));
+			DMibTest(DMibExpr(CFile::fs_CondensePath("/")) == DMibExpr("/"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/../BamBam")) == DMibExpr("/Fred/BamBam"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("/Fred/Wilma/../Barney/../BamBam/")) == DMibExpr("/Fred/BamBam/"));
 			DMibTest
@@ -256,6 +256,63 @@ namespace
 					DMibExpr(CFile::fs_CondensePath("Projects/Malterlib/Library/Core/Proj/MSVC/../../../GUI/Malterlib_GUI.h")) == DMibExpr("Projects/Malterlib/Library/GUI/Malterlib_GUI.h")
 				)
 			;
+			{
+				DMibTestPath("Condense keeps spaces");
+				DMibExpect(CFile::fs_CondensePath("dir/ Spaced.txt"), ==, "dir/ Spaced.txt");
+				DMibExpect(CFile::fs_CondensePath("a /b"), ==, "a /b");
+				DMibExpect(CFile::fs_CondensePath("a/ /b"), ==, "a/ /b");
+				DMibExpect(CFile::fs_CondensePath("a/  "), ==, "a/  ");
+				DMibExpect(CFile::fs_CondensePath("a/b /.."), ==, "a");
+				DMibExpect(CFile::fs_CondensePath("a/ /../b"), ==, "a/b");
+				DMibExpect(CFile::fs_CondensePath("a/ ./b/ ../c"), ==, "a/ ./b/ ../c");
+				DMibExpect(CFile::fs_CondensePath("a/./ b/."), ==, "a/ b");
+				DMibExpect(CFile::fs_CondensePath("/ x/"), ==, "/ x/");
+				DMibExpect(CFile::fs_CondensePath("/ x/../ y /"), ==, "/ y /");
+				DMibExpect(CFile::fs_CondensePath("C:/ x/../ y"), ==, "C:/ y");
+				DMibExpect(CFile::fs_CondensePath("a// b//"), ==, "a/ b/");
+#ifdef DPlatformFamily_Windows
+				DMibExpect(CFile::fs_CondensePath("//server/share/ a/.."), ==, "//server/share/");
+				DMibExpect(CFile::fs_CondensePath("//server/ share /x/.."), ==, "//server/ share /");
+#else
+				DMibExpect(CFile::fs_CondensePath("//server/share/ a/.."), ==, "/server/share");
+#endif
+			}
+			{
+				DMibTestPath("Condense keeps .. it can't apply");
+				DMibExpect(CFile::fs_CondensePath(".."), ==, "..");
+				DMibExpect(CFile::fs_CondensePath("../.."), ==, "../..");
+				DMibExpect(CFile::fs_CondensePath("a/../.."), ==, "..");
+				DMibExpect(CFile::fs_CondensePath("a/../../b"), ==, "../b");
+				DMibExpect(CFile::fs_CondensePath("../a/../b"), ==, "../b");
+				DMibExpect(CFile::fs_CondensePath("a/.."), ==, "");
+			}
+			{
+				DMibTestPath("Condense stops .. at the root");
+				DMibExpect(CFile::fs_CondensePath("/.."), ==, "/");
+				DMibExpect(CFile::fs_CondensePath("/a/../.."), ==, "/");
+				DMibExpect(CFile::fs_CondensePath("/../a"), ==, "/a");
+				DMibExpect(CFile::fs_CondensePath("/../a/../../b/"), ==, "/b/");
+				DMibExpect(CFile::fs_CondensePath("/a/../"), ==, "/");
+#ifdef DPlatformFamily_Windows
+				DMibExpect(CFile::fs_CondensePath("C:/../a"), ==, "C:/a");
+				DMibExpect(CFile::fs_CondensePath("C:/a/../.."), ==, "C:/");
+				DMibExpect(CFile::fs_CondensePath("//server/share/.."), ==, "//server/share/");
+				DMibExpect(CFile::fs_CondensePath("//server/share/../other"), ==, "//server/share/other");
+				DMibExpect(CFile::fs_CondensePath("//server/share/a/../../b"), ==, "//server/share/b");
+				DMibExpect(CFile::fs_CondensePath("//?/UNC/server/share/../other"), ==, "//?/UNC/server/share/other");
+				DMibExpect(CFile::fs_CondensePath("//server/share"), ==, "//server/share");
+				DMibExpect(CFile::fs_CondensePath("//server//share/x"), ==, "//server/share/x");
+				DMibExpect(CFile::fs_CondensePath("//server///share//x/.."), ==, "//server/share/");
+				DMibExpect(CFile::fs_CondensePath("//?/UNC/server//share/x"), ==, "//?/UNC/server/share/x");
+				DMibExpect(CFile::fs_CondensePath("//server//share"), ==, "//server/share");
+				DMibExpect(CFile::fs_CondensePath("//server/./share/x"), ==, "//server/share/x");
+				DMibExpect(CFile::fs_CondensePath("//server/.//./share/./x"), ==, "//server/share/x");
+				DMibExpect(CFile::fs_CondensePath("//?/UNC/server/./share"), ==, "//?/UNC/server/share");
+				DMibExpect(CFile::fs_CondensePath("//server/../share/x"), ==, "//server/share/x");
+				DMibExpect(CFile::fs_CondensePath("//server/..//./../share"), ==, "//server/share");
+				DMibExpect(CFile::fs_CondensePath("//server/..share/x"), ==, "//server/..share/x");
+#endif
+			}
 #ifdef DPlatformFamily_Windows
 			DMibTest(DMibExpr(CFile::fs_CondensePath("C:/Fred/Wilma/../Barney/../BamBam/")) == DMibExpr("C:/Fred/BamBam/"));
 			DMibTest(DMibExpr(CFile::fs_CondensePath("C:/Fred/Wilma")) == DMibExpr("C:/Fred/Wilma"));
@@ -276,6 +333,15 @@ namespace
 			DMibTest(DMibExpr(fs_MakePathRelative("//?/C:/Fred/Wilma/BamBam.txt", "C:/Fred/Barney")) == DMibExpr("../Wilma/BamBam.txt"));
 			DMibTest(DMibExpr(fs_MakePathRelative("//?/UNC/MyComp/Fred/Wilma/BamBam.txt", "//?/UNC/MyComp/Fred/Barney")) == DMibExpr("../Wilma/BamBam.txt"));
 			DMibTest(DMibExpr(fs_MakePathRelative("//MyComp/Fred/Wilma/BamBam.txt", "//MyComp/Fred/Barney")) == DMibExpr("../Wilma/BamBam.txt"));
+			// A .. can't leave the share, so a path on another share stays absolute
+			DMibExpect(fs_MakePathRelative("//MyComp/Other/BamBam.txt", "//MyComp/Fred/Barney"), ==, "//MyComp/Other/BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//?/UNC/MyComp/Other/BamBam.txt", "//?/UNC/MyComp/Fred"), ==, "//?/UNC/MyComp/Other/BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//MyComp/Fred/BamBam.txt", "//MyComp/Fred"), ==, "BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//?/UNC/MyComp/Fred/BamBam.txt", "//MyComp/Fred/"), ==, "BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//MyComp//Fred/BamBam.txt", "//MyComp/Fred"), ==, "BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//MyComp/./Fred/BamBam.txt", "//MyComp/Fred/"), ==, "BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//MyComp/../Fred/BamBam.txt", "//?/UNC/MyComp/Fred"), ==, "BamBam.txt");
+			DMibExpect(fs_MakePathRelative("//?/UNC/MyComp//Fred/Wilma/BamBam.txt", "//MyComp/Fred/Barney"), ==, "../Wilma/BamBam.txt");
 #endif
 
 			DMibExpect(fs_GetCommonPath("/Fred/Wilma/BamBam.txt", "/Fred/Barney"), ==, "/Fred");

@@ -33,6 +33,48 @@ namespace NMib::NFile
 		return false;
 	}
 
+#ifdef DPlatformFamily_Windows
+	// Finds the server and share of a network path, //Server/Share/... or //?/UNC/Server/Share/..., which is the root of the path, as .. can't
+	// leave the share. The empty, . and .. components before the share are skipped, as Windows skips them. o_Root is the root spelled with
+	// one separator, //Server/Share/, or //Server/Share for a path that is only the share. Returns where the rest of the path starts, or -1
+	// for a path without a separator after the server
+	template <typename tf_CStr>
+	aint fg_FindNetworkShare(tf_CStr const &_Path, tf_CStr &o_Root)
+	{
+		aint iServer = NStr::fg_StrCmpNoCase(_Path, "//?/UNC/", 8) == 0 ? 8 : 2;
+		aint iServerEnd = NStr::fg_StrFindNoCase(iServer, _Path, "/");
+		if (iServerEnd == -1)
+			return -1;
+
+		aint Len = _Path.f_GetLen();
+		aint iShare = iServerEnd + 1;
+		aint iShareEnd = Len;
+		while (iShare < Len)
+		{
+			aint iSeparator = NStr::fg_StrFindNoCase(iShare, _Path, "/");
+			iShareEnd = iSeparator == -1 ? Len : iSeparator;
+			aint nShare = iShareEnd - iShare;
+			auto const *pShare = _Path.f_GetStr() + iShare;
+			bool bSkip = nShare == 0 || (nShare <= 2 && pShare[0] == '.' && pShare[nShare - 1] == '.');
+			if (!bSkip)
+				break;
+
+			iShare = iShareEnd + 1;
+			iShareEnd = Len;
+		}
+
+		if (iShare > Len)
+			iShare = Len;
+
+		o_Root = _Path.f_Left(iServerEnd + 1) + _Path.f_Extract(iShare, iShareEnd - iShare);
+		if (iShareEnd == Len)
+			return Len;
+
+		o_Root += "/";
+		return iShareEnd + 1;
+	}
+#endif
+
 	// Assumes _Path uses only / deliminators.
 	template <typename tf_CStr>
 	tf_CStr fg_ExtractPathRoot(tf_CStr &_Path)
@@ -41,22 +83,7 @@ namespace NMib::NFile
 			return tf_CStr();
 
 #ifdef DPlatformFamily_Windows
-		if (NStr::fg_StrCmpNoCase(_Path, "//?/UNC/", 8) == 0)
-		{
-			// Long UNC style, network.
-			aint iComputerEnd = NStr::fg_StrFindNoCase(8, _Path, "/");
-
-			if (iComputerEnd != -1)
-			{
-				iComputerEnd += 1;
-				tf_CStr Root = _Path.f_Left(iComputerEnd);
-				_Path = _Path.f_Extract(iComputerEnd);
-				return Root;
-			}
-			else
-				return tf_CStr(); // Malformed.
-		}
-		else if (NStr::fg_StrCmpNoCase(_Path, "//?/", 4) == 0)
+		if (NStr::fg_StrCmpNoCase(_Path, "//?/", 4) == 0 && NStr::fg_StrCmpNoCase(_Path, "//?/UNC/", 8) != 0)
 		{
 			// Long UNC style, local.
 			aint iDriveEnd = NStr::fg_StrFindNoCase(4, _Path, ":/");
@@ -73,18 +100,13 @@ namespace NMib::NFile
 		}
 		else if (NStr::fg_StrCmpNoCase(_Path, "//", 2) == 0)
 		{
-			// Normal UNC style
-			aint iComputerEnd = NStr::fg_StrFindNoCase(2, _Path, "/");
-
-			if (iComputerEnd != -1)
-			{
-				iComputerEnd += 1;
-				tf_CStr Root = _Path.f_Left(iComputerEnd);
-				_Path = _Path.f_Extract(iComputerEnd);
-				return Root;
-			}
-			else
+			tf_CStr Root;
+			aint iRest = fg_FindNetworkShare(_Path, Root);
+			if (iRest == -1)
 				return tf_CStr(); // Malformed.
+
+			_Path = _Path.f_Extract(iRest);
+			return Root;
 		}
 #endif
 
@@ -117,7 +139,7 @@ namespace NMib::NFile
 		, EPathRootType_Network
 	};
 
-	// Assumes delimator is only /
+	// Compares roots as fg_ExtractPathRoot gives them
 	template <typename tf_CStr>
 	bool fg_ComparePathRoots(tf_CStr const &_RootA, tf_CStr const &_RootB)
 	{
@@ -136,15 +158,16 @@ namespace NMib::NFile
 			{
 				_ID.f_Clear();
 
-				if (_Root.f_CmpNoCase("//?/UNC/", 8) == 0)
-				{
-					aint iComputerEnd = NStr::fg_StrFind(8, _Root, "/");
-					if (iComputerEnd == -1)
-						return EPathRootType_None;
+				// The root of a network path, as fg_ExtractPathRoot spells it, is its server and share with one separator
+				auto fNetwork = [&](umint _iServer)
+					{
+						_ID = _Root.f_Extract(_iServer).f_RemoveSuffix("/");
+						return EPathRootType_Network;
+					}
+				;
 
-					_ID = _Root.f_Extract(8, iComputerEnd - 8);
-					return EPathRootType_Network;
-				}
+				if (_Root.f_CmpNoCase("//?/UNC/", 8) == 0)
+					return fNetwork(8);
 				else if (_Root.f_Cmp("//?/", 4) == 0)
 				{
 					aint iDriveEnd = NStr::fg_StrFind(4, _Root, ":/");
@@ -155,14 +178,7 @@ namespace NMib::NFile
 					return EPathRootType_LocalDrive;
 				}
 				else if (_Root.f_Cmp("//", 2) == 0)
-				{
-					aint iComputerEnd = NStr::fg_StrFind(2, _Root, "/");
-					if (iComputerEnd == -1)
-						return EPathRootType_None;
-
-					_ID = _Root.f_Extract(2, iComputerEnd - 2);
-					return EPathRootType_Network;
-				}
+					return fNetwork(2);
 				else
 				{
 					aint iDriveEnd = _Root.f_Find(":/");

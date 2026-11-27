@@ -1941,6 +1941,10 @@ namespace NMib::NFile
 		;
 	}
 
+	// Removes the empty and . components of _Path and the components that a .. after them leaves, keeping its root and a trailing slash. The
+	// other components are kept as they are spelled, spaces included. A .. that has no component before it to leave is kept in a relative
+	// path and dropped at the root of an absolute one, as the kernel resolves it. An absolute path with no component left is its root, and a
+	// relative one is empty
 	NStr::CStr CFile::fs_CondensePath(NStr::CStr const &_Path)
 	{
 		if (_Path.f_IsEmpty())
@@ -1949,103 +1953,77 @@ namespace NMib::NFile
 		NStr::CStr Path = _Path;
 		fg_StrReplaceChar(Path, '\\', '/');
 
-		NStr::CStr Prefix;
-		NStr::CStr Suffix;
+		NStr::CStr Prefix = fg_ExtractPathRoot(Path);
+		bool bTrailingSlash = !Path.f_IsEmpty() && fg_Const(Path)[Path.f_GetLen() - 1] == '/';
 
-		Prefix = fg_ExtractPathRoot(Path);
-
-		// A path that is only its root has nothing left behind it: '/'.
-		if (!Path.f_IsEmpty() && Path[Path.f_GetLen() - 1] == '/')
-			Suffix = "/";
-
-		// TODO: When we have static substring objects this can be boiled down to a couple of allocs.
-
-		NStr::CStr Portion;
+		// The components are spans of Path, which isn't changed after this
 		umint iHead = 0;
 		umint SectionsCharCount = 0;
-		NContainer::TCVector<NStr::CStr> Sections;
+		NContainer::TCVector<NStr::CStrSpan> Sections;
 
-		auto fPush = [&](NStr::CStr &&_Section)
+		auto fIsDotDot = [](NStr::CStrSpan const &_Section)
 			{
-				if (Sections.f_GetLen() == iHead)
-					Sections.f_Insert(fg_Move(_Section));
-				else
-					Sections[iHead] = fg_Move(_Section);
-
-				SectionsCharCount += Sections[iHead].f_GetLen();
-
-				++iHead;
+				return _Section.f_GetLen() == 2 && _Section.f_GetStr()[0] == '.' && _Section.f_GetStr()[1] == '.';
 			}
 		;
 
-		auto fPop = [&]()
+		NStr::CStr::CChar const *pParse = Path.f_GetStr();
+		NStr::CStr::CChar const *pParseEnd = pParse + Path.f_GetLen();
+		while (pParse < pParseEnd)
+		{
+			umint nLeft = pParseEnd - pParse;
+			aint iSeparator = NStr::fg_StrFindCharLengthAware<false>(pParse, '/', nLeft);
+			umint nSection = iSeparator < 0 ? nLeft : umint(iSeparator);
+
+			NStr::CStrSpan Section(pParse, nSection);
+			pParse += nSection + 1;
+
+			if (nSection == 0 || (nSection == 1 && Section.f_GetStr()[0] == '.'))
+				continue;
+
+			if (fIsDotDot(Section))
 			{
-				if (iHead)
+				if (iHead && !fIsDotDot(Sections[iHead - 1]))
 				{
 					--iHead;
 					SectionsCharCount -= Sections[iHead].f_GetLen();
+					continue;
 				}
-			}
-		;
 
-		while (!Path.f_IsEmpty())
-		{
-			Portion = NStr::fg_GetStrSep(Path, "/");
+				if (!Prefix.f_IsEmpty())
+					continue;
+			}
 
-			if (Portion == "..")
-			{
-				if (Sections.f_IsEmpty())
-					fPush(fg_Move(Portion));
-				else
-					fPop();
-			}
-			else if (Portion == "." || Portion.f_IsEmpty())
-			{
-			}
+			if (Sections.f_GetLen() == iHead)
+				Sections.f_Insert(Section);
 			else
-				fPush(fg_Move(Portion));
+				Sections[iHead] = Section;
+
+			SectionsCharCount += Section.f_GetLen();
+			++iHead;
 		}
 
 		if (iHead == 0)
-			return NStr::CStr();
+			return Prefix;
 
 		NStr::CStr Out;
-		umint const nOutChars = Prefix.f_GetLen() + SectionsCharCount + (iHead - 1) + Suffix.f_GetLen();
-		NStr::CStr::CChar *pOut = Out.f_GetStr(nOutChars);
-		NStr::CStr::CChar *pEnd = pOut + nOutChars;
-		(void)pEnd;
-
-		auto fWriteStr = [&](NStr::CStr const &_Str)
-			{
-				umint const nChars = _Str.f_GetLen();
-				umint const nBytes = nChars * sizeof(NStr::CStr::CChar);
-				DMibSafeCheck((pOut + nChars) <= (pOut + nOutChars), "Buffer overrun.");
-				NMemory::fg_MemCopy(pOut, _Str.f_GetStr(), nBytes);
-				pOut += nChars;
-			}
-		;
-
-		if (!Prefix.f_IsEmpty())
-			fWriteStr(Prefix);
-
-		umint iSection = 0;
-		fWriteStr(Sections[iSection]);
-		++iSection;
-
-		for (; iSection < iHead; ++iSection)
+		umint const nOutChars = Prefix.f_GetLen() + SectionsCharCount + (iHead - 1) + (bTrailingSlash ? 1 : 0);
+		Out.f_Reserve(nOutChars);
 		{
-			*pOut = '/';
-			++pOut;
-			fWriteStr(Sections[iSection]);
+			NStr::CStr::CAppender Appender(Out);
+			Appender += Prefix;
+			for (umint iSection = 0; iSection < iHead; ++iSection)
+			{
+				if (iSection)
+					Appender.f_AddChar('/');
+				Appender.f_AddString(Sections[iSection].f_GetStr(), Sections[iSection].f_GetLen());
+			}
+
+			if (bTrailingSlash)
+				Appender.f_AddChar('/');
 		}
 
-		if (!Suffix.f_IsEmpty())
-			fWriteStr(Suffix);
-
-		DMibSafeCheck(pOut == pEnd, "Incorrect string length calculation");
-		*pOut = 0;
-
-		return fg_Move(Out);
+		return Out;
 	}
 
 	CMibFilePos CFile::fs_GetFileSize(NStr::CStr const &_Path)
