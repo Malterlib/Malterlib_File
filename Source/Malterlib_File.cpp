@@ -1168,7 +1168,7 @@ namespace NMib::NFile
 	void CFile::fs_WriteFileSecure(NContainer::CSecureByteVector const &_FileFrom, NStr::CStr const &_FileTo)
 	{
 		CFile OutFile;
-		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll);
+		OutFile.f_Open(_FileTo, EFileOpen_Write | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 		OutFile.f_Write(_FileFrom.f_GetArray(), _FileFrom.f_GetLen());
 	}
 
@@ -2502,7 +2502,7 @@ namespace NMib::NFile
 	void CFile::fs_WriteFileSecure(NStr::CStr const &_Path, NContainer::CSecureByteVector const &_Data)
 	{
 		CFile File;
-		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll);
+		File.f_Open(_Path, EFileOpen_Write | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 		File.f_Write(_Data.f_GetArray(), _Data.f_GetLen());
 	}
 
@@ -2510,7 +2510,7 @@ namespace NMib::NFile
 	{
 		NContainer::CSecureByteVector FileData;
 		CFile File;
-		File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll);
+		File.f_Open(_Path, EFileOpen_Read | EFileOpen_ShareAll | EFileOpen_NoLocalCache);
 		FileData.f_SetLen(File.f_GetLength());
 		File.f_Read(FileData.f_GetArray(), FileData.f_GetLen());
 		return fg_Move(FileData);
