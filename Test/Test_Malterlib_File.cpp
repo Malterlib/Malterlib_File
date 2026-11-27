@@ -1753,6 +1753,64 @@ namespace
 			}
 		};
 
+#ifdef DPlatformFamily_Windows
+		// The watcher keeps the names of the directories it tracks as they are spelled, so a renamed directory reports its files by their names
+		DMibTestSuite("Notification names keep spaces")
+		{
+			if (!CFileChangeNotification::fs_Supported())
+				return;
+
+			CStr WatchDir = CFile::fs_GetProgramDirectory() / "FileTestNotificationNames";
+			if (CFile::fs_FileExists(WatchDir))
+				CFile::fs_DeleteDirectoryRecursive(WatchDir);
+			CFile::fs_CreateDirectory(WatchDir);
+			fg_TestAddCleanupPath(WatchDir);
+
+			NThread::CEventAutoReset Event;
+			CFileChangeNotification FileChangeNotification;
+			FileChangeNotification.f_Open(WatchDir, EFileChange_Recursive | EFileChange_FileName | EFileChange_DirectoryName, &Event);
+
+			auto fWaitFor = [&](auto &&_fMatches)
+				{
+					for (;;)
+					{
+						CFileChangeNotification::CNotification Notification;
+						while (!FileChangeNotification.f_GetNotification(Notification))
+							DMibExpectFalse(Event.f_WaitTimeout(10.0))(ETest_FailAndStop)(ETestFlag_Aggregated);
+
+						if (_fMatches(Notification))
+							return Notification;
+					}
+				}
+			;
+
+			CFile::fs_CreateDirectory(WatchDir / " Spaced");
+			CFile::fs_WriteStringToFile(WatchDir / " Spaced/Inner.txt", "Inner", false);
+			fWaitFor
+				(
+					[](CFileChangeNotification::CNotification const &_Notification)
+					{
+						return _Notification.m_Path == " Spaced/Inner.txt";
+					}
+				)
+			;
+
+			CFile::fs_RenameFile(WatchDir / " Spaced", WatchDir / "Renamed");
+			auto Renamed = fWaitFor
+				(
+					[](CFileChangeNotification::CNotification const &_Notification)
+					{
+						return _Notification.m_Notification == EFileChangeNotification_Renamed && _Notification.m_PathFrom.f_EndsWith("Inner.txt");
+					}
+				)
+			;
+			DMibExpect(Renamed.m_PathFrom, ==, " Spaced/Inner.txt");
+			DMibExpect(Renamed.m_Path, ==, "Renamed/Inner.txt");
+
+			FileChangeNotification.f_Close();
+		};
+#endif
+
 #ifdef DPlatformFamily_macOS
 		// /tmp resolves to /private/tmp, so the events name a root the watcher was never given
 		DMibTestSuite("Path hints under an aliased root")
